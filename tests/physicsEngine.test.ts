@@ -52,15 +52,15 @@ describe('physicsEngine', () => {
     expect(bouncedTop.vy).toBeGreaterThan(0);
   });
 
-  it('triggers spin boost and Ura!/Yaha! speech bubble on hover/click interaction', () => {
+  it('triggers spin boost and Una!/Bryy! speech bubble on hover/click interaction', () => {
     const initial = createInitialUsagiState(screen);
     const s0 = triggerUsagiInteraction(initial, 0);
-    expect(s0.speechBubble).toBe('Ura!');
+    expect(s0.speechBubble).toBe('Una!');
     expect(s0.spinBoostTimerMs).toBeGreaterThan(0);
     expect(Math.abs(s0.angularVelocity)).toBeGreaterThan(5);
 
     const s1 = triggerUsagiInteraction(initial, 1);
-    expect(s1.speechBubble).toBe('Yaha!');
+    expect(s1.speechBubble).toBe('Bryy!');
   });
 
   it('triggers combo-click super-spin tornado when clicked 3+ times in rapid succession', () => {
@@ -100,7 +100,7 @@ describe('physicsEngine', () => {
     }
     expect(consumed).toBe(true);
     expect(state.snacksEaten).toBe(1);
-    expect(state.speechBubble).toBe('Yaha!');
+    expect(state.speechBubble).toBe('Unayahayahauna!');
   });
 
   it('steers toward cursorTarget when Play Mode is active and no snack is present', () => {

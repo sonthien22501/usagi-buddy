@@ -59,7 +59,7 @@ export const DEFAULT_PHYSICS_CONFIG: PhysicsConfig = {
 };
 
 export const UPRIGHT_SPRITE_INDEX = 2; // Usagi3.png
-export const USAGI_SPEECH_PHRASES = ['Ura!', 'Yaha!', 'Haa?!', 'Una!'] as const;
+export const USAGI_SPEECH_PHRASES = ['Una!', 'Bryy!', 'Urararusk!', 'Wuuulaaaa!'] as const;
 
 export function createInitialUsagiState(
   screen: ScreenBounds,
@@ -281,7 +281,7 @@ export function stepUsagiPhysics(
     if (distToSnack <= consumeDist) {
       snackConsumed = true;
       snacksEaten += 1;
-      speechBubble = 'Yaha!';
+      speechBubble = 'Unayahayahauna!';
       speechTimerMs = cfg.speechDurationMs;
     }
   }

@@ -5,14 +5,15 @@ export interface DailyStats {
 }
 
 export interface WellnessConfig {
-  readonly reminderIntervalMs: number;
+  readonly reminderMinMs: number;
+  readonly reminderMaxMs: number;
   readonly afkThresholdSeconds: number;
 }
 
 export interface WellnessState {
   activeScreenMs: number;
   mood: 'active' | 'sleeping';
-  reminderIndex: number;
+  nextReminderAtMs: number;
   stats: DailyStats;
 }
 
@@ -24,21 +25,26 @@ export interface WellnessTickResult {
 }
 
 export const DEFAULT_WELLNESS_CONFIG: WellnessConfig = {
-  reminderIntervalMs: 30 * 60 * 1000, // 30 minutes
+  reminderMinMs: 1_800_000, // 30 minutes
+  reminderMaxMs: 2_400_000, // 40 minutes
   afkThresholdSeconds: 120, // 2 minutes
 };
 
-export const GENTLE_WELLNESS_MESSAGES: readonly string[] = [
-  '💧 Una! Sip some water~',
-  '👀 Yaha! Rest your eyes for a bit~',
-  '🧘 Ura~ Little stretch if you want!',
-] as const;
+export const WATER_REMINDER_MESSAGE = '💧 Huhhhh? Sip some water~';
 
-export function createWellnessState(): WellnessState {
+export function drawReminderIntervalMs(
+  rng: () => number = Math.random,
+  config: Partial<WellnessConfig> = DEFAULT_WELLNESS_CONFIG
+): number {
+  const cfg = { ...DEFAULT_WELLNESS_CONFIG, ...config };
+  return cfg.reminderMinMs + rng() * (cfg.reminderMaxMs - cfg.reminderMinMs);
+}
+
+export function createWellnessState(rng: () => number = Math.random): WellnessState {
   return {
     activeScreenMs: 0,
     mood: 'active',
-    reminderIndex: 0,
+    nextReminderAtMs: drawReminderIntervalMs(rng),
     stats: {
       snacksFed: 0,
       pomodorosCompleted: 0,
@@ -75,9 +81,11 @@ export function tickWellnessCoach(
   state: WellnessState,
   elapsedMs: number,
   systemIdleSeconds: number,
-  config?: Partial<WellnessConfig>
+  config?: Partial<WellnessConfig>,
+  rng?: () => number
 ): WellnessTickResult {
   const cfg = { ...DEFAULT_WELLNESS_CONFIG, ...config };
+  const rand = rng ?? Math.random;
   const isIdle = systemIdleSeconds >= cfg.afkThresholdSeconds;
 
   if (state.mood === 'active') {
@@ -97,19 +105,17 @@ export function tickWellnessCoach(
     // Active screen time accumulation
     const nextActiveMs = state.activeScreenMs + Math.max(0, elapsedMs);
 
-    if (nextActiveMs >= cfg.reminderIntervalMs) {
-      const reminderMessage =
-        GENTLE_WELLNESS_MESSAGES[state.reminderIndex % GENTLE_WELLNESS_MESSAGES.length];
-      const nextReminderIndex = state.reminderIndex + 1;
+    if (nextActiveMs >= state.nextReminderAtMs) {
+      const nextState: WellnessState = {
+        ...state,
+        activeScreenMs: 0,
+        nextReminderAtMs: drawReminderIntervalMs(rand, cfg),
+      };
 
       // Immediately reset activeScreenMs to 0 so it never nags repeatedly
       return {
-        state: {
-          ...state,
-          activeScreenMs: 0,
-          reminderIndex: nextReminderIndex,
-        },
-        reminderMessage,
+        state: nextState,
+        reminderMessage: WATER_REMINDER_MESSAGE,
         enteredSleep: false,
         welcomeBack: false,
       };
@@ -134,6 +140,7 @@ export function tickWellnessCoach(
         ...state,
         mood: 'active',
         activeScreenMs: 0,
+        nextReminderAtMs: drawReminderIntervalMs(rand, cfg),
         stats: {
           ...state.stats,
           breaksTaken: state.stats.breaksTaken + 1,

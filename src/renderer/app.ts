@@ -56,7 +56,7 @@ let activeSnack: SnackTarget | null = null;
 let cursorPos: Vector2D | null = null;
 const processedFrames: ProcessedFrame[] = [];
 
-function playSound(event: SoundEvent): void {
+function playSound(event: SoundEvent): string | null {
   const now = performance.now();
   const result = selectSoundForEvent(soundState, event, now, '../../assets');
   soundState = result.state;
@@ -77,6 +77,8 @@ function playSound(event: SoundEvent): void {
       // Audio playback handles errors gracefully
     }
   }
+
+  return result.text;
 }
 
 function updateMouseIgnoreState(): void {
@@ -119,9 +121,11 @@ window.addEventListener('pointerdown', (e: MouseEvent) => {
 
   const distToUsagi = Math.hypot(e.clientX - state.x, e.clientY - state.y);
   if (distToUsagi <= DEFAULT_PHYSICS_CONFIG.spriteRadius * 1.25) {
+    const prev = state.speechBubble;
     state = triggerUsagiInteraction(state);
     const soundEvent: SoundEvent = state.comboClicks >= 3 ? 'click-combo' : 'click-normal';
-    playSound(soundEvent);
+    const text = playSound(soundEvent);
+    state.speechBubble = text ?? prev ?? state.speechBubble;
     updateMouseIgnoreState();
   }
 });
@@ -150,7 +154,12 @@ if (window.usagiAPI) {
       state.speechTimerMs = DEFAULT_PHYSICS_CONFIG.speechDurationMs * 2.2;
     }
     if (payload.soundEvent) {
-      playSound(payload.soundEvent);
+      const text = playSound(payload.soundEvent);
+      if (text) {
+        // Reminder keeps the full payload message (already contains the voice word); other events use the returned voice text
+        state.speechBubble =
+          payload.soundEvent === 'wellness-reminder' && payload.message ? payload.message : text;
+      }
     }
   });
 
@@ -159,9 +168,11 @@ if (window.usagiAPI) {
   });
 
   window.usagiAPI.onTriggerInteraction(() => {
+    const prev = state.speechBubble;
     state = triggerUsagiInteraction(state);
     const soundEvent: SoundEvent = state.comboClicks >= 3 ? 'click-combo' : 'click-normal';
-    playSound(soundEvent);
+    const text = playSound(soundEvent);
+    state.speechBubble = text ?? prev ?? state.speechBubble;
   });
 }
 
@@ -361,7 +372,10 @@ function animationLoop(now: number): void {
 
   if (result.snackConsumed && activeSnack) {
     activeSnack = null;
-    playSound('snack-eaten');
+    const text = playSound('snack-eaten');
+    if (text) {
+      state.speechBubble = text;
+    }
     window.usagiAPI?.notifySnackConsumed();
   }
 

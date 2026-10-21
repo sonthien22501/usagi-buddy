@@ -34,50 +34,76 @@ export function resolveSoundAssetUrl(filename: string, baseDir: string = '../../
   return `${normalizedBase}/${encodedFilename}`;
 }
 
+export function voiceTextForFile(file: string): string {
+  const base = file.replace(/\.mp3$/, '');
+  const capitalized = base.charAt(0).toUpperCase() + base.slice(1);
+  return capitalized.endsWith('?') ? capitalized : `${capitalized}!`;
+}
+
+function resolveClipFile(
+  state: SoundState,
+  event: SoundEvent
+): { file: string; nextNormalCounter: number; nextComboCounter: number } {
+  switch (event) {
+    case 'click-normal': {
+      const normalClips = ['una.mp3', 'bryy.mp3'] as const;
+      return {
+        file: normalClips[state.normalClickCounter % normalClips.length],
+        nextNormalCounter: state.normalClickCounter + 1,
+        nextComboCounter: state.comboClickCounter,
+      };
+    }
+    case 'click-combo': {
+      const comboClips = ['urararusk.mp3', 'wuuulaaaa.mp3'] as const;
+      return {
+        file: comboClips[state.comboClickCounter % comboClips.length],
+        nextNormalCounter: state.normalClickCounter,
+        nextComboCounter: state.comboClickCounter + 1,
+      };
+    }
+    case 'snack-eaten':
+    case 'welcome-back':
+      return {
+        file: 'unayahayahauna.mp3',
+        nextNormalCounter: state.normalClickCounter,
+        nextComboCounter: state.comboClickCounter,
+      };
+    case 'wellness-reminder':
+      return {
+        file: 'huhhhh?.mp3',
+        nextNormalCounter: state.normalClickCounter,
+        nextComboCounter: state.comboClickCounter,
+      };
+  }
+}
+
 export function selectSoundForEvent(
   state: SoundState,
   event: SoundEvent,
   nowMs: number,
   baseDir: string = '../../assets'
-): { state: SoundState; file: string | null; url: string | null } {
-  // Mute gate: silent when muted
+): { state: SoundState; file: string | null; url: string | null; text: string | null } {
+  // Mute gate: resolve the voice line for the bubble text but stay silent
   if (state.muted) {
-    return { state, file: null, url: null };
+    const { file, nextNormalCounter, nextComboCounter } = resolveClipFile(state, event);
+    return {
+      state: {
+        ...state,
+        normalClickCounter: nextNormalCounter,
+        comboClickCounter: nextComboCounter,
+      },
+      file,
+      url: null,
+      text: voiceTextForFile(file),
+    };
   }
 
   // Cooldown throttle: prevent overlapping sound spam
   if (state.lastPlayedAtMs >= 0 && nowMs - state.lastPlayedAtMs < state.cooldownMs) {
-    return { state, file: null, url: null };
+    return { state, file: null, url: null, text: null };
   }
 
-  let file: string;
-  let nextNormalCounter = state.normalClickCounter;
-  let nextComboCounter = state.comboClickCounter;
-
-  switch (event) {
-    case 'click-normal': {
-      const normalClips = ['una.mp3', 'bryy.mp3'] as const;
-      file = normalClips[state.normalClickCounter % normalClips.length];
-      nextNormalCounter++;
-      break;
-    }
-    case 'click-combo': {
-      const comboClips = ['urararusk.mp3', 'wuuulaaaa.mp3'] as const;
-      file = comboClips[state.comboClickCounter % comboClips.length];
-      nextComboCounter++;
-      break;
-    }
-    case 'snack-eaten':
-    case 'welcome-back': {
-      file = 'unayahayahauna.mp3';
-      break;
-    }
-    case 'wellness-reminder': {
-      file = 'huhhhh?.mp3';
-      break;
-    }
-  }
-
+  const { file, nextNormalCounter, nextComboCounter } = resolveClipFile(state, event);
   const url = resolveSoundAssetUrl(file, baseDir);
 
   return {
@@ -89,5 +115,6 @@ export function selectSoundForEvent(
     },
     file,
     url,
+    text: voiceTextForFile(file),
   };
 }

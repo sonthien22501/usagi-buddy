@@ -25,11 +25,11 @@ import { ScreenBounds } from '../core/physicsEngine';
 import {
   createWellnessState,
   formatStatsTrayLabel,
-  GENTLE_WELLNESS_MESSAGES,
   recordPomodoroCompleted,
   recordSnackFed,
   tickWellnessCoach,
   WellnessState,
+  WATER_REMINDER_MESSAGE,
 } from '../core/wellnessCoach';
 
 let mainWindow: BrowserWindow | null = null;
@@ -70,7 +70,7 @@ function updateTrayMenu(): void {
     },
     { type: 'separator' },
     {
-      label: '🪄 Play Mode (Follow Cursor)',
+      label: '🪄 Play Mode',
       type: 'checkbox',
       checked: playModeEnabled,
       accelerator: 'CommandOrControl+Shift+P',
@@ -83,9 +83,7 @@ function updateTrayMenu(): void {
       click: () => toggleSoundMute(),
     },
     {
-      label: ghostLocked
-        ? '👻 Disable Ghost Mode (Interactive)'
-        : '👻 Enable Ghost Mode (Click-Through)',
+      label: ghostLocked ? '👻 Disable Ghost Mode' : '👻 Enable Ghost Mode',
       accelerator: 'CommandOrControl+Shift+G',
       click: () => toggleGhostMode(),
     },
@@ -115,7 +113,7 @@ function updateTrayMenu(): void {
       },
     },
     {
-      label: '💧 Cute Break Reminder (Preview)',
+      label: '💧 Water Reminder',
       click: () => {
         triggerPreviewWellnessReminder();
       },
@@ -165,15 +163,9 @@ function dropSnackNow(): void {
 
 function triggerPreviewWellnessReminder(): void {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  const msg =
-    GENTLE_WELLNESS_MESSAGES[wellnessState.reminderIndex % GENTLE_WELLNESS_MESSAGES.length];
-  wellnessState = {
-    ...wellnessState,
-    reminderIndex: wellnessState.reminderIndex + 1,
-  };
   mainWindow.webContents.send('wellness-update', {
     mood: wellnessState.mood,
-    message: msg,
+    message: WATER_REMINDER_MESSAGE,
     soundEvent: 'wellness-reminder',
   });
   updateTrayMenu();

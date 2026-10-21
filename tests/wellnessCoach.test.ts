@@ -2,20 +2,23 @@ import { describe, expect, it } from 'vitest';
 import {
   createWellnessState,
   DEFAULT_WELLNESS_CONFIG,
+  drawReminderIntervalMs,
   formatStatsTrayLabel,
-  GENTLE_WELLNESS_MESSAGES,
+  WATER_REMINDER_MESSAGE,
   recordPomodoroCompleted,
   recordSnackFed,
   tickWellnessCoach,
 } from '../src/core/wellnessCoach';
 
 describe('wellnessCoach', () => {
-  it('accumulates activeScreenMs while active and emits gentle reminder every 30 minutes, immediately resetting activeScreenMs to avoid nagging (Review Focus #3)', () => {
-    let state = createWellnessState();
+  it('accumulates activeScreenMs while active and emits the water reminder within the randomized 30-40 minute interval, immediately resetting activeScreenMs to avoid nagging (Review Focus #3)', () => {
+    let state = createWellnessState(() => 0);
     expect(state.activeScreenMs).toBe(0);
     expect(state.mood).toBe('active');
+    // First reminder interval is drawn from rng (here: minimum -> 30 min)
+    expect(state.nextReminderAtMs).toBe(DEFAULT_WELLNESS_CONFIG.reminderMinMs);
 
-    // Tick 29 minutes while active (system idle = 5s < 120s)
+    // Tick 29 minutes while active (system idle = 5s < 120s) -> no reminder yet
     const twentyNineMins = 29 * 60 * 1000;
     const res1 = tickWellnessCoach(state, twentyNineMins, 5);
     state = res1.state;
@@ -23,36 +26,42 @@ describe('wellnessCoach', () => {
     expect(res1.reminderMessage).toBeNull();
     expect(res1.enteredSleep).toBe(false);
 
-    // Tick another 2 minutes (exceeding 30 min interval)
+    // Tick past the drawn interval -> emits the water reminder and IMMEDIATELY resets activeScreenMs
     const twoMins = 2 * 60 * 1000;
-    const res2 = tickWellnessCoach(state, twoMins, 5);
+    const res2 = tickWellnessCoach(state, twoMins, 5, undefined, () => 0.5);
     state = res2.state;
 
-    // Emits message and IMMEDIATELY resets activeScreenMs to 0
-    expect(res2.reminderMessage).toBe(GENTLE_WELLNESS_MESSAGES[0]);
+    expect(res2.reminderMessage).toBe(WATER_REMINDER_MESSAGE);
     expect(state.activeScreenMs).toBe(0);
+    // Next reminder interval is redrawn from the passed rng (here: () => 0.5 -> 35 min)
+    expect(state.nextReminderAtMs).toBe(2_100_000);
 
     // Immediate next tick does not nag again
-    const res3 = tickWellnessCoach(state, 5000, 5);
+    const res3 = tickWellnessCoach(state, 5_000, 5, undefined, () => 0.5);
     expect(res3.reminderMessage).toBeNull();
-    expect(res3.state.activeScreenMs).toBe(5000);
+    expect(res3.state.activeScreenMs).toBe(5_000);
   });
 
-  it('cycles through gentle wellness messages on subsequent reminders', () => {
-    let state = createWellnessState();
-    const halfHour = DEFAULT_WELLNESS_CONFIG.reminderIntervalMs;
+  it('draws randomized water reminder intervals within the 30-40 minute bounds', () => {
+    expect(drawReminderIntervalMs(() => 0)).toBe(1_800_000);
+    expect(drawReminderIntervalMs(() => 0.5)).toBe(2_100_000);
+    expect(drawReminderIntervalMs(() => 1)).toBe(2_400_000);
+  });
 
-    const r1 = tickWellnessCoach(state, halfHour, 10);
-    expect(r1.reminderMessage).toBe(GENTLE_WELLNESS_MESSAGES[0]);
+  it('emits the water reminder once per randomized interval and redraws the next one', () => {
+    let state = createWellnessState(() => 0);
 
-    const r2 = tickWellnessCoach(r1.state, halfHour, 10);
-    expect(r2.reminderMessage).toBe(GENTLE_WELLNESS_MESSAGES[1]);
+    const r1 = tickWellnessCoach(state, 1_799_999, 5);
+    expect(r1.reminderMessage).toBeNull();
 
-    const r3 = tickWellnessCoach(r2.state, halfHour, 10);
-    expect(r3.reminderMessage).toBe(GENTLE_WELLNESS_MESSAGES[2]);
+    const r2 = tickWellnessCoach(r1.state, 1, 5, undefined, () => 0.5);
+    expect(r2.reminderMessage).toBe(WATER_REMINDER_MESSAGE);
+    expect(r2.state.nextReminderAtMs).toBe(2_100_000);
 
-    const r4 = tickWellnessCoach(r3.state, halfHour, 10);
-    expect(r4.reminderMessage).toBe(GENTLE_WELLNESS_MESSAGES[0]);
+    // Subsequent reminder fires again with the same water message and redraws the interval
+    const r3 = tickWellnessCoach(r2.state, 2_100_000, 5, undefined, () => 0.5);
+    expect(r3.reminderMessage).toBe(WATER_REMINDER_MESSAGE);
+    expect(r3.state.nextReminderAtMs).toBe(2_100_000);
   });
 
   it('enters sleep mode after 2 minutes of OS idle and halts activeScreenMs accumulation (Review Focus #4)', () => {
@@ -81,11 +90,13 @@ describe('wellnessCoach', () => {
     };
 
     // User moves mouse: system idle drops to 2s (< 120s)
-    const res = tickWellnessCoach(state, 5000, 2);
+    const res = tickWellnessCoach(state, 5000, 2, undefined, () => 0.5);
     expect(res.welcomeBack).toBe(true);
     expect(res.state.mood).toBe('active');
     expect(res.state.activeScreenMs).toBe(0);
     expect(res.state.stats.breaksTaken).toBe(1);
+    // Waking from AFK redraws the next reminder interval from rng
+    expect(res.state.nextReminderAtMs).toBe(2_100_000);
   });
 
   it('accurately records snacks, pomodoros, and formats daily stats for tray label', () => {
