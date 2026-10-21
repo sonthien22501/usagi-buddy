@@ -1,10 +1,10 @@
-# Usagi Float — Architecture Cache
+# Usagi Float — Architecture Cache (v0.2)
 
 ## 1. System Overview & Tech Stack
 - **Product**: Cross-platform (macOS + Windows) frameless, transparent, always-on-top desktop companion ("Usagi Float").
-- **Runtime & UI**: Electron + TypeScript + HTML5 2D Canvas (full-screen overlay with per-pixel `setIgnoreMouseEvents(true, { forward: true })` hit-testing).
-- **Bundler & Compiler**: `typescript` (`tsc --noEmit`) + `esbuild` (bundles main, preload, and renderer).
-- **Test & Format**: `vitest` (unit + integration tests) + `prettier`.
+- **Runtime & UI**: Electron + TypeScript + HTML5 2D Canvas (60 FPS continuous kick-and-glide swimming transforms, Web Audio MP3 playback, per-pixel `setIgnoreMouseEvents(true, { forward: true })` hit-testing).
+- **Bundler & Compiler**: `typescript` (`tsc --noEmit`) + `esbuild` (bundles main, preload, renderer, and copies `.png` + `.mp3` assets).
+- **Test & Format**: `vitest` (unit + asset integration tests) + `prettier`.
 
 ## 2. Exact Commands (Law 1 & Law 2 Quiet Flags)
 - **Typecheck**: `npx --no-install -p typescript tsc --noEmit --pretty false`
@@ -16,36 +16,41 @@
 ```
 usagi-buddy/
 ├── assets/
-│   └── Usagi1.png .. Usagi6.png   # 1170x1560 RGBA sprites with offset Usagi frames
+│   ├── Usagi1.png .. Usagi6.png   # 1170x1560 RGBA sprites (Usagi3.png upright primary sprite)
+│   └── *.mp3                      # una, bryy, huhhhh?, urararusk, unayahayahauna, wuuulaaaa
 ├── src/
 │   ├── core/
 │   │   ├── alphaCropper.ts        # Alpha bounding-box scanner & auto-trimmer
-│   │   ├── physicsEngine.ts       # 6-frame animation, floating physics, bounces, snack steering, spin/speech
+│   │   ├── physicsEngine.ts       # 60fps kick-and-glide swimming, squash/stretch, cursor follow, combo spin
 │   │   ├── ghostModeController.ts # Smart click-through & interactive hit-box forwarding logic
-│   │   └── pomodoroTimer.ts       # 25-min study countdown & snack drop generator
+│   │   ├── pomodoroTimer.ts       # 25-min study countdown & snack drop generator
+│   │   ├── soundManager.ts        # Event-to-MP3 mapper, URL-safe encoder (huhhhh%3F.mp3), mute & cooldown
+│   │   └── wellnessCoach.ts       # Gentle 30m break reminder, 2m AFK sleep mode, & daily tray stats
 │   ├── main/
-│   │   └── index.ts               # Electron Main: overlay BrowserWindow, Tray menu, global hotkey, IPC
+│   │   └── index.ts               # Electron Main: overlay window, Tray stats/toggles, powerMonitor idle poll
 │   ├── preload/
 │   │   └── index.ts               # Electron contextBridge (`window.usagiAPI`)
 │   └── renderer/
-│       ├── index.html             # Transparent full-screen overlay canvas & speech bubble UI
-│       └── app.ts                 # Sprite loader, alpha-trim pipeline, 60fps loop, pointer hit forwarding
+│       ├── index.html             # Transparent full-screen overlay canvas
+│       └── app.ts                 # Upright sprite renderer, 60fps swim transforms, Audio player, IPC handlers
 └── tests/
-    ├── alphaCropper.test.ts       # Bounding box, offset centering, empty canvas fallback tests
-    ├── physicsEngine.test.ts      # Frame loop, wall bounce, dt clamping, snack eating, spin/speech tests
-    ├── ghostModeController.test.ts# Ghost Mode lock vs dynamic hit-box click-through tests
-    └── pomodoroTimer.test.ts      # 25-min timer state machine, MM:SS formatting, clamped snack drop tests
+    ├── alphaCropper.test.ts
+    ├── physicsEngine.test.ts
+    ├── ghostModeController.test.ts
+    ├── pomodoroTimer.test.ts
+    ├── soundManager.test.ts
+    ├── wellnessCoach.test.ts
+    └── assetsIntegration.test.ts
 ```
 
 ## 4. Core Data Contracts
-- `RGBAImageData`: `{ width: number; height: number; data: Uint8ClampedArray | Uint8Array }`
-- `BoundingBox`: `{ minX, minY, maxX, maxY, width, height, centerX, centerY }`
-- `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, frameIndex, frameTimerMs, spinBoostTimerMs, speechBubble, speechTimerMs, scaleFlipX, snacksEaten }`
-- `PomodoroState`: `{ phase: 'idle' | 'running' | 'paused' | 'completed'; remainingMs: number; durationMs: number; completedCount: number }`
+- `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping }`
+- `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', reminderIndex, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
+- `SoundEvent`: `'click-normal' | 'click-combo' | 'snack-eaten' | 'wellness-reminder' | 'welcome-back'`
 
 ## 5. Milestone Progress Checklist
-- [x] Task 1: Project Scaffolding & Alpha Bounding-Box Auto-Cropper (`src/core/alphaCropper.ts`)
-- [x] Task 2: 6-Frame Swimming Physics, Wall Bounces, Snack Seeking & Interactive Spin/Speech (`src/core/physicsEngine.ts`)
-- [x] Task 3: Smart Click-Through ("Ghost Mode") & Hit-Box Forwarding (`src/core/ghostModeController.ts`)
-- [x] Task 4: 25-Minute Pomodoro Study Timer & Snack Spawner (`src/core/pomodoroTimer.ts`)
-- [x] Task 5: Electron Main, System Tray, Preload Bridge & HTML5 Overlay Renderer (`src/main/`, `src/preload/`, `src/renderer/`)
+- [x] M1 (MVP): Alpha Cropper, Basic Physics, Ghost Mode, 25m Pomodoro, Electron Shell
+- [ ] M2 Task 1: 60 FPS Organic Kick-and-Glide Swimming, Squash/Stretch, Combo Spin & Cursor Follow (`src/core/physicsEngine.ts`)
+- [ ] M2 Task 2: Sound Effect Mapper, URL-Safe Encoder (`huhhhh?.mp3`) & Mute/Cooldown (`src/core/soundManager.ts`)
+- [ ] M2 Task 3: Gentle Non-Intrusive Wellness Reminder, AFK Sleep Mode & Daily Stats (`src/core/wellnessCoach.ts`)
+- [ ] M2 Task 4: Build Script MP3 Sync, Electron Main Tray/Idle Integration & 60 FPS Renderer (`scripts/build.mjs`, `src/main/`, `src/preload/`, `src/renderer/`)
