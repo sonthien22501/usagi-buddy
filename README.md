@@ -19,7 +19,7 @@ A cute, transparent, always-on-top cross-platform desktop companion for macOS an
 
 ## 📥 Download & Install
 
-Check the [**Releases**](https://github.com/REPLACE_WITH_YOUR_REPO/releases) page for the latest pre-built packages:
+Check the [**Releases**](https://github.com/sonthien22501/usagi-buddy/releases) page for the latest pre-built packages:
 
 - **macOS**: Download `Usagi-Float-...-arm64.dmg` or `.zip`.
   > *First launch note*: Right-click (Control-click) `Usagi Float.app` ➔ **Open** to approve indie developer Gatekeeper prompt once.
@@ -29,8 +29,16 @@ Check the [**Releases**](https://github.com/REPLACE_WITH_YOUR_REPO/releases) pag
 
 ## ☕ Support & Donations
 
-If you like having Usagi on your desktop, consider supporting the creator:
+If you like having Usagi on your desktop, consider supporting the developer:
 
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Usagi-orange?logo=kofi&logoColor=white)](https://ko-fi.com/rodannguyen)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Developer-orange?logo=kofi&logoColor=white)](https://ko-fi.com/rodannguyen)
 
 You can also click **"☕ Buy Usagi a Coffee..."** right inside the app's System Tray menu!
+
+---
+
+## ⚖️ Disclaimer
+
+This is an **unofficial, non-commercial fan-made project** created solely for study and personal entertainment. 
+
+All character designs, visual assets, and voice sounds associated with **Usagi / Chiikawa (ちいかわ)** belong to their original author **© Nagano (ナガノ)** and respective copyright holders. No copyright or trademark infringement is intended. If you are a rights holder and would like this fan project removed, please open an issue or contact the maintainer.
