@@ -19,10 +19,10 @@ async function build() {
     path.join(rootDir, 'dist/renderer/index.html')
   );
 
-  // Copy assets
+  // Copy PNG and MP3 assets
   const assetFiles = fs.readdirSync(path.join(rootDir, 'assets'));
   for (const file of assetFiles) {
-    if (file.endsWith('.png')) {
+    if (file.endsWith('.png') || file.endsWith('.mp3')) {
       fs.copyFileSync(
         path.join(rootDir, 'assets', file),
         path.join(rootDir, 'dist/assets', file)

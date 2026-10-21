@@ -22,13 +22,18 @@ export interface UsagiState {
   vy: number;
   rotation: number;
   angularVelocity: number;
+  swimPhaseRad: number;
+  scaleX: number;
+  scaleY: number;
   frameIndex: number;
   frameTimerMs: number;
   spinBoostTimerMs: number;
+  comboClicks: number;
   speechBubble: string | null;
   speechTimerMs: number;
   scaleFlipX: 1 | -1;
   snacksEaten: number;
+  sleeping: boolean;
 }
 
 export interface PhysicsConfig {
@@ -53,6 +58,7 @@ export const DEFAULT_PHYSICS_CONFIG: PhysicsConfig = {
   speechDurationMs: 1800,
 };
 
+export const UPRIGHT_SPRITE_INDEX = 2; // Usagi3.png
 export const USAGI_SPEECH_PHRASES = ['Ura!', 'Yaha!', 'Haa?!', 'Una!'] as const;
 
 export function createInitialUsagiState(
@@ -73,13 +79,18 @@ export function createInitialUsagiState(
     vy: cfg.baseSpeed * 0.5,
     rotation: 0,
     angularVelocity: 0,
-    frameIndex: 0,
+    swimPhaseRad: 0,
+    scaleX: 1,
+    scaleY: 1,
+    frameIndex: UPRIGHT_SPRITE_INDEX,
     frameTimerMs: 0,
     spinBoostTimerMs: 0,
+    comboClicks: 0,
     speechBubble: null,
     speechTimerMs: 0,
     scaleFlipX: 1,
     snacksEaten: 0,
+    sleeping: false,
   };
 }
 
@@ -94,15 +105,28 @@ export function triggerUsagiInteraction(
       ? Math.abs(phraseIndex) % USAGI_SPEECH_PHRASES.length
       : Math.floor(Math.random() * USAGI_SPEECH_PHRASES.length);
 
+  // Combo clicks detection
+  const isSpinning = state.spinBoostTimerMs > 0;
+  const comboClicks = isSpinning ? state.comboClicks + 1 : 1;
+  const isSuperSpin = comboClicks >= 3;
+
+  const angularVelocity = isSuperSpin
+    ? cfg.spinBoostAngularVelocity * 1.65 // ~20.6 rad/s
+    : cfg.spinBoostAngularVelocity;
+
+  const spinBoostDurationMs = isSuperSpin ? cfg.spinBoostDurationMs * 1.3 : cfg.spinBoostDurationMs;
+
   return {
     ...state,
+    comboClicks,
     speechBubble: USAGI_SPEECH_PHRASES[chosenIndex],
     speechTimerMs: cfg.speechDurationMs,
-    spinBoostTimerMs: cfg.spinBoostDurationMs,
+    spinBoostTimerMs: spinBoostDurationMs,
     angularVelocity:
       state.angularVelocity !== 0
-        ? Math.sign(state.angularVelocity) * cfg.spinBoostAngularVelocity
-        : cfg.spinBoostAngularVelocity,
+        ? Math.sign(state.angularVelocity) * angularVelocity
+        : angularVelocity,
+    sleeping: false, // Wakes up on click
   };
 }
 
@@ -111,7 +135,8 @@ export function stepUsagiPhysics(
   dtMs: number,
   screen: ScreenBounds,
   snack?: SnackTarget | null,
-  config?: Partial<PhysicsConfig>
+  config?: Partial<PhysicsConfig>,
+  cursorTarget?: Vector2D | null
 ): { state: UsagiState; snackConsumed: boolean } {
   const cfg = { ...DEFAULT_PHYSICS_CONFIG, ...config };
   // Clamping dtMs to [0, 100] prevents physics tunneling on OS sleep or tab throttle
@@ -124,11 +149,24 @@ export function stepUsagiPhysics(
   const minY = r;
   const maxY = Math.max(r, screen.height - r);
 
+  // 60 FPS continuous swim-stroke phase
+  const swimSpeed = state.sleeping ? 1.5 : 4.2;
+  const swimPhaseRad = (state.swimPhaseRad + dtSec * swimSpeed) % (Math.PI * 2);
+
+  // Organic jellyfish/otter squash-and-stretch
+  const stroke = Math.sin(swimPhaseRad);
+  const scaleX = 1 + stroke * 0.055;
+  const scaleY = 1 - stroke * 0.055;
+
   let vx = state.vx;
   let vy = state.vy;
 
-  // Steering toward active Pomodoro snack
-  if (snack && snack.active) {
+  if (state.sleeping) {
+    // Drifts lazily when sleeping
+    vx = vx * 0.95;
+    vy = Math.sin(swimPhaseRad) * 15;
+  } else if (snack && snack.active) {
+    // Steering toward active Pomodoro snack
     const toSnackX = snack.x - state.x;
     const toSnackY = snack.y - state.y;
     const dist = Math.hypot(toSnackX, toSnackY);
@@ -138,6 +176,33 @@ export function stepUsagiPhysics(
       const steerFactor = Math.min(1, dtSec * 8);
       vx = vx + (dirX * cfg.maxSpeed - vx) * steerFactor;
       vy = vy + (dirY * cfg.maxSpeed - vy) * steerFactor;
+    }
+  } else if (cursorTarget) {
+    // Play Mode: steer toward cursor
+    const toCursorX = cursorTarget.x - state.x;
+    const toCursorY = cursorTarget.y - state.y;
+    const dist = Math.hypot(toCursorX, toCursorY);
+    if (dist > 25) {
+      const dirX = toCursorX / dist;
+      const dirY = toCursorY / dist;
+      const steerFactor = Math.min(1, dtSec * 6);
+      vx = vx + (dirX * cfg.baseSpeed * 1.35 - vx) * steerFactor;
+      vy = vy + (dirY * cfg.baseSpeed * 1.35 - vy) * steerFactor;
+    } else {
+      vx = vx * 0.9;
+      vy = vy * 0.9;
+    }
+  } else {
+    // Graceful swimming: gentle vertical sine-wave buoyancy arc
+    vy += Math.cos(swimPhaseRad) * 18 * dtSec;
+    const currentSpeed = Math.hypot(vx, vy);
+    if (
+      currentSpeed > 1e-4 &&
+      (currentSpeed < cfg.baseSpeed * 0.8 || currentSpeed > cfg.baseSpeed * 1.2)
+    ) {
+      const factor = cfg.baseSpeed / currentSpeed;
+      vx += (vx * factor - vx) * Math.min(1, dtSec * 2);
+      vy += (vy * factor - vy) * Math.min(1, dtSec * 2);
     }
   }
 
@@ -170,41 +235,36 @@ export function stepUsagiPhysics(
     scaleFlipX = -1;
   }
 
-  // Spin boost & rotation
+  // Spin boost & 60 FPS banking tilt rotation
   let spinBoostTimerMs = state.spinBoostTimerMs;
   let angularVelocity = state.angularVelocity;
   let rotation = state.rotation;
+  let comboClicks = state.comboClicks;
 
   if (spinBoostTimerMs > 0) {
     spinBoostTimerMs = Math.max(0, spinBoostTimerMs - dt);
     rotation += angularVelocity * dtSec;
     if (spinBoostTimerMs === 0) {
       angularVelocity = 0;
+      comboClicks = 0;
     }
   } else {
-    if (Math.abs(rotation) > 0.01) {
-      rotation = rotation * Math.max(0, 1 - dtSec * 5);
-    } else {
-      rotation = 0;
-    }
+    // Gentle banking tilt into movement direction (stays upright, bounded within [-0.28, 0.28])
+    const targetTilt = Math.max(
+      -0.28,
+      Math.min(0.28, (vy / cfg.maxSpeed) * 0.22 * scaleFlipX + Math.sin(swimPhaseRad) * 0.05)
+    );
+    rotation = rotation + (targetTilt - rotation) * Math.min(1, dtSec * 6);
     angularVelocity = 0;
   }
 
-  // 6-frame cycle animation (spins faster when boosted)
-  const effectiveInterval = spinBoostTimerMs > 0 ? cfg.frameIntervalMs * 0.4 : cfg.frameIntervalMs;
-  let frameTimerMs = state.frameTimerMs + dt;
-  let frameIndex = state.frameIndex;
-
-  while (frameTimerMs >= effectiveInterval && effectiveInterval > 0) {
-    frameIndex = (frameIndex + 1) % 6;
-    frameTimerMs -= effectiveInterval;
-  }
-
-  // Speech bubble timer
+  // Speech bubble & sleeping state
   let speechBubble = state.speechBubble;
   let speechTimerMs = state.speechTimerMs;
 
-  if (speechTimerMs > 0) {
+  if (state.sleeping) {
+    speechBubble = 'Zzz...';
+  } else if (speechTimerMs > 0) {
     speechTimerMs = Math.max(0, speechTimerMs - dt);
     if (speechTimerMs === 0) {
       speechBubble = null;
@@ -234,13 +294,18 @@ export function stepUsagiPhysics(
       vy,
       rotation,
       angularVelocity,
-      frameIndex,
-      frameTimerMs,
+      swimPhaseRad,
+      scaleX,
+      scaleY,
+      frameIndex: UPRIGHT_SPRITE_INDEX,
+      frameTimerMs: state.frameTimerMs + dt,
       spinBoostTimerMs,
+      comboClicks,
       speechBubble,
       speechTimerMs,
       scaleFlipX,
       snacksEaten,
+      sleeping: state.sleeping,
     },
     snackConsumed,
   };

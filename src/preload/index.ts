@@ -1,12 +1,21 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { SnackTarget } from '../core/physicsEngine';
 
+export interface WellnessUpdatePayload {
+  mood: 'active' | 'sleeping';
+  message: string | null;
+  soundEvent?: 'wellness-reminder' | 'welcome-back';
+}
+
 export interface UsagiAPI {
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => void;
   onGhostModeChanged: (callback: (locked: boolean) => void) => () => void;
   onSnackSpawned: (callback: (snack: SnackTarget) => void) => () => void;
   onTriggerInteraction: (callback: () => void) => () => void;
   notifySnackConsumed: () => void;
+  onPlayModeChanged: (callback: (enabled: boolean) => void) => () => void;
+  onSoundMutedChanged: (callback: (muted: boolean) => void) => () => void;
+  onWellnessUpdate: (callback: (payload: WellnessUpdatePayload) => void) => () => void;
 }
 
 const api: UsagiAPI = {
@@ -30,6 +39,22 @@ const api: UsagiAPI = {
   },
   notifySnackConsumed: () => {
     ipcRenderer.send('snack-consumed');
+  },
+  onPlayModeChanged: (callback: (enabled: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, enabled: boolean) => callback(enabled);
+    ipcRenderer.on('play-mode-toggle', handler);
+    return () => ipcRenderer.removeListener('play-mode-toggle', handler);
+  },
+  onSoundMutedChanged: (callback: (muted: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, muted: boolean) => callback(muted);
+    ipcRenderer.on('sound-mute-toggle', handler);
+    return () => ipcRenderer.removeListener('sound-mute-toggle', handler);
+  },
+  onWellnessUpdate: (callback: (payload: WellnessUpdatePayload) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, payload: WellnessUpdatePayload) =>
+      callback(payload);
+    ipcRenderer.on('wellness-update', handler);
+    return () => ipcRenderer.removeListener('wellness-update', handler);
   },
 };
 

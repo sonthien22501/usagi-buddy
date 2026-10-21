@@ -5,6 +5,7 @@ import {
   ipcMain,
   Menu,
   nativeImage,
+  powerMonitor,
   screen,
   Tray,
 } from 'electron';
@@ -21,12 +22,27 @@ import {
   tickPomodoro,
 } from '../core/pomodoroTimer';
 import { ScreenBounds } from '../core/physicsEngine';
+import {
+  createWellnessState,
+  formatStatsTrayLabel,
+  GENTLE_WELLNESS_MESSAGES,
+  recordPomodoroCompleted,
+  recordSnackFed,
+  tickWellnessCoach,
+  WellnessState,
+} from '../core/wellnessCoach';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let ghostLocked = false;
+let playModeEnabled = false;
+let soundMuted = false;
+
 let pomodoroState: PomodoroState = createPomodoroTimer();
-let timerInterval: NodeJS.Timeout | null = null;
+let wellnessState: WellnessState = createWellnessState();
+
+let pomodoroInterval: NodeJS.Timeout | null = null;
+let wellnessInterval: NodeJS.Timeout | null = null;
 
 function getScreenBounds(): ScreenBounds {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -45,16 +61,37 @@ function updateTrayMenu(): void {
   tray.setToolTip(`Usagi Float — ${pomodoroState.phase.toUpperCase()} (${timeStr})`);
 
   const isRunning = pomodoroState.phase === 'running';
+  const statsLabel = formatStatsTrayLabel(wellnessState.stats);
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: ghostLocked ? 'Disable Ghost Mode (Interactive)' : 'Enable Ghost Mode (Click-Through)',
+      label: statsLabel,
+      enabled: false,
+    },
+    { type: 'separator' },
+    {
+      label: '🪄 Play Mode (Follow Cursor)',
+      type: 'checkbox',
+      checked: playModeEnabled,
+      accelerator: 'CommandOrControl+Shift+P',
+      click: () => togglePlayMode(),
+    },
+    {
+      label: '🔊 Sound Effects',
+      type: 'checkbox',
+      checked: !soundMuted,
+      click: () => toggleSoundMute(),
+    },
+    {
+      label: ghostLocked
+        ? '👻 Disable Ghost Mode (Interactive)'
+        : '👻 Enable Ghost Mode (Click-Through)',
       accelerator: 'CommandOrControl+Shift+G',
       click: () => toggleGhostMode(),
     },
     { type: 'separator' },
     {
-      label: isRunning ? 'Pause 25m Pomodoro' : 'Start 25m Pomodoro',
+      label: isRunning ? '⏸ Pause 25m Pomodoro' : '🍅 Start 25m Pomodoro',
       click: () => {
         if (isRunning) {
           pomodoroState = pausePomodoro(pomodoroState);
@@ -65,16 +102,22 @@ function updateTrayMenu(): void {
       },
     },
     {
-      label: 'Reset Pomodoro Timer',
+      label: '🔄 Reset Pomodoro Timer',
       click: () => {
         pomodoroState = resetPomodoro(pomodoroState);
         updateTrayMenu();
       },
     },
     {
-      label: 'Drop Snack Now!',
+      label: '🍮 Drop Snack Now!',
       click: () => {
         dropSnackNow();
+      },
+    },
+    {
+      label: '💧 Cute Break Reminder (Preview)',
+      click: () => {
+        triggerPreviewWellnessReminder();
       },
     },
     { type: 'separator' },
@@ -97,11 +140,43 @@ function toggleGhostMode(): void {
   updateTrayMenu();
 }
 
+function togglePlayMode(): void {
+  playModeEnabled = !playModeEnabled;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('play-mode-toggle', playModeEnabled);
+  }
+  updateTrayMenu();
+}
+
+function toggleSoundMute(): void {
+  soundMuted = !soundMuted;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('sound-mute-toggle', soundMuted);
+  }
+  updateTrayMenu();
+}
+
 function dropSnackNow(): void {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   const bounds = getScreenBounds();
   const snack = spawnSnackOnScreen(bounds);
   mainWindow.webContents.send('spawn-snack', snack);
+}
+
+function triggerPreviewWellnessReminder(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const msg =
+    GENTLE_WELLNESS_MESSAGES[wellnessState.reminderIndex % GENTLE_WELLNESS_MESSAGES.length];
+  wellnessState = {
+    ...wellnessState,
+    reminderIndex: wellnessState.reminderIndex + 1,
+  };
+  mainWindow.webContents.send('wellness-update', {
+    mood: wellnessState.mood,
+    message: msg,
+    soundEvent: 'wellness-reminder',
+  });
+  updateTrayMenu();
 }
 
 function createMainWindow(): void {
@@ -148,7 +223,6 @@ function createSystemTray(): void {
 
   let trayIcon = nativeImage.createFromPath(iconPath);
   if (trayIcon.isEmpty()) {
-    // Fallback 18x18 transparent icon
     trayIcon = nativeImage.createEmpty();
   } else {
     trayIcon = trayIcon.resize({ width: 18, height: 18 });
@@ -159,7 +233,7 @@ function createSystemTray(): void {
 }
 
 function setupPomodoroTicker(): void {
-  timerInterval = setInterval(() => {
+  pomodoroInterval = setInterval(() => {
     if (pomodoroState.phase === 'running') {
       const bounds = getScreenBounds();
       const { state: nextState, spawnedSnack } = tickPomodoro(pomodoroState, 1000, bounds);
@@ -167,19 +241,65 @@ function setupPomodoroTicker(): void {
 
       if (spawnedSnack && mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('spawn-snack', spawnedSnack);
+        wellnessState = recordPomodoroCompleted(wellnessState);
       }
     }
     updateTrayMenu();
   }, 1000);
 }
 
+function setupWellnessCoachTicker(): void {
+  wellnessInterval = setInterval(() => {
+    let idleSeconds = 0;
+    try {
+      idleSeconds = powerMonitor.getSystemIdleTime();
+    } catch {
+      idleSeconds = 0;
+    }
+
+    const result = tickWellnessCoach(wellnessState, 5000, idleSeconds);
+    wellnessState = result.state;
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (result.reminderMessage) {
+        mainWindow.webContents.send('wellness-update', {
+          mood: wellnessState.mood,
+          message: result.reminderMessage,
+          soundEvent: 'wellness-reminder',
+        });
+      }
+      if (result.enteredSleep) {
+        mainWindow.webContents.send('wellness-update', {
+          mood: 'sleeping',
+          message: 'Zzz...',
+        });
+      }
+      if (result.welcomeBack) {
+        mainWindow.webContents.send('wellness-update', {
+          mood: 'active',
+          message: 'Yaha! Welcome back~',
+          soundEvent: 'welcome-back',
+        });
+        dropSnackNow();
+      }
+    }
+
+    updateTrayMenu();
+  }, 5000);
+}
+
 app.whenReady().then(() => {
   createMainWindow();
   createSystemTray();
   setupPomodoroTicker();
+  setupWellnessCoachTicker();
 
   globalShortcut.register('CommandOrControl+Shift+G', () => {
     toggleGhostMode();
+  });
+
+  globalShortcut.register('CommandOrControl+Shift+P', () => {
+    togglePlayMode();
   });
 
   ipcMain.on('set-ignore-mouse-events', (_event, ignore: boolean, options = { forward: true }) => {
@@ -189,6 +309,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.on('snack-consumed', () => {
+    wellnessState = recordSnackFed(wellnessState);
     updateTrayMenu();
   });
 
@@ -202,9 +323,13 @@ app.whenReady().then(() => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
+  if (pomodoroInterval) {
+    clearInterval(pomodoroInterval);
+    pomodoroInterval = null;
+  }
+  if (wellnessInterval) {
+    clearInterval(wellnessInterval);
+    wellnessInterval = null;
   }
 });
 

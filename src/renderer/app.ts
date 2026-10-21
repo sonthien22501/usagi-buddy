@@ -11,9 +11,17 @@ import {
   SnackTarget,
   stepUsagiPhysics,
   triggerUsagiInteraction,
+  UPRIGHT_SPRITE_INDEX,
   UsagiState,
   Vector2D,
 } from '../core/physicsEngine';
+import {
+  createSoundState,
+  resolveSoundAssetUrl,
+  selectSoundForEvent,
+  SoundEvent,
+  SoundState,
+} from '../core/soundManager';
 
 interface ProcessedFrame {
   readonly canvas: HTMLCanvasElement;
@@ -42,20 +50,45 @@ resizeCanvas();
 
 let state: UsagiState = createInitialUsagiState(screenBounds);
 let ghostState = createGhostModeState(false);
+let soundState: SoundState = createSoundState(false, 250);
+let playModeEnabled = false;
 let activeSnack: SnackTarget | null = null;
 let cursorPos: Vector2D | null = null;
 const processedFrames: ProcessedFrame[] = [];
+
+function playSound(event: SoundEvent): void {
+  const now = performance.now();
+  const result = selectSoundForEvent(soundState, event, now, '../../assets');
+  soundState = result.state;
+
+  if (result.url) {
+    try {
+      const audio = new Audio(result.url);
+      audio.volume = 0.85;
+      audio.play().catch(() => {
+        if (result.file) {
+          const fallbackUrl = resolveSoundAssetUrl(result.file, '../assets');
+          const fallbackAudio = new Audio(fallbackUrl);
+          fallbackAudio.volume = 0.85;
+          fallbackAudio.play().catch(() => {});
+        }
+      });
+    } catch {
+      // Audio playback handles errors gracefully
+    }
+  }
+}
 
 function updateMouseIgnoreState(): void {
   const usagiTarget: HitTarget = {
     x: state.x,
     y: state.y,
-    radius: DEFAULT_PHYSICS_CONFIG.spriteRadius * 1.15,
+    radius: DEFAULT_PHYSICS_CONFIG.spriteRadius * 1.2,
   };
 
   const snackTarget: HitTarget | null =
     activeSnack && activeSnack.active
-      ? { x: activeSnack.x, y: activeSnack.y, radius: activeSnack.radius * 1.2 }
+      ? { x: activeSnack.x, y: activeSnack.y, radius: activeSnack.radius * 1.25 }
       : null;
 
   const shouldIgnore = shouldIgnoreMouseEvents(
@@ -85,8 +118,10 @@ window.addEventListener('pointerdown', (e: MouseEvent) => {
   if (ghostState.ghostModeLocked) return;
 
   const distToUsagi = Math.hypot(e.clientX - state.x, e.clientY - state.y);
-  if (distToUsagi <= DEFAULT_PHYSICS_CONFIG.spriteRadius * 1.2) {
+  if (distToUsagi <= DEFAULT_PHYSICS_CONFIG.spriteRadius * 1.25) {
     state = triggerUsagiInteraction(state);
+    const soundEvent: SoundEvent = state.comboClicks >= 3 ? 'click-combo' : 'click-normal';
+    playSound(soundEvent);
     updateMouseIgnoreState();
   }
 });
@@ -97,23 +132,45 @@ if (window.usagiAPI) {
     updateMouseIgnoreState();
   });
 
+  window.usagiAPI.onPlayModeChanged((enabled) => {
+    playModeEnabled = enabled;
+  });
+
+  window.usagiAPI.onSoundMutedChanged((muted) => {
+    soundState = { ...soundState, muted };
+  });
+
+  window.usagiAPI.onWellnessUpdate((payload) => {
+    state = {
+      ...state,
+      sleeping: payload.mood === 'sleeping',
+    };
+    if (payload.message) {
+      state.speechBubble = payload.message;
+      state.speechTimerMs = DEFAULT_PHYSICS_CONFIG.speechDurationMs * 2.2;
+    }
+    if (payload.soundEvent) {
+      playSound(payload.soundEvent);
+    }
+  });
+
   window.usagiAPI.onSnackSpawned((snack) => {
     activeSnack = snack;
   });
 
   window.usagiAPI.onTriggerInteraction(() => {
     state = triggerUsagiInteraction(state);
+    const soundEvent: SoundEvent = state.comboClicks >= 3 ? 'click-combo' : 'click-normal';
+    playSound(soundEvent);
   });
 }
 
 function loadSingleSprite(index: number): Promise<ProcessedFrame> {
   return new Promise((resolve) => {
     const img = new Image();
-    // Try primary path then fallback
     img.src = `../../assets/Usagi${index}.png`;
 
     img.onerror = () => {
-      // Fallback relative to dist/assets
       img.src = `../assets/Usagi${index}.png`;
     };
 
@@ -218,7 +275,7 @@ function drawSpeechBubble(
 ): void {
   context.save();
 
-  context.font = 'bold 20px "Segoe UI", "Comic Sans MS", "Nunito", sans-serif';
+  context.font = 'bold 18px "Segoe UI", "Comic Sans MS", "Nunito", sans-serif';
   const metrics = context.measureText(text);
   const paddingX = 16;
   const paddingY = 8;
@@ -281,10 +338,12 @@ function drawUsagi(
   context.translate(currentState.x, currentState.y);
   context.rotate(currentState.rotation);
 
-  // Compute uniform scale so Usagi matches default radius
+  // 60 FPS organic squash-and-stretch swimming on the upright frame
   const targetDiameter = DEFAULT_PHYSICS_CONFIG.spriteRadius * 2.15;
-  const scale = targetDiameter / frame.height;
-  context.scale(currentState.scaleFlipX * scale, scale);
+  const baseScale = targetDiameter / frame.height;
+  const sx = currentState.scaleFlipX * baseScale * currentState.scaleX;
+  const sy = baseScale * currentState.scaleY;
+  context.scale(sx, sy);
 
   context.drawImage(frame.canvas, -frame.centerX, -frame.centerY);
   context.restore();
@@ -296,11 +355,13 @@ function animationLoop(now: number): void {
   const dt = now - lastTime;
   lastTime = now;
 
-  const result = stepUsagiPhysics(state, dt, screenBounds, activeSnack);
+  const cursorTarget = playModeEnabled && !ghostState.ghostModeLocked ? cursorPos : null;
+  const result = stepUsagiPhysics(state, dt, screenBounds, activeSnack, undefined, cursorTarget);
   state = result.state;
 
   if (result.snackConsumed && activeSnack) {
     activeSnack = null;
+    playSound('snack-eaten');
     window.usagiAPI?.notifySnackConsumed();
   }
 
@@ -312,9 +373,10 @@ function animationLoop(now: number): void {
     drawSnack(ctx, activeSnack.x, activeSnack.y, activeSnack.radius);
   }
 
-  const activeFrame = processedFrames[state.frameIndex];
-  if (activeFrame) {
-    drawUsagi(ctx, state, activeFrame);
+  // Uses upright sprite frame (Usagi3.png) for 60 FPS continuous swimming
+  const uprightFrame = processedFrames[UPRIGHT_SPRITE_INDEX] || processedFrames[0];
+  if (uprightFrame) {
+    drawUsagi(ctx, state, uprightFrame);
   }
 
   if (state.speechBubble) {
