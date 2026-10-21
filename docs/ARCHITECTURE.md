@@ -44,8 +44,8 @@ usagi-buddy/
 - `PomodoroState`: `{ phase: 'idle' | 'running' | 'paused' | 'completed'; remainingMs: number; durationMs: number; completedCount: number }`
 
 ## 5. Milestone Progress Checklist
-- [ ] Task 1: Project Scaffolding & Alpha Bounding-Box Auto-Cropper (`src/core/alphaCropper.ts`)
-- [ ] Task 2: 6-Frame Swimming Physics, Wall Bounces, Snack Seeking & Interactive Spin/Speech (`src/core/physicsEngine.ts`)
-- [ ] Task 3: Smart Click-Through ("Ghost Mode") & Hit-Box Forwarding (`src/core/ghostModeController.ts`)
-- [ ] Task 4: 25-Minute Pomodoro Study Timer & Snack Spawner (`src/core/pomodoroTimer.ts`)
-- [ ] Task 5: Electron Main, System Tray, Preload Bridge & HTML5 Overlay Renderer (`src/main/`, `src/preload/`, `src/renderer/`)
+- [x] Task 1: Project Scaffolding & Alpha Bounding-Box Auto-Cropper (`src/core/alphaCropper.ts`)
+- [x] Task 2: 6-Frame Swimming Physics, Wall Bounces, Snack Seeking & Interactive Spin/Speech (`src/core/physicsEngine.ts`)
+- [x] Task 3: Smart Click-Through ("Ghost Mode") & Hit-Box Forwarding (`src/core/ghostModeController.ts`)
+- [x] Task 4: 25-Minute Pomodoro Study Timer & Snack Spawner (`src/core/pomodoroTimer.ts`)
+- [x] Task 5: Electron Main, System Tray, Preload Bridge & HTML5 Overlay Renderer (`src/main/`, `src/preload/`, `src/renderer/`)
