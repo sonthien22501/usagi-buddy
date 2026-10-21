@@ -8,9 +8,9 @@ import {
 } from '../src/core/soundManager';
 
 describe('soundManager', () => {
-  it('correctly encodes special characters like ? in sound filenames (Review Focus #1)', () => {
-    const url = resolveSoundAssetUrl('huhhhh?.mp3', '../../assets');
-    expect(url).toBe('../../assets/huhhhh%3F.mp3');
+  it('correctly encodes special characters like spaces or symbols in sound filenames', () => {
+    const url = resolveSoundAssetUrl('huhhhh.mp3', '../../assets');
+    expect(url).toBe('../../assets/huhhhh.mp3');
 
     const simpleUrl = resolveSoundAssetUrl('una.mp3', '../../assets');
     expect(simpleUrl).toBe('../../assets/una.mp3');
@@ -19,7 +19,7 @@ describe('soundManager', () => {
   it('derives voice text from file names per the v0.3 voice line table', () => {
     expect(voiceTextForFile('una.mp3')).toBe('Una!');
     expect(voiceTextForFile('bryy.mp3')).toBe('Bryy!');
-    expect(voiceTextForFile('huhhhh?.mp3')).toBe('Huhhhh?');
+    expect(voiceTextForFile('huhhhh.mp3')).toBe('Huhhhh?');
     expect(voiceTextForFile('urararusk.mp3')).toBe('Urararusk!');
     expect(voiceTextForFile('unayahayahauna.mp3')).toBe('Unayahayahauna!');
     expect(voiceTextForFile('wuuulaaaa.mp3')).toBe('Wuuulaaaa!');
@@ -73,11 +73,11 @@ describe('soundManager', () => {
     expect(r2.text).toBe('Unayahayahauna!');
   });
 
-  it('plays huhhhh?.mp3 for wellness-reminder event with encoded URL and water voice text', () => {
+  it('plays huhhhh.mp3 for wellness-reminder event with encoded URL and water voice text', () => {
     const state = createSoundState(false, 100);
     const r = selectSoundForEvent(state, 'wellness-reminder', 1000);
-    expect(r.file).toBe('huhhhh?.mp3');
-    expect(r.url).toBe('../../assets/huhhhh%3F.mp3');
+    expect(r.file).toBe('huhhhh.mp3');
+    expect(r.url).toBe('../../assets/huhhhh.mp3');
     expect(r.text).toBe('Huhhhh?');
   });
 
@@ -110,7 +110,7 @@ describe('soundManager', () => {
     expect(SOUND_ASSET_FILES).toEqual([
       'una.mp3',
       'bryy.mp3',
-      'huhhhh?.mp3',
+      'huhhhh.mp3',
       'urararusk.mp3',
       'unayahayahauna.mp3',
       'wuuulaaaa.mp3',

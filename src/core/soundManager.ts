@@ -4,7 +4,7 @@ export type SoundEvent =
 export const SOUND_ASSET_FILES = [
   'una.mp3',
   'bryy.mp3',
-  'huhhhh?.mp3',
+  'huhhhh.mp3',
   'urararusk.mp3',
   'unayahayahauna.mp3',
   'wuuulaaaa.mp3',
@@ -37,6 +37,9 @@ export function resolveSoundAssetUrl(filename: string, baseDir: string = '../../
 export function voiceTextForFile(file: string): string {
   const base = file.replace(/\.mp3$/, '');
   const capitalized = base.charAt(0).toUpperCase() + base.slice(1);
+  if (base.toLowerCase().startsWith('huhhhh')) {
+    return 'Huhhhh?';
+  }
   return capitalized.endsWith('?') ? capitalized : `${capitalized}!`;
 }
 
@@ -70,7 +73,7 @@ function resolveClipFile(
       };
     case 'wellness-reminder':
       return {
-        file: 'huhhhh?.mp3',
+        file: 'huhhhh.mp3',
         nextNormalCounter: state.normalClickCounter,
         nextComboCounter: state.comboClickCounter,
       };
