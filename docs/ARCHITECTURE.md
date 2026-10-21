@@ -50,7 +50,7 @@ usagi-buddy/
 
 ## 5. Milestone Progress Checklist
 - [x] M1 (MVP): Alpha Cropper, Basic Physics, Ghost Mode, 25m Pomodoro, Electron Shell
-- [ ] M2 Task 1: 60 FPS Organic Kick-and-Glide Swimming, Squash/Stretch, Combo Spin & Cursor Follow (`src/core/physicsEngine.ts`)
-- [ ] M2 Task 2: Sound Effect Mapper, URL-Safe Encoder (`huhhhh?.mp3`) & Mute/Cooldown (`src/core/soundManager.ts`)
-- [ ] M2 Task 3: Gentle Non-Intrusive Wellness Reminder, AFK Sleep Mode & Daily Stats (`src/core/wellnessCoach.ts`)
-- [ ] M2 Task 4: Build Script MP3 Sync, Electron Main Tray/Idle Integration & 60 FPS Renderer (`scripts/build.mjs`, `src/main/`, `src/preload/`, `src/renderer/`)
+- [x] M2 Task 1: 60 FPS Organic Kick-and-Glide Swimming, Squash/Stretch, Combo Spin & Cursor Follow (`src/core/physicsEngine.ts`)
+- [x] M2 Task 2: Sound Effect Mapper, URL-Safe Encoder (`huhhhh?.mp3`) & Mute/Cooldown (`src/core/soundManager.ts`)
+- [x] M2 Task 3: Gentle Non-Intrusive Wellness Reminder, AFK Sleep Mode & Daily Stats (`src/core/wellnessCoach.ts`)
+- [x] M2 Task 4: Build Script MP3 Sync, Electron Main Tray/Idle Integration & 60 FPS Renderer (`scripts/build.mjs`, `src/main/`, `src/preload/`, `src/renderer/`)
