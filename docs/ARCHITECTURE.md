@@ -55,3 +55,4 @@ usagi-buddy/
 - [x] M2 Task 3: Gentle Non-Intrusive Wellness Reminder, AFK Sleep Mode & Daily Stats (`src/core/wellnessCoach.ts`)
 - [x] M2 Task 4: Build Script MP3 Sync, Electron Main Tray/Idle Integration & 60 FPS Renderer (`scripts/build.mjs`, `src/main/`, `src/preload/`, `src/renderer/`)
 - [x] M3: Voice/text sync, random 30–40 min water reminder, clean tray labels (`soundManager.ts`, `wellnessCoach.ts`, `main/index.ts`, `renderer/app.ts`)
+- [x] M4: Cross-platform CI/CD release workflow (`.github/workflows/release.yml`, matrix macOS + Windows build, atomic release publishing via `softprops/action-gh-release@v2`)
