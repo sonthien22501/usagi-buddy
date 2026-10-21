@@ -25,7 +25,7 @@ usagi-buddy/
 │   │   ├── ghostModeController.ts # Smart click-through & interactive hit-box forwarding logic
 │   │   ├── pomodoroTimer.ts       # 25-min study countdown & snack drop generator
 │   │   ├── soundManager.ts        # Event-to-MP3 mapper, URL-safe encoder (huhhhh%3F.mp3), mute & cooldown
-│   │   └── wellnessCoach.ts       # Gentle 30m break reminder, 2m AFK sleep mode, & daily tray stats
+│   │   └── wellnessCoach.ts       # Random 30–40m water reminder, 2m AFK sleep mode, & daily tray stats
 │   ├── main/
 │   │   └── index.ts               # Electron Main: overlay window, Tray stats/toggles, powerMonitor idle poll
 │   ├── preload/
@@ -45,7 +45,7 @@ usagi-buddy/
 
 ## 4. Core Data Contracts
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping }`
-- `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', reminderIndex, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
+- `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', nextReminderAtMs, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
 - `SoundEvent`: `'click-normal' | 'click-combo' | 'snack-eaten' | 'wellness-reminder' | 'welcome-back'`
 
 ## 5. Milestone Progress Checklist
@@ -54,3 +54,4 @@ usagi-buddy/
 - [x] M2 Task 2: Sound Effect Mapper, URL-Safe Encoder (`huhhhh?.mp3`) & Mute/Cooldown (`src/core/soundManager.ts`)
 - [x] M2 Task 3: Gentle Non-Intrusive Wellness Reminder, AFK Sleep Mode & Daily Stats (`src/core/wellnessCoach.ts`)
 - [x] M2 Task 4: Build Script MP3 Sync, Electron Main Tray/Idle Integration & 60 FPS Renderer (`scripts/build.mjs`, `src/main/`, `src/preload/`, `src/renderer/`)
+- [x] M3: Voice/text sync, random 30–40 min water reminder, clean tray labels (`soundManager.ts`, `wellnessCoach.ts`, `main/index.ts`, `renderer/app.ts`)

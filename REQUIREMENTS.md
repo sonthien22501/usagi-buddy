@@ -15,8 +15,11 @@
      - Snack eaten / Welcome back from break: `unayahayahauna.mp3`
      - Gentle wellness reminder: `huhhhh?.mp3`
 4. **Gentle Wellness & AFK Idle Coach (`src/core/wellnessCoach.ts`)**
-   - **Non-Intrusive Gentle Reminder**: Every 30 minutes of active screen time, Usagi shows a brief, cute, non-blocking speech bubble (`"💧 Una! Sip some water~"`, `"👀 Yaha! Rest your eyes for a bit~"`, `"🧘 Ura~ Little stretch if you want!"`) and immediately resets the timer so it never nags or forces the user.
+   - **Non-Intrusive Gentle Water Reminder**: At a random 30–40 minute interval of active screen time, Usagi shows a brief, cute, non-blocking speech bubble (`"💧 Huhhhh? Sip some water~"`) and immediately resets the timer so it never nags or forces the user.
    - **AFK Sleepy Mode**: When OS idle time (`powerMonitor.getSystemIdleTime()`) exceeds 2 minutes (`120s`), Usagi floats lazily with `"Zzz..."` and welcomes the user back with a snack and `unayahayahauna.mp3` upon return.
    - **Quiet System Tray Daily Stats**: Tracks `snacksFed`, `pomodorosCompleted`, and `breaksTaken` inside the Tray menu.
 5. **Smart Click-Through ("Ghost Mode") & 25-Min Pomodoro Timer**
    - Per-pixel hit-box forwarding (`setIgnoreMouseEvents(true, { forward: true })`) plus global Ghost Mode lock (`Cmd/Ctrl+Shift+G`) and 25-minute Pomodoro timer that drops pudding snacks on screen.
+6. **Voice/Text Sync (v0.3)**
+   - Every speech bubble shows exactly the word of the `.mp3` that plays (filename without `.mp3`, capitalized, `!` appended unless it ends with `?`).
+   - Tray labels contain no parenthetical hints.
