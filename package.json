@@ -1,0 +1,21 @@
+{
+  "name": "usagi-buddy",
+  "version": "0.1.0",
+  "description": "Usagi Float - Desktop Companion",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit --pretty false",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "start": "npm run build && electron dist/main/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "electron": "^33.0.0",
+    "esbuild": "^0.24.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
+  }
+}
