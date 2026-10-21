@@ -29,6 +29,12 @@
         "dmg",
         "zip"
       ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
     }
   },
   "devDependencies": {

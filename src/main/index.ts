@@ -7,6 +7,7 @@ import {
   nativeImage,
   powerMonitor,
   screen,
+  shell,
   Tray,
 } from 'electron';
 import * as fs from 'node:fs';
@@ -116,6 +117,13 @@ function updateTrayMenu(): void {
       label: '💧 Water Reminder',
       click: () => {
         triggerPreviewWellnessReminder();
+      },
+    },
+    { type: 'separator' },
+    {
+      label: '☕ Buy Usagi a Coffee...',
+      click: () => {
+        shell.openExternal('https://ko-fi.com/rodannguyen');
       },
     },
     { type: 'separator' },
