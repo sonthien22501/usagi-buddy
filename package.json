@@ -2,6 +2,7 @@
   "name": "usagi-buddy",
   "version": "0.1.0",
   "description": "Usagi Float - Desktop Companion",
+  "author": "sonthien22501",
   "main": "dist/main/index.js",
   "scripts": {
     "build": "tsc --noEmit && node scripts/build.mjs",
@@ -14,28 +15,39 @@
   },
   "build": {
     "appId": "com.usagi.float",
-    "productName": "Usagi Float",
+    "productName": "Usagi-Float",
     "directories": {
       "output": "release"
     },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "sonthien22501",
-        "repo": "usagi-buddy"
-      }
-    ],
     "files": [
       "dist/**/*",
       "assets/**/*",
       "package.json"
     ],
+    "dmg": {
+      "writeUpdateInfo": false
+    },
+    "nsis": {
+      "differentialPackage": false
+    },
     "mac": {
       "category": "public.app-category.entertainment",
       "identity": null,
       "target": [
-        "dmg",
-        "zip"
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ]
     },
     "win": {
