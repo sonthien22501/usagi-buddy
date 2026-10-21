@@ -36,7 +36,7 @@ jobs:
 
       - name: Package & Publish Release (macOS)
         if: matrix.os == 'macos-latest'
-        run: npx electron-builder --mac --publish always
+        run: npx electron-builder --mac -c.mac.identity=null --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
