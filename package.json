@@ -8,11 +8,33 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit --pretty false",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "start": "npm run build && electron dist/main/index.js"
+    "start": "npm run build && electron dist/main/index.js",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac --dir"
+  },
+  "build": {
+    "appId": "com.usagi.float",
+    "productName": "Usagi Float",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.entertainment",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    }
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
     "electron": "^33.0.0",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.24.0",
     "prettier": "^3.3.3",
     "typescript": "^5.6.3",
