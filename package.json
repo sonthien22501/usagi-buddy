@@ -18,6 +18,13 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "sonthien22501",
+        "repo": "usagi-buddy"
+      }
+    ],
     "files": [
       "dist/**/*",
       "assets/**/*",
@@ -25,6 +32,7 @@
     ],
     "mac": {
       "category": "public.app-category.entertainment",
+      "identity": null,
       "target": [
         "dmg",
         "zip"
