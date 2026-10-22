@@ -1,8 +1,9 @@
 {
   "name": "usagi-buddy",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Usagi Float - Desktop Companion",
   "author": "sonthien22501",
+  "license": "MIT",
   "main": "dist/main/index.js",
   "scripts": {
     "build": "tsc --noEmit && node scripts/build.mjs",
