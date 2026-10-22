@@ -6,17 +6,14 @@ const volumeValBadge = document.getElementById('volume-val-badge') as HTMLSpanEl
 const testSoundBtn = document.getElementById('test-sound-btn') as HTMLButtonElement | null;
 const muteToggleBtn = document.getElementById('mute-toggle-btn') as HTMLButtonElement | null;
 
-const stationaryBadge = document.getElementById('stationary-badge') as HTMLSpanElement | null;
 const stationaryToggleBtn = document.getElementById(
   'stationary-toggle-btn'
 ) as HTMLButtonElement | null;
 
-const playModeBadge = document.getElementById('play-mode-badge') as HTMLSpanElement | null;
 const playModeToggleBtn = document.getElementById(
   'play-mode-toggle-btn'
 ) as HTMLButtonElement | null;
 
-const ghostModeBadge = document.getElementById('ghost-mode-badge') as HTMLSpanElement | null;
 const ghostModeToggleBtn = document.getElementById(
   'ghost-mode-toggle-btn'
 ) as HTMLButtonElement | null;
@@ -156,10 +153,6 @@ if (resetTimerBtn) {
 // 3. Companion Modes & Actions (Equal & Symmetrical Buttons)
 function updateStationaryUI(stationary: boolean): void {
   isStationary = stationary;
-  if (stationaryBadge) {
-    stationaryBadge.textContent = stationary ? 'STILL' : 'SWIMMING';
-    stationaryBadge.style.color = stationary ? '#55efc4' : '#ffeaa7';
-  }
   if (stationaryToggleBtn) {
     stationaryToggleBtn.textContent = stationary ? '🌊 Unpin' : '📌 Pin Still';
     if (stationary) {
@@ -172,10 +165,6 @@ function updateStationaryUI(stationary: boolean): void {
 
 function updatePlayModeUI(enabled: boolean): void {
   isPlayMode = enabled;
-  if (playModeBadge) {
-    playModeBadge.textContent = enabled ? 'FOLLOWING' : 'FREE SWIM';
-    playModeBadge.style.color = enabled ? '#55efc4' : '#ffeaa7';
-  }
   if (playModeToggleBtn) {
     playModeToggleBtn.textContent = enabled ? '🪄 Stop Follow' : '🪄 Follow Mouse';
     if (enabled) {
@@ -188,10 +177,6 @@ function updatePlayModeUI(enabled: boolean): void {
 
 function updateGhostModeUI(locked: boolean): void {
   isGhostMode = locked;
-  if (ghostModeBadge) {
-    ghostModeBadge.textContent = locked ? 'CLICK-THROUGH' : 'SOLID';
-    ghostModeBadge.style.color = locked ? '#a29bfe' : '#ffeaa7';
-  }
   if (ghostModeToggleBtn) {
     ghostModeToggleBtn.textContent = locked ? '👻 Solid Mode' : '👻 Ghost Mode';
     if (locked) {

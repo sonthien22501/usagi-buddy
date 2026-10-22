@@ -141,8 +141,8 @@ function updateTrayMenu(): void {
   if (!tray) return;
 
   const timeStr = formatPomodoroTime(pomodoroState.remainingMs);
-  const statusPrefix = ghostLocked ? '👻 Ghost' : '🐰 Usagi';
-  tray.setTitle(`${statusPrefix} ${timeStr}`);
+  const titleText = ghostLocked ? `👻 ${timeStr}` : timeStr;
+  tray.setTitle(titleText);
   tray.setToolTip(`Usagi Float — ${pomodoroState.phase.toUpperCase()} (${timeStr})`);
 
   const isRunning = pomodoroState.phase === 'running';

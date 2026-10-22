@@ -233,6 +233,13 @@
         transition: border 0.15s;
         -webkit-user-select: text;
         user-select: text;
+        -moz-appearance: textfield !important;
+        appearance: textfield !important;
+      }
+      .number-input::-webkit-inner-spin-button,
+      .number-input::-webkit-outer-spin-button {
+        -webkit-appearance: none !important;
+        margin: 0 !important;
       }
       .number-input:focus {
         border-color: #ffeaa7;

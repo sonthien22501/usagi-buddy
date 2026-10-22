@@ -333,6 +333,14 @@
         outline: none;
         -webkit-user-select: text;
         user-select: text;
+        -moz-appearance: textfield !important;
+        appearance: textfield !important;
+      }
+
+      .number-input::-webkit-inner-spin-button,
+      .number-input::-webkit-outer-spin-button {
+        -webkit-appearance: none !important;
+        margin: 0 !important;
       }
 
       .number-input:focus {
@@ -481,36 +489,25 @@
       <div class="mode-list">
         <!-- Stay Still -->
         <div class="mode-item">
-          <div class="mode-title">
-            📌 Stay Still
-            <span class="badge" id="stationary-badge">SWIMMING</span>
-          </div>
+          <div class="mode-title">📌 Stay Still</div>
           <button class="feature-btn" id="stationary-toggle-btn">📌 Pin Still</button>
         </div>
 
         <!-- Play Mode / Follow Cursor -->
         <div class="mode-item">
-          <div class="mode-title">
-            🪄 Play Mode
-            <span class="badge" id="play-mode-badge">FREE SWIM</span>
-          </div>
+          <div class="mode-title">🪄 Play Mode</div>
           <button class="feature-btn" id="play-mode-toggle-btn">🪄 Follow Mouse</button>
         </div>
 
         <!-- Ghost Mode / Click-Through -->
         <div class="mode-item">
-          <div class="mode-title">
-            👻 Ghost Mode
-            <span class="badge" id="ghost-mode-badge">SOLID</span>
-          </div>
+          <div class="mode-title">👻 Ghost Mode</div>
           <button class="feature-btn" id="ghost-mode-toggle-btn">👻 Ghost Mode</button>
         </div>
 
         <!-- Drop Pudding Snack -->
         <div class="mode-item">
-          <div class="mode-title">
-            🍮 Pudding Snack
-          </div>
+          <div class="mode-title">🍮 Pudding Snack</div>
           <button class="feature-btn" id="drop-snack-btn">🍮 Drop Snack</button>
         </div>
       </div>
@@ -519,10 +516,7 @@
     <!-- 4. Giant Usagi Jumpscare Alarm Test (Identical Button Alignment) -->
     <div class="card">
       <div class="card-header" style="margin-bottom: 0">
-        <div class="mode-title">
-          🚨 Giant Alarm
-          <span class="badge">CHAOS</span>
-        </div>
+        <div class="mode-title">🚨 Giant Alarm</div>
         <button class="feature-btn btn-primary" id="test-giant-alarm-btn">🚨 Test Alarm</button>
       </div>
     </div>
