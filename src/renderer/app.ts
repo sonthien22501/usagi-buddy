@@ -29,6 +29,12 @@ import {
   PomodoroState,
 } from '../core/pomodoroTimer';
 import {
+  CostumeId,
+  OutfitSelection,
+  COSTUME_DEFINITIONS,
+  pickRandomCostume,
+} from '../core/costumeManager';
+import {
   calculateSnoozeDurationMs,
   createGiantAlarmState,
   dismissGiantAlarm,
@@ -91,7 +97,12 @@ let playModeEnabled = false;
 let activeSnack: SnackTarget | null = null;
 let cursorPos: Vector2D | null = null;
 const processedFrames: ProcessedFrame[] = [];
+const costumeFrames = new Map<CostumeId, ProcessedFrame>();
+const giantSpriteFrames: ProcessedFrame[] = [];
 let giantSpriteFrame: ProcessedFrame | null = null;
+let activeGiantFrame: ProcessedFrame | null = null;
+let currentCostumeId: CostumeId = 'classic';
+let currentCostumeSelection: OutfitSelection = 'classic';
 
 function playSound(event: SoundEvent, customVolume?: number): string | null {
   const now = performance.now();
@@ -354,9 +365,24 @@ function handlePointerUp(): void {
     if (!wasDragged) {
       const prev = state.speechBubble;
       state = triggerUsagiInteraction(state);
-      const soundEvent: SoundEvent = state.comboClicks >= 3 ? 'click-combo' : 'click-normal';
-      const text = playSound(soundEvent);
-      state.speechBubble = text ?? prev ?? state.speechBubble;
+
+      if (currentCostumeSelection === 'random') {
+        currentCostumeId = pickRandomCostume(currentCostumeId);
+      }
+
+      if (state.comboClicks >= 3) {
+        currentCostumeId = pickRandomCostume(currentCostumeId);
+        const soundEvent: SoundEvent = 'click-combo';
+        const text = playSound(soundEvent);
+        state.speechBubble = text ?? prev ?? state.speechBubble;
+        window.usagiAPI?.setCostume(
+          currentCostumeSelection === 'random' ? 'random' : currentCostumeId
+        );
+      } else {
+        const soundEvent: SoundEvent = 'click-normal';
+        const text = playSound(soundEvent);
+        state.speechBubble = text ?? prev ?? state.speechBubble;
+      }
     } else {
       if (!state.stationary) {
         state.vx = 25 * state.scaleFlipX;
@@ -594,16 +620,40 @@ if (window.usagiAPI) {
   window.usagiAPI.onTriggerInteraction(() => {
     const prev = state.speechBubble;
     state = triggerUsagiInteraction(state);
-    const soundEvent: SoundEvent = state.comboClicks >= 3 ? 'click-combo' : 'click-normal';
-    const text = playSound(soundEvent);
-    state.speechBubble = text ?? prev ?? state.speechBubble;
+
+    if (currentCostumeSelection === 'random') {
+      currentCostumeId = pickRandomCostume(currentCostumeId);
+    }
+
+    if (state.comboClicks >= 3) {
+      currentCostumeId = pickRandomCostume(currentCostumeId);
+      const soundEvent: SoundEvent = 'click-combo';
+      const text = playSound(soundEvent);
+      state.speechBubble = text ?? prev ?? state.speechBubble;
+      window.usagiAPI?.setCostume(
+        currentCostumeSelection === 'random' ? 'random' : currentCostumeId
+      );
+    } else {
+      const soundEvent: SoundEvent = 'click-normal';
+      const text = playSound(soundEvent);
+      state.speechBubble = text ?? prev ?? state.speechBubble;
+    }
   });
 
   window.usagiAPI.onGiantAlarmTriggered(() => {
+    if (giantSpriteFrames.length > 0) {
+      const pickedIdx = Math.floor(Math.random() * giantSpriteFrames.length);
+      activeGiantFrame = giantSpriteFrames[pickedIdx];
+    }
     giantAlarmState = triggerGiantAlarm(giantAlarmState);
     playSound('timer-complete');
     updateMouseIgnoreState();
     showAlarmActionsOverlay();
+  });
+
+  window.usagiAPI.onCostumeChanged((costume, selection) => {
+    currentCostumeId = costume;
+    currentCostumeSelection = selection;
   });
 
   window.usagiAPI.onTestSound(() => {
@@ -685,35 +735,21 @@ function loadSingleSprite(index: number): Promise<ProcessedFrame> {
   });
 }
 
-function loadCustomGiantSprite(): Promise<ProcessedFrame | null> {
-  const candidateNames = ['Usagi_Big.png', 'GiantUsagi.png', 'giant-usagi.png'];
-
+function loadNamedSprite(filename: string, maxDimension: number): Promise<ProcessedFrame | null> {
   return new Promise((resolve) => {
-    let index = 0;
+    const img = new Image();
+    img.src = `../../assets/${filename}`;
 
-    const tryCandidate = () => {
-      if (index >= candidateNames.length) {
-        resolve(null);
-        return;
-      }
-
-      const filename = candidateNames[index++];
-      const img = new Image();
-      img.src = `../../assets/${filename}`;
-
-      img.onerror = () => {
-        const imgAlt = new Image();
-        imgAlt.src = `../assets/${filename}`;
-        imgAlt.onload = () => resolve(processImageToFrame(filename, imgAlt, 768));
-        imgAlt.onerror = () => tryCandidate();
-      };
-
-      img.onload = () => {
-        resolve(processImageToFrame(filename, img, 768));
-      };
+    img.onerror = () => {
+      const imgAlt = new Image();
+      imgAlt.src = `../assets/${filename}`;
+      imgAlt.onload = () => resolve(processImageToFrame(filename, imgAlt, maxDimension));
+      imgAlt.onerror = () => resolve(null);
     };
 
-    tryCandidate();
+    img.onload = () => {
+      resolve(processImageToFrame(filename, img, maxDimension));
+    };
   });
 }
 
@@ -725,14 +761,32 @@ async function loadAllSprites(): Promise<void> {
   const loaded = await Promise.all(promises);
   processedFrames.push(...loaded);
 
-  // Background load giant sprite without delaying initial Usagi spawn
-  loadCustomGiantSprite()
-    .then((frame) => {
-      giantSpriteFrame = frame;
-    })
-    .catch(() => {
-      giantSpriteFrame = null;
-    });
+  // Background load all custom costumes
+  for (const def of COSTUME_DEFINITIONS) {
+    if (def.id === 'classic') continue;
+    loadNamedSprite(def.filename, 320)
+      .then((frame) => {
+        if (frame) {
+          costumeFrames.set(def.id, frame);
+        }
+      })
+      .catch(() => {});
+  }
+
+  // Background load all giant alarm sprites
+  const giantCandidates = ['Usagi_Big.png', 'Usagi_Big2.png', 'GiantUsagi.png'];
+  for (const filename of giantCandidates) {
+    loadNamedSprite(filename, 768)
+      .then((frame) => {
+        if (frame) {
+          giantSpriteFrames.push(frame);
+          if (!giantSpriteFrame) {
+            giantSpriteFrame = frame;
+          }
+        }
+      })
+      .catch(() => {});
+  }
 }
 
 function drawSnack(context: CanvasRenderingContext2D, x: number, y: number, radius: number): void {
@@ -1070,10 +1124,14 @@ function animationLoop(now: number): void {
     drawSnack(ctx, activeSnack.x, activeSnack.y, activeSnack.radius);
   }
 
-  // Uses upright sprite frame (Usagi3.png) for 60 FPS continuous swimming
+  // Uses upright sprite frame (Usagi3.png) or active custom costume
   const uprightFrame = processedFrames[UPRIGHT_SPRITE_INDEX] || processedFrames[0];
-  if (uprightFrame) {
-    drawUsagi(ctx, state, uprightFrame);
+  const activeFrame =
+    currentCostumeId === 'classic'
+      ? uprightFrame
+      : costumeFrames.get(currentCostumeId) || uprightFrame;
+  if (activeFrame) {
+    drawUsagi(ctx, state, activeFrame);
   }
 
   if (state.speechBubble) {
@@ -1085,10 +1143,14 @@ function animationLoop(now: number): void {
     );
   }
 
-  // Draw giant alarm overlay on top of canvas when active
+  // Draw giant alarm overlay on top of canvas when active (randomized between giant sprites)
   if (giantAlarmState.active) {
     const giantFrame =
-      giantSpriteFrame || processedFrames[UPRIGHT_SPRITE_INDEX] || processedFrames[0];
+      activeGiantFrame ||
+      giantSpriteFrames[0] ||
+      giantSpriteFrame ||
+      processedFrames[UPRIGHT_SPRITE_INDEX] ||
+      processedFrames[0];
     if (giantFrame) {
       const renderModel = getGiantAlarmRenderModel(giantAlarmState);
       drawGiantAlarmOverlay(ctx, renderModel, giantFrame, screenBounds, now);

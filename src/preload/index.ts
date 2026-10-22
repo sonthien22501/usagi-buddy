@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import { CostumeId, OutfitSelection } from '../core/costumeManager';
 import { SnackTarget } from '../core/physicsEngine';
 import { PomodoroState } from '../core/pomodoroTimer';
 import { VolumeConfig } from '../core/soundManager';
@@ -36,6 +37,10 @@ export interface UsagiAPI {
   triggerGiantAlarmNow: () => void;
   triggerTestSound: () => void;
   onTestSound: (callback: () => void) => () => void;
+  setCostume: (costume: OutfitSelection) => void;
+  onCostumeChanged: (
+    callback: (costume: CostumeId, selection: OutfitSelection) => void
+  ) => () => void;
 }
 
 const api: UsagiAPI = {
@@ -142,6 +147,18 @@ const api: UsagiAPI = {
     const handler = () => callback();
     ipcRenderer.on('test-sound', handler);
     return () => ipcRenderer.removeListener('test-sound', handler);
+  },
+  setCostume: (costume: OutfitSelection) => {
+    ipcRenderer.send('set-costume', costume);
+  },
+  onCostumeChanged: (callback: (costume: CostumeId, selection: OutfitSelection) => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      costume: CostumeId,
+      selection: OutfitSelection
+    ) => callback(costume, selection);
+    ipcRenderer.on('costume-changed', handler);
+    return () => ipcRenderer.removeListener('costume-changed', handler);
   },
 };
 

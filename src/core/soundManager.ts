@@ -68,6 +68,7 @@ export function calculatePlaybackVolume(
 export interface SoundState {
   muted: boolean;
   lastPlayedAtMs: number;
+  lastClip?: string;
   normalClickCounter: number;
   comboClickCounter: number;
   cooldownMs: number;
@@ -77,11 +78,13 @@ export interface SoundState {
 export function createSoundState(
   muted: boolean = false,
   cooldownMs: number = 250,
-  volumeConfig: VolumeConfig = DEFAULT_VOLUME_CONFIG
+  volumeConfig: VolumeConfig = DEFAULT_VOLUME_CONFIG,
+  lastClip?: string
 ): SoundState {
   return {
     muted,
     lastPlayedAtMs: -1,
+    lastClip,
     normalClickCounter: 0,
     comboClickCounter: 0,
     cooldownMs,
@@ -104,25 +107,42 @@ export function voiceTextForFile(file: string): string {
   return capitalized.endsWith('?') ? capitalized : `${capitalized}!`;
 }
 
+export const NORMAL_CLICK_CLIPS = ['una.mp3', 'bryy.mp3', 'huhhhh.mp3'] as const;
+export const COMBO_CLICK_CLIPS = ['urararusk.mp3', 'wuuulaaaa.mp3', 'unayahayahauna.mp3'] as const;
+
+export function pickRandomClip(
+  clips: readonly string[],
+  previous?: string,
+  randomFn: () => number = Math.random
+): string {
+  const candidates = previous ? clips.filter((c) => c !== previous) : clips;
+  const pool = candidates.length > 0 ? candidates : clips;
+  const idx = Math.floor(randomFn() * pool.length);
+  return pool[idx];
+}
+
 function resolveClipFile(
   state: SoundState,
-  event: SoundEvent
-): { file: string; nextNormalCounter: number; nextComboCounter: number } {
+  event: SoundEvent,
+  randomFn: () => number = Math.random
+): { file: string; nextNormalCounter: number; nextComboCounter: number; lastClip: string } {
   switch (event) {
     case 'click-normal': {
-      const normalClips = ['una.mp3', 'bryy.mp3'] as const;
+      const file = pickRandomClip(NORMAL_CLICK_CLIPS, state.lastClip, randomFn);
       return {
-        file: normalClips[state.normalClickCounter % normalClips.length],
+        file,
         nextNormalCounter: state.normalClickCounter + 1,
         nextComboCounter: state.comboClickCounter,
+        lastClip: file,
       };
     }
     case 'click-combo': {
-      const comboClips = ['urararusk.mp3', 'wuuulaaaa.mp3'] as const;
+      const file = pickRandomClip(COMBO_CLICK_CLIPS, state.lastClip, randomFn);
       return {
-        file: comboClips[state.comboClickCounter % comboClips.length],
+        file,
         nextNormalCounter: state.normalClickCounter,
         nextComboCounter: state.comboClickCounter + 1,
+        lastClip: file,
       };
     }
     case 'snack-eaten':
@@ -131,18 +151,21 @@ function resolveClipFile(
         file: 'unayahayahauna.mp3',
         nextNormalCounter: state.normalClickCounter,
         nextComboCounter: state.comboClickCounter,
+        lastClip: 'unayahayahauna.mp3',
       };
     case 'wellness-reminder':
       return {
         file: 'huhhhh.mp3',
         nextNormalCounter: state.normalClickCounter,
         nextComboCounter: state.comboClickCounter,
+        lastClip: 'huhhhh.mp3',
       };
     case 'timer-complete':
       return {
         file: 'wuuulaaaa.mp3',
         nextNormalCounter: state.normalClickCounter,
         nextComboCounter: state.comboClickCounter,
+        lastClip: 'wuuulaaaa.mp3',
       };
   }
 }
@@ -159,14 +182,20 @@ export function selectSoundForEvent(
   state: SoundState,
   event: SoundEvent,
   nowMs: number,
-  baseDir: string = '../../assets'
+  baseDir: string = '../../assets',
+  randomFn: () => number = Math.random
 ): SoundSelectionResult {
   // Mute gate: resolve the voice line for the bubble text but stay silent
   if (state.muted) {
-    const { file, nextNormalCounter, nextComboCounter } = resolveClipFile(state, event);
+    const { file, nextNormalCounter, nextComboCounter, lastClip } = resolveClipFile(
+      state,
+      event,
+      randomFn
+    );
     return {
       state: {
         ...state,
+        lastClip,
         normalClickCounter: nextNormalCounter,
         comboClickCounter: nextComboCounter,
       },
@@ -182,7 +211,11 @@ export function selectSoundForEvent(
     return { state, file: null, url: null, text: null, volume: 0 };
   }
 
-  const { file, nextNormalCounter, nextComboCounter } = resolveClipFile(state, event);
+  const { file, nextNormalCounter, nextComboCounter, lastClip } = resolveClipFile(
+    state,
+    event,
+    randomFn
+  );
   const volume = calculatePlaybackVolume(state.volumeConfig, event, file, state.muted);
   const url = volume > 0 ? resolveSoundAssetUrl(file, baseDir) : null;
 
@@ -190,6 +223,7 @@ export function selectSoundForEvent(
     state: {
       ...state,
       lastPlayedAtMs: nowMs,
+      lastClip,
       normalClickCounter: nextNormalCounter,
       comboClickCounter: nextComboCounter,
     },

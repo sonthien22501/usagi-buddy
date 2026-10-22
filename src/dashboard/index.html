@@ -251,6 +251,57 @@
         color: #ff7675;
       }
 
+      /* Usagi Wardrobe Grid */
+      .costume-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .costume-card-btn {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 12px;
+        padding: 8px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        color: #ffffff;
+      }
+
+      .costume-card-btn:hover {
+        background: rgba(255, 234, 167, 0.2);
+        border-color: #ffeaa7;
+        color: #ffeaa7;
+        transform: translateY(-1px);
+      }
+
+      .costume-card-btn:active {
+        transform: scale(0.97);
+      }
+
+      .costume-card-btn.active {
+        background: rgba(255, 118, 117, 0.26);
+        border-color: #ff7675;
+        color: #ffeaa7;
+        box-shadow: 0 0 10px rgba(255, 118, 117, 0.35);
+      }
+
+      .costume-icon {
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .costume-name {
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+
       .btn-primary {
         background: linear-gradient(135deg, #ff7675, #d63031);
         border: none;
@@ -520,7 +571,49 @@
       </div>
     </div>
 
-    <!-- 3. Companion Modes & Actions Card (Clean & Equal Buttons) -->
+    <!-- 3. Usagi Wardrobe & Outfits Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">👗 Wardrobe & Outfits</div>
+        <span class="badge" id="costume-badge">🐰 CLASSIC</span>
+      </div>
+      <div class="costume-grid">
+        <button
+          class="costume-card-btn active"
+          data-costume="classic"
+          title="Classic swimming Usagi"
+        >
+          <span class="costume-icon">🐰</span>
+          <span class="costume-name">Classic</span>
+        </button>
+        <button class="costume-card-btn" data-costume="study" title="Study Mode with book & pencil">
+          <span class="costume-icon">📚</span>
+          <span class="costume-name">Study</span>
+        </button>
+        <button class="costume-card-btn" data-costume="vest" title="Corporate suit & vest mode">
+          <span class="costume-icon">👔</span>
+          <span class="costume-name">Work</span>
+        </button>
+        <button
+          class="costume-card-btn"
+          data-costume="sigma"
+          title="Sigma grindset with cool shades"
+        >
+          <span class="costume-icon">🕶️</span>
+          <span class="costume-name">Sigma</span>
+        </button>
+        <button class="costume-card-btn" data-costume="star" title="Sparkling magical star Usagi">
+          <span class="costume-icon">⭐</span>
+          <span class="costume-name">Star</span>
+        </button>
+        <button class="costume-card-btn" data-costume="random" title="Surprise / Shuffle on click">
+          <span class="costume-icon">🎲</span>
+          <span class="costume-name">Shuffle</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 4. Companion Modes & Actions Card (Clean & Equal Buttons) -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">🎮 Companion Modes & Actions</div>
