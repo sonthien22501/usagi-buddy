@@ -1,5 +1,6 @@
 import { formatPomodoroTime, parseCustomDuration, PomodoroState } from '../core/pomodoroTimer';
 import { VolumeConfig } from '../core/soundManager';
+import { CostumeId, OutfitSelection, getCostumeDefinition } from '../core/costumeManager';
 
 const volumeSlider = document.getElementById('volume-slider') as HTMLInputElement | null;
 const volumeValBadge = document.getElementById('volume-val-badge') as HTMLSpanElement | null;
@@ -28,6 +29,9 @@ const add10Btn = document.getElementById('add-10-btn') as HTMLButtonElement | nu
 const startTimerBtn = document.getElementById('start-timer-btn') as HTMLButtonElement | null;
 const pauseTimerBtn = document.getElementById('pause-timer-btn') as HTMLButtonElement | null;
 const resetTimerBtn = document.getElementById('reset-timer-btn') as HTMLButtonElement | null;
+
+const costumeBadge = document.getElementById('costume-badge') as HTMLSpanElement | null;
+const costumeButtons = document.querySelectorAll<HTMLButtonElement>('.costume-card-btn');
 
 const testGiantAlarmBtn = document.getElementById(
   'test-giant-alarm-btn'
@@ -216,14 +220,45 @@ if (dropSnackBtn) {
   });
 }
 
-// 4. Giant Usagi Jumpscare Alarm Test
+// 4. Costume Selection
+function updateCostumeUI(costume: CostumeId, selection: OutfitSelection): void {
+  if (costumeBadge) {
+    if (selection === 'random') {
+      const def = getCostumeDefinition(costume);
+      costumeBadge.textContent = `🎲 RANDOM (${def.label.toUpperCase()})`;
+    } else {
+      const def = getCostumeDefinition(costume);
+      costumeBadge.textContent = `${def.icon} ${def.label.toUpperCase()}`;
+    }
+  }
+
+  costumeButtons.forEach((btn) => {
+    const target = btn.getAttribute('data-costume');
+    if (target === selection) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+costumeButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const target = btn.getAttribute('data-costume') as OutfitSelection | null;
+    if (target) {
+      window.usagiAPI?.setCostume(target);
+    }
+  });
+});
+
+// 5. Giant Usagi Jumpscare Alarm Test
 if (testGiantAlarmBtn) {
   testGiantAlarmBtn.addEventListener('click', () => {
     window.usagiAPI?.triggerGiantAlarmNow();
   });
 }
 
-// 5. IPC Listeners from Main Process
+// 6. IPC Listeners from Main Process
 if (window.usagiAPI) {
   window.usagiAPI.onVolumeConfigChanged((config) => {
     currentVolumeConfig = config;
@@ -263,5 +298,9 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onPomodoroStateChanged((state) => {
     updatePomodoroUI(state);
+  });
+
+  window.usagiAPI.onCostumeChanged((costume, selection) => {
+    updateCostumeUI(costume, selection);
   });
 }

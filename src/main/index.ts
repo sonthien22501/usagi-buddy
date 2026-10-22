@@ -33,6 +33,13 @@ import {
   WATER_REMINDER_MESSAGE,
 } from '../core/wellnessCoach';
 import { DEFAULT_VOLUME_CONFIG, VolumeConfig } from '../core/soundManager';
+import {
+  CostumeId,
+  OutfitSelection,
+  COSTUME_DEFINITIONS,
+  pickRandomCostume,
+  isKnownOutfitSelection,
+} from '../core/costumeManager';
 
 let mainWindow: BrowserWindow | null = null;
 let dashboardWindow: BrowserWindow | null = null;
@@ -43,6 +50,8 @@ let soundMuted = false;
 let stationaryMode = false;
 let isQuitting = false;
 let volumeConfig: VolumeConfig = { ...DEFAULT_VOLUME_CONFIG };
+let costumeSelection: OutfitSelection = 'classic';
+let activeCostume: CostumeId = 'classic';
 
 let pomodoroState: PomodoroState = createPomodoroTimer();
 let wellnessState: WellnessState = createWellnessState();
@@ -133,8 +142,20 @@ function createDashboardWindow(): void {
       dashboardWindow.webContents.send('sound-mute-toggle', soundMuted);
       dashboardWindow.webContents.send('ghost-mode-toggle', ghostLocked);
       dashboardWindow.webContents.send('play-mode-toggle', playModeEnabled);
+      dashboardWindow.webContents.send('costume-changed', activeCostume, costumeSelection);
     }
   });
+}
+
+function setCostume(selection: OutfitSelection): void {
+  costumeSelection = selection;
+  if (selection === 'random') {
+    activeCostume = pickRandomCostume(activeCostume);
+  } else {
+    activeCostume = selection;
+  }
+  broadcastToAllWindows('costume-changed', activeCostume, costumeSelection);
+  updateTrayMenu();
 }
 
 function updateTrayMenu(): void {
@@ -208,6 +229,24 @@ function updateTrayMenu(): void {
         {
           label: '✏️ Custom Duration... (Open Dashboard)',
           click: () => createDashboardWindow(),
+        },
+      ],
+    },
+    {
+      label: `👗 Outfits (${costumeSelection === 'random' ? '🎲 Random' : activeCostume})`,
+      submenu: [
+        ...COSTUME_DEFINITIONS.map((def) => ({
+          label: `${def.icon} ${def.label}`,
+          type: 'radio' as const,
+          checked: costumeSelection === def.id,
+          click: () => setCostume(def.id),
+        })),
+        { type: 'separator' as const },
+        {
+          label: '🎲 Shuffle / Random on Click',
+          type: 'radio' as const,
+          checked: costumeSelection === 'random',
+          click: () => setCostume('random'),
         },
       ],
     },
@@ -489,6 +528,12 @@ app.whenReady().then(() => {
 
   ipcMain.on('giant-alarm-dismissed', () => {
     dropSnackNow();
+  });
+
+  ipcMain.on('set-costume', (_e, selection: OutfitSelection) => {
+    if (isKnownOutfitSelection(selection)) {
+      setCostume(selection);
+    }
   });
 
   screen.on('display-metrics-changed', () => {
