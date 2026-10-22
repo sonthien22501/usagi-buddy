@@ -6,6 +6,7 @@ import {
   dismissGiantAlarm,
   formatRepeatActionLabel,
   getGiantAlarmRenderModel,
+  getRecommendedBreakMinutes,
   isGiantAlarmInteractive,
   tickGiantAlarm,
   triggerGiantAlarm,
@@ -101,5 +102,17 @@ describe('giantAlarmController', () => {
     expect(calculateSnoozeDurationMs(5)).toBe(300_000);
     expect(calculateSnoozeDurationMs(10)).toBe(600_000);
     expect(calculateSnoozeDurationMs(0)).toBe(60_000);
+  });
+
+  it('determines recommended break minutes mapped to study methods', () => {
+    // 25m Pomodoro -> 5m break
+    expect(getRecommendedBreakMinutes(25 * 60_000)).toBe(5);
+    // 52/17 Method -> 17m break
+    expect(getRecommendedBreakMinutes(52 * 60_000)).toBe(17);
+    // Ultradian 90/20 -> 20m break
+    expect(getRecommendedBreakMinutes(90 * 60_000)).toBe(20);
+    // Edge cases
+    expect(getRecommendedBreakMinutes(0)).toBe(5);
+    expect(getRecommendedBreakMinutes(NaN)).toBe(5);
   });
 });

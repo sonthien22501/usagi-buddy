@@ -176,32 +176,33 @@ function updateTrayMenu(): void {
       label: '⏱️ Set Timer Duration',
       submenu: [
         {
+          label: '🍅 25-Min Pomodoro (5m Break)',
+          click: () => setPomodoroDuration(25 * 60_000),
+        },
+        {
+          label: '⚡ 52-Min Focus (17m Break)',
+          click: () => setPomodoroDuration(52 * 60_000),
+        },
+        {
+          label: '🌊 90-Min Ultradian (20m Break)',
+          click: () => setPomodoroDuration(90 * 60_000),
+        },
+        { type: 'separator' },
+        {
+          label: '☕ 5-Minute Short Break',
+          click: () => setPomodoroDuration(5 * 60_000),
+        },
+        {
+          label: '☕ 17-Minute 52/17 Rest Break',
+          click: () => setPomodoroDuration(17 * 60_000),
+        },
+        {
+          label: '☕ 20-Minute Deep Rest Break',
+          click: () => setPomodoroDuration(20 * 60_000),
+        },
+        {
           label: '⚡ 1-Minute Quick Test',
           click: () => setPomodoroDuration(60_000),
-        },
-        {
-          label: '🍅 20-Minute Focus',
-          click: () => setPomodoroDuration(1_200_000),
-        },
-        {
-          label: '🍅 25-Minute Standard (Pomodoro)',
-          click: () => setPomodoroDuration(1_500_000),
-        },
-        {
-          label: '🍅 30-Minute Focus',
-          click: () => setPomodoroDuration(1_800_000),
-        },
-        {
-          label: '🍅 45-Minute Focus',
-          click: () => setPomodoroDuration(2_700_000),
-        },
-        {
-          label: '🍅 60-Minute Focus (1 Hour)',
-          click: () => setPomodoroDuration(3_600_000),
-        },
-        {
-          label: '☕ 5-Minute Break',
-          click: () => setPomodoroDuration(300_000),
         },
         { type: 'separator' },
         {

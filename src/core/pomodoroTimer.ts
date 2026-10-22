@@ -51,7 +51,7 @@ export function resetPomodoro(state: PomodoroState): PomodoroState {
   };
 }
 
-export function parseCustomDuration(value: number, unit: 'minutes' | 'hours'): number {
+export function parseCustomDuration(value: number, unit: 'minutes' | 'hours' = 'minutes'): number {
   if (!Number.isFinite(value) || value <= 0) {
     return DEFAULT_POMODORO_MS;
   }

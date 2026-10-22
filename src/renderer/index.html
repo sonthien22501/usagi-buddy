@@ -251,16 +251,33 @@
         border-color: #ffeaa7;
       }
 
-      .unit-select {
-        background: rgba(0, 0, 0, 0.45);
-        border: 1.5px solid rgba(255, 255, 255, 0.2);
+      .unit-tag {
+        font-size: 13px;
+        font-weight: 700;
+        color: rgba(255, 234, 167, 0.75);
+        padding: 0 4px;
+        user-select: none;
+      }
+
+      .step-btn {
+        background: rgba(255, 234, 167, 0.12);
+        border: 1px solid rgba(255, 234, 167, 0.35);
+        color: #ffeaa7;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 8px 12px;
         border-radius: 12px;
-        color: #ffffff;
-        font-size: 14px;
-        font-weight: 600;
-        padding: 8px 10px;
-        outline: none;
         cursor: pointer;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+      }
+      .step-btn:hover {
+        background: rgba(255, 234, 167, 0.25);
+        border-color: #ffeaa7;
+        transform: translateY(-1px);
+      }
+      .step-btn:active {
+        transform: scale(0.95);
       }
 
       .primary-start-btn {
@@ -471,30 +488,39 @@
             <span class="volume-badge" id="pomodoro-status-badge">25:00 IDLE</span>
           </div>
 
-          <!-- Quick Preset Pills -->
+          <!-- Scientific Method Preset Pills -->
           <div class="preset-chips">
-            <button class="chip-btn" data-min="25">25m</button>
-            <button class="chip-btn" data-min="40">40m</button>
-            <button class="chip-btn" data-min="60">60m (1h)</button>
-            <button class="chip-btn" data-min="90">90m</button>
-            <button class="chip-btn" data-hours="2">2h</button>
+            <button class="chip-btn" data-min="25" title="Pomodoro Technique: 25m work / 5m break">
+              🍅 25m Pomodoro
+            </button>
+            <button class="chip-btn" data-min="52" title="52/17 Method: 52m work / 17m break">
+              ⚡ 52m Rule
+            </button>
+            <button class="chip-btn" data-min="90" title="Ultradian Rhythm: 90m work / 20m break">
+              🌊 90m Ultradian
+            </button>
           </div>
 
-          <!-- Manual Input Row -->
+          <!-- Manual Input Row (Starts at 0 with +10m Button) -->
           <div class="manual-input-row">
             <input
               type="number"
               class="number-input"
               id="custom-time-input"
-              min="1"
+              min="0"
               max="720"
-              value="40"
-              placeholder="e.g. 40"
+              value="0"
+              placeholder="0"
             />
-            <select class="unit-select" id="custom-unit-select">
-              <option value="minutes">Minutes</option>
-              <option value="hours">Hours</option>
-            </select>
+            <span class="unit-tag">min</span>
+            <button
+              class="step-btn"
+              id="custom-add-10-btn"
+              type="button"
+              title="Add 10 minutes to timer"
+            >
+              +10m
+            </button>
             <button class="primary-start-btn" id="start-custom-timer-btn">▶ Start</button>
           </div>
         </div>
@@ -527,10 +553,10 @@
         <button
           class="alarm-action-btn alarm-break-btn"
           id="alarm-break-btn"
-          title="5-Minute Break (B)"
+          title="Recommended Break (B)"
         >
           <span>☕</span>
-          <span>5m Break</span>
+          <span id="alarm-break-text">5m Break</span>
           <span class="kbd-chip">B</span>
         </button>
       </div>

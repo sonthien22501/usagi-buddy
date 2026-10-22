@@ -235,3 +235,17 @@ export function calculateSnoozeDurationMs(snoozeMinutes: number = 5): number {
   const mins = Math.max(1, Number.isFinite(snoozeMinutes) ? Math.round(snoozeMinutes) : 5);
   return mins * 60_000;
 }
+
+export function getRecommendedBreakMinutes(workDurationMs: number): number {
+  if (!Number.isFinite(workDurationMs) || workDurationMs <= 0) {
+    return 5;
+  }
+  const workMins = Math.round(workDurationMs / 60_000);
+  if (workMins >= 80) {
+    return 20;
+  }
+  if (workMins >= 45 && workMins <= 65) {
+    return 17;
+  }
+  return 5;
+}

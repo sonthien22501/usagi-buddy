@@ -34,6 +34,7 @@ import {
   dismissGiantAlarm,
   formatRepeatActionLabel,
   getGiantAlarmRenderModel,
+  getRecommendedBreakMinutes,
   GiantAlarmRenderModel,
   GiantAlarmState,
   isGiantAlarmInteractive,
@@ -119,7 +120,7 @@ const pomodoroStatusBadge = document.getElementById(
   'pomodoro-status-badge'
 ) as HTMLSpanElement | null;
 const customTimeInput = document.getElementById('custom-time-input') as HTMLInputElement | null;
-const customUnitSelect = document.getElementById('custom-unit-select') as HTMLSelectElement | null;
+const customAdd10Btn = document.getElementById('custom-add-10-btn') as HTMLButtonElement | null;
 const startCustomTimerBtn = document.getElementById(
   'start-custom-timer-btn'
 ) as HTMLButtonElement | null;
@@ -137,6 +138,7 @@ const alarmRepeatBtn = document.getElementById('alarm-repeat-btn') as HTMLButton
 const alarmRepeatText = document.getElementById('alarm-repeat-text') as HTMLSpanElement | null;
 const alarmSnoozeBtn = document.getElementById('alarm-snooze-btn') as HTMLButtonElement | null;
 const alarmBreakBtn = document.getElementById('alarm-break-btn') as HTMLButtonElement | null;
+const alarmBreakText = document.getElementById('alarm-break-text') as HTMLSpanElement | null;
 const alarmDismissHint = document.getElementById('alarm-dismiss-hint') as HTMLDivElement | null;
 
 function showAlarmActionsOverlay(): void {
@@ -147,6 +149,10 @@ function showAlarmActionsOverlay(): void {
       : DEFAULT_POMODORO_MS;
   if (alarmRepeatText) {
     alarmRepeatText.textContent = formatRepeatActionLabel(lastDuration);
+  }
+  const breakMins = getRecommendedBreakMinutes(lastDuration);
+  if (alarmBreakText) {
+    alarmBreakText.textContent = `${breakMins}m Break`;
   }
   alarmActionsOverlay.style.display = 'flex';
 }
@@ -180,9 +186,14 @@ function handleSnoozeWrapUp(minutes: number = 5): void {
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
 
-function handleTakeBreak(minutes: number = 5): void {
+function handleTakeBreak(minutes?: number): void {
   if (!isGiantAlarmInteractive(giantAlarmState)) return;
-  const duration = calculateSnoozeDurationMs(minutes);
+  const lastDuration =
+    currentPomodoroState && currentPomodoroState.durationMs > 0
+      ? currentPomodoroState.durationMs
+      : DEFAULT_POMODORO_MS;
+  const breakMins = minutes ?? getRecommendedBreakMinutes(lastDuration);
+  const duration = calculateSnoozeDurationMs(breakMins);
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
   hideAlarmActionsOverlay();
   playSound('click-normal');
@@ -369,7 +380,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     }
     if (e.key === 'b' || e.key === 'B') {
       e.preventDefault();
-      handleTakeBreak(5);
+      handleTakeBreak();
       return;
     }
   }
@@ -393,7 +404,7 @@ if (alarmSnoozeBtn) {
 if (alarmBreakBtn) {
   alarmBreakBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    handleTakeBreak(5);
+    handleTakeBreak();
   });
 }
 
@@ -455,12 +466,9 @@ const chipButtons = document.querySelectorAll<HTMLButtonElement>('.chip-btn');
 chipButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
     const minAttr = btn.getAttribute('data-min');
-    const hoursAttr = btn.getAttribute('data-hours');
     let durationMs = 1_500_000;
     if (minAttr) {
       durationMs = parseCustomDuration(Number(minAttr), 'minutes');
-    } else if (hoursAttr) {
-      durationMs = parseCustomDuration(Number(hoursAttr), 'hours');
     }
     window.usagiAPI?.setPomodoroDuration(durationMs, true);
     if (pomodoroStatusBadge) {
@@ -469,11 +477,19 @@ chipButtons.forEach((btn) => {
   });
 });
 
-if (startCustomTimerBtn && customTimeInput && customUnitSelect) {
+if (customAdd10Btn && customTimeInput) {
+  customAdd10Btn.addEventListener('click', () => {
+    const current = Number(customTimeInput.value) || 0;
+    const next = current + 10;
+    customTimeInput.value = String(next);
+    customTimeInput.focus();
+  });
+}
+
+if (startCustomTimerBtn && customTimeInput) {
   startCustomTimerBtn.addEventListener('click', () => {
     const val = Number(customTimeInput.value);
-    const unit = customUnitSelect.value as 'minutes' | 'hours';
-    const durationMs = parseCustomDuration(val, unit);
+    const durationMs = parseCustomDuration(val > 0 ? val : 25, 'minutes');
     window.usagiAPI?.setPomodoroDuration(durationMs, true);
     if (pomodoroStatusBadge) {
       pomodoroStatusBadge.textContent = `${formatPomodoroTime(durationMs)} RUNNING`;

@@ -62,7 +62,10 @@ describe('pomodoroTimer', () => {
   });
 
   it('parses custom timer input in minutes and hours with safety clamping', () => {
-    // Minutes
+    // Minutes (default unit)
+    expect(parseCustomDuration(25)).toBe(1_500_000);
+    expect(parseCustomDuration(52)).toBe(3_120_000);
+    expect(parseCustomDuration(90)).toBe(5_400_000);
     expect(parseCustomDuration(25, 'minutes')).toBe(1_500_000);
     expect(parseCustomDuration(40, 'minutes')).toBe(2_400_000);
     expect(parseCustomDuration(60, 'minutes')).toBe(3_600_000);
