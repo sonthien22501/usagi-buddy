@@ -395,7 +395,6 @@ function setupWellnessCoachTicker(): void {
 
 app.whenReady().then(() => {
   createMainWindow();
-  createDashboardWindow();
   createSystemTray();
   setupPomodoroTicker();
   setupWellnessCoachTicker();

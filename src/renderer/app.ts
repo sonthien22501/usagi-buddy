@@ -51,7 +51,23 @@ interface ProcessedFrame {
 }
 
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d')!;
+const ctx =
+  (canvas.getContext('2d', {
+    alpha: true,
+    desynchronized: true,
+  }) as CanvasRenderingContext2D | null) || canvas.getContext('2d')!;
+
+const audioCache = new Map<string, HTMLAudioElement>();
+
+function getOrCreateAudio(url: string): HTMLAudioElement {
+  let audio = audioCache.get(url);
+  if (!audio) {
+    audio = new Audio(url);
+    audio.preload = 'auto';
+    audioCache.set(url, audio);
+  }
+  return audio;
+}
 
 let screenBounds: ScreenBounds = {
   width: window.innerWidth,
@@ -84,14 +100,16 @@ function playSound(event: SoundEvent, customVolume?: number): string | null {
 
   if (result.url && result.volume > 0) {
     try {
-      const audio = new Audio(result.url);
+      const audio = getOrCreateAudio(result.url);
       const targetVol = customVolume !== undefined ? customVolume : result.volume;
       audio.volume = Math.min(1.0, Math.max(0.0, targetVol));
+      audio.currentTime = 0;
       audio.play().catch(() => {
         if (result.file) {
           const fallbackUrl = resolveSoundAssetUrl(result.file, '../assets');
-          const fallbackAudio = new Audio(fallbackUrl);
+          const fallbackAudio = getOrCreateAudio(fallbackUrl);
           fallbackAudio.volume = Math.min(1.0, Math.max(0.0, targetVol));
+          fallbackAudio.currentTime = 0;
           fallbackAudio.play().catch(() => {});
         }
       });
@@ -597,7 +615,11 @@ if (window.usagiAPI) {
   });
 }
 
-function processImageToFrame(name: string, img: HTMLImageElement): ProcessedFrame {
+function processImageToFrame(
+  name: string,
+  img: HTMLImageElement,
+  maxDimension: number = 320
+): ProcessedFrame {
   const offscreen = document.createElement('canvas');
   offscreen.width = img.naturalWidth;
   offscreen.height = img.naturalHeight;
@@ -607,21 +629,44 @@ function processImageToFrame(name: string, img: HTMLImageElement): ProcessedFram
   const imgData = offCtx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
   const cropped: CroppedSprite = cropSpriteToAlphaBounds(name, imgData, 10);
 
+  const naturalW = cropped.bounds.width;
+  const naturalH = cropped.bounds.height;
+  const scale = Math.min(1.0, maxDimension / Math.max(naturalW, naturalH));
+  const targetW = Math.max(1, Math.round(naturalW * scale));
+  const targetH = Math.max(1, Math.round(naturalH * scale));
+
   const trimmed = document.createElement('canvas');
-  trimmed.width = cropped.bounds.width;
-  trimmed.height = cropped.bounds.height;
+  trimmed.width = targetW;
+  trimmed.height = targetH;
   const trimmedCtx = trimmed.getContext('2d')!;
 
-  const trimmedData = trimmedCtx.createImageData(cropped.bounds.width, cropped.bounds.height);
-  trimmedData.data.set(cropped.trimmedData);
-  trimmedCtx.putImageData(trimmedData, 0, 0);
+  if (scale === 1.0) {
+    const trimmedData = trimmedCtx.createImageData(targetW, targetH);
+    trimmedData.data.set(cropped.trimmedData);
+    trimmedCtx.putImageData(trimmedData, 0, 0);
+  } else {
+    // Hardware accelerated downscaling into a lightweight high-DPI texture
+    trimmedCtx.imageSmoothingEnabled = true;
+    trimmedCtx.imageSmoothingQuality = 'high';
+    trimmedCtx.drawImage(
+      offscreen,
+      cropped.bounds.minX,
+      cropped.bounds.minY,
+      naturalW,
+      naturalH,
+      0,
+      0,
+      targetW,
+      targetH
+    );
+  }
 
   return {
     canvas: trimmed,
-    width: cropped.bounds.width,
-    height: cropped.bounds.height,
-    centerX: cropped.bounds.centerX,
-    centerY: cropped.bounds.centerY,
+    width: targetW,
+    height: targetH,
+    centerX: targetW / 2,
+    centerY: targetH / 2,
   };
 }
 
@@ -635,7 +680,7 @@ function loadSingleSprite(index: number): Promise<ProcessedFrame> {
     };
 
     img.onload = () => {
-      resolve(processImageToFrame(`Usagi${index}`, img));
+      resolve(processImageToFrame(`Usagi${index}`, img, 320));
     };
   });
 }
@@ -659,12 +704,12 @@ function loadCustomGiantSprite(): Promise<ProcessedFrame | null> {
       img.onerror = () => {
         const imgAlt = new Image();
         imgAlt.src = `../assets/${filename}`;
-        imgAlt.onload = () => resolve(processImageToFrame(filename, imgAlt));
+        imgAlt.onload = () => resolve(processImageToFrame(filename, imgAlt, 768));
         imgAlt.onerror = () => tryCandidate();
       };
 
       img.onload = () => {
-        resolve(processImageToFrame(filename, img));
+        resolve(processImageToFrame(filename, img, 768));
       };
     };
 
@@ -680,11 +725,14 @@ async function loadAllSprites(): Promise<void> {
   const loaded = await Promise.all(promises);
   processedFrames.push(...loaded);
 
-  try {
-    giantSpriteFrame = await loadCustomGiantSprite();
-  } catch {
-    giantSpriteFrame = null;
-  }
+  // Background load giant sprite without delaying initial Usagi spawn
+  loadCustomGiantSprite()
+    .then((frame) => {
+      giantSpriteFrame = frame;
+    })
+    .catch(() => {
+      giantSpriteFrame = null;
+    });
 }
 
 function drawSnack(context: CanvasRenderingContext2D, x: number, y: number, radius: number): void {
