@@ -374,7 +374,7 @@ function handlePointerUp(): void {
         currentCostumeId = pickRandomCostume(currentCostumeId);
         const soundEvent: SoundEvent = 'click-combo';
         const text = playSound(soundEvent);
-        state.speechBubble = '✨ POOF! ✨';
+        state.speechBubble = text ?? prev ?? state.speechBubble;
         window.usagiAPI?.setCostume(
           currentCostumeSelection === 'random' ? 'random' : currentCostumeId
         );
@@ -629,7 +629,7 @@ if (window.usagiAPI) {
       currentCostumeId = pickRandomCostume(currentCostumeId);
       const soundEvent: SoundEvent = 'click-combo';
       const text = playSound(soundEvent);
-      state.speechBubble = '✨ POOF! ✨';
+      state.speechBubble = text ?? prev ?? state.speechBubble;
       window.usagiAPI?.setCostume(
         currentCostumeSelection === 'random' ? 'random' : currentCostumeId
       );

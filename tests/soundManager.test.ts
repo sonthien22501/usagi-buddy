@@ -6,6 +6,9 @@ import {
   selectSoundForEvent,
   SOUND_ASSET_FILES,
   voiceTextForFile,
+  NORMAL_CLICK_CLIPS,
+  COMBO_CLICK_CLIPS,
+  pickRandomClip,
 } from '../src/core/soundManager';
 
 describe('soundManager', () => {
@@ -26,40 +29,48 @@ describe('soundManager', () => {
     expect(voiceTextForFile('wuuulaaaa.mp3')).toBe('Wuuulaaaa!');
   });
 
-  it('alternates normal click sounds between una.mp3 and bryy.mp3 with matching voice text', () => {
+  it('randomizes normal click sounds across normal clips without repeating last clip', () => {
+    expect(NORMAL_CLICK_CLIPS).toEqual(['una.mp3', 'bryy.mp3', 'huhhhh.mp3']);
+
     let state = createSoundState(false, 100);
-    const r1 = selectSoundForEvent(state, 'click-normal', 0);
+    // Pick first clip using deterministic randomFn () => 0 -> 'una.mp3'
+    const r1 = selectSoundForEvent(state, 'click-normal', 0, '../../assets', () => 0);
     expect(r1.file).toBe('una.mp3');
     expect(r1.url).toContain('una.mp3');
     expect(r1.text).toBe('Una!');
 
     state = r1.state;
-    const r2 = selectSoundForEvent(state, 'click-normal', 1000);
+    // Next click excludes 'una.mp3', candidates are ['bryy.mp3', 'huhhhh.mp3']
+    // Index 0 -> 'bryy.mp3'
+    const r2 = selectSoundForEvent(state, 'click-normal', 1000, '../../assets', () => 0);
     expect(r2.file).toBe('bryy.mp3');
     expect(r2.url).toContain('bryy.mp3');
     expect(r2.text).toBe('Bryy!');
 
     state = r2.state;
-    const r3 = selectSoundForEvent(state, 'click-normal', 1400);
-    expect(r3.file).toBe('una.mp3');
-    expect(r3.text).toBe('Una!');
+    // Next click with index 1 (using () => 0.99) among ['una.mp3', 'huhhhh.mp3'] -> 'huhhhh.mp3'
+    const r3 = selectSoundForEvent(state, 'click-normal', 1400, '../../assets', () => 0.99);
+    expect(r3.file).toBe('huhhhh.mp3');
+    expect(r3.text).toBe('Huhhhh?');
   });
 
-  it('alternates combo click sounds between urararusk.mp3 and wuuulaaaa.mp3 with matching voice text', () => {
+  it('randomizes combo click sounds across combo clips without repeating last clip', () => {
+    expect(COMBO_CLICK_CLIPS).toEqual(['urararusk.mp3', 'wuuulaaaa.mp3', 'unayahayahauna.mp3']);
+
     let state = createSoundState(false, 100);
-    const r1 = selectSoundForEvent(state, 'click-combo', 1000);
+    const r1 = selectSoundForEvent(state, 'click-combo', 1000, '../../assets', () => 0);
     expect(r1.file).toBe('urararusk.mp3');
     expect(r1.text).toBe('Urararusk!');
 
     state = r1.state;
-    const r2 = selectSoundForEvent(state, 'click-combo', 1200);
+    const r2 = selectSoundForEvent(state, 'click-combo', 1200, '../../assets', () => 0);
     expect(r2.file).toBe('wuuulaaaa.mp3');
     expect(r2.text).toBe('Wuuulaaaa!');
 
     state = r2.state;
-    const r3 = selectSoundForEvent(state, 'click-combo', 1400);
-    expect(r3.file).toBe('urararusk.mp3');
-    expect(r3.text).toBe('Urararusk!');
+    const r3 = selectSoundForEvent(state, 'click-combo', 1400, '../../assets', () => 0.99);
+    expect(r3.file).toBe('unayahayahauna.mp3');
+    expect(r3.text).toBe('Unayahayahauna!');
   });
 
   it('plays unayahayahauna.mp3 for snack-eaten and welcome-back events with the snack voice text', () => {
@@ -92,7 +103,7 @@ describe('soundManager', () => {
 
   it('throttles sound playback during cooldown window and respects mute gate (Review Focus #2)', () => {
     let state = createSoundState(false, 250);
-    const r1 = selectSoundForEvent(state, 'click-normal', 1000);
+    const r1 = selectSoundForEvent(state, 'click-normal', 1000, '../../assets', () => 0);
     expect(r1.file).toBe('una.mp3');
     expect(r1.text).toBe('Una!');
 
@@ -109,7 +120,7 @@ describe('soundManager', () => {
 
     // Muted state -> url is null but text is still the selected voice line
     const mutedState = createSoundState(true, 250);
-    const rMuted = selectSoundForEvent(mutedState, 'click-normal', 2000);
+    const rMuted = selectSoundForEvent(mutedState, 'click-normal', 2000, '../../assets', () => 0);
     expect(rMuted.url).toBeNull();
     expect(rMuted.file).toBe('una.mp3');
     expect(rMuted.text).toBe('Una!');
