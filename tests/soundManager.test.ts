@@ -81,6 +81,14 @@ describe('soundManager', () => {
     expect(r.text).toBe('Huhhhh?');
   });
 
+  it('plays wuuulaaaa.mp3 for timer-complete event for giant alarm takeover', () => {
+    const state = createSoundState(false, 100);
+    const r = selectSoundForEvent(state, 'timer-complete', 1000);
+    expect(r.file).toBe('wuuulaaaa.mp3');
+    expect(r.url).toBe('../../assets/wuuulaaaa.mp3');
+    expect(r.text).toBe('Wuuulaaaa!');
+  });
+
   it('throttles sound playback during cooldown window and respects mute gate (Review Focus #2)', () => {
     let state = createSoundState(false, 250);
     const r1 = selectSoundForEvent(state, 'click-normal', 1000);

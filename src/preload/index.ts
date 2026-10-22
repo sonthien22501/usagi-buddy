@@ -16,6 +16,8 @@ export interface UsagiAPI {
   onPlayModeChanged: (callback: (enabled: boolean) => void) => () => void;
   onSoundMutedChanged: (callback: (muted: boolean) => void) => () => void;
   onWellnessUpdate: (callback: (payload: WellnessUpdatePayload) => void) => () => void;
+  onGiantAlarmTriggered: (callback: () => void) => () => void;
+  notifyGiantAlarmDismissed: () => void;
 }
 
 const api: UsagiAPI = {
@@ -55,6 +57,14 @@ const api: UsagiAPI = {
       callback(payload);
     ipcRenderer.on('wellness-update', handler);
     return () => ipcRenderer.removeListener('wellness-update', handler);
+  },
+  onGiantAlarmTriggered: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('trigger-giant-alarm', handler);
+    return () => ipcRenderer.removeListener('trigger-giant-alarm', handler);
+  },
+  notifyGiantAlarmDismissed: () => {
+    ipcRenderer.send('giant-alarm-dismissed');
   },
 };
 

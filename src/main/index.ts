@@ -108,6 +108,29 @@ function updateTrayMenu(): void {
       },
     },
     {
+      label: '🚨 Test Giant Usagi Alarm (Chaos!)',
+      click: () => {
+        triggerGiantAlarmNow();
+      },
+    },
+    {
+      label: '⏱ Timer Presets',
+      submenu: [
+        {
+          label: '⚡ 1-Minute Quick Test',
+          click: () => setPomodoroDuration(60_000),
+        },
+        {
+          label: '🍅 25-Minute Focus',
+          click: () => setPomodoroDuration(1_500_000),
+        },
+        {
+          label: '☕ 5-Minute Break',
+          click: () => setPomodoroDuration(300_000),
+        },
+      ],
+    },
+    {
       label: '🍮 Drop Snack Now!',
       click: () => {
         dropSnackNow();
@@ -167,6 +190,17 @@ function dropSnackNow(): void {
   const bounds = getScreenBounds();
   const snack = spawnSnackOnScreen(bounds);
   mainWindow.webContents.send('spawn-snack', snack);
+}
+
+function triggerGiantAlarmNow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('trigger-giant-alarm');
+}
+
+function setPomodoroDuration(durationMs: number): void {
+  pomodoroState = createPomodoroTimer(durationMs);
+  pomodoroState = startPomodoro(pomodoroState);
+  updateTrayMenu();
 }
 
 function triggerPreviewWellnessReminder(): void {
@@ -240,6 +274,7 @@ function setupPomodoroTicker(): void {
       pomodoroState = nextState;
 
       if (spawnedSnack && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('trigger-giant-alarm');
         mainWindow.webContents.send('spawn-snack', spawnedSnack);
         wellnessState = recordPomodoroCompleted(wellnessState);
       }
@@ -311,6 +346,10 @@ app.whenReady().then(() => {
   ipcMain.on('snack-consumed', () => {
     wellnessState = recordSnackFed(wellnessState);
     updateTrayMenu();
+  });
+
+  ipcMain.on('giant-alarm-dismissed', () => {
+    dropSnackNow();
   });
 
   screen.on('display-metrics-changed', () => {

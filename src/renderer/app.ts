@@ -22,6 +22,16 @@ import {
   SoundEvent,
   SoundState,
 } from '../core/soundManager';
+import {
+  createGiantAlarmState,
+  dismissGiantAlarm,
+  getGiantAlarmRenderModel,
+  GiantAlarmRenderModel,
+  GiantAlarmState,
+  isGiantAlarmInteractive,
+  tickGiantAlarm,
+  triggerGiantAlarm,
+} from '../core/giantAlarmController';
 
 interface ProcessedFrame {
   readonly canvas: HTMLCanvasElement;
@@ -51,12 +61,14 @@ resizeCanvas();
 let state: UsagiState = createInitialUsagiState(screenBounds);
 let ghostState = createGhostModeState(false);
 let soundState: SoundState = createSoundState(false, 250);
+let giantAlarmState: GiantAlarmState = createGiantAlarmState();
 let playModeEnabled = false;
 let activeSnack: SnackTarget | null = null;
 let cursorPos: Vector2D | null = null;
 const processedFrames: ProcessedFrame[] = [];
+let giantSpriteFrame: ProcessedFrame | null = null;
 
-function playSound(event: SoundEvent): string | null {
+function playSound(event: SoundEvent, customVolume?: number): string | null {
   const now = performance.now();
   const result = selectSoundForEvent(soundState, event, now, '../../assets');
   soundState = result.state;
@@ -64,12 +76,13 @@ function playSound(event: SoundEvent): string | null {
   if (result.url) {
     try {
       const audio = new Audio(result.url);
-      audio.volume = 0.85;
+      const defaultVol = event === 'timer-complete' ? 0.58 : 0.85;
+      audio.volume = customVolume ?? defaultVol;
       audio.play().catch(() => {
         if (result.file) {
           const fallbackUrl = resolveSoundAssetUrl(result.file, '../assets');
           const fallbackAudio = new Audio(fallbackUrl);
-          fallbackAudio.volume = 0.85;
+          fallbackAudio.volume = customVolume ?? defaultVol;
           fallbackAudio.play().catch(() => {});
         }
       });
@@ -81,7 +94,22 @@ function playSound(event: SoundEvent): string | null {
   return result.text;
 }
 
+function handleGiantAlarmDismiss(): void {
+  if (!isGiantAlarmInteractive(giantAlarmState)) return;
+  giantAlarmState = dismissGiantAlarm(giantAlarmState);
+  playSound('click-normal', 0.6);
+  window.usagiAPI?.notifyGiantAlarmDismissed();
+}
+
 function updateMouseIgnoreState(): void {
+  if (isGiantAlarmInteractive(giantAlarmState)) {
+    if (ghostState.currentlyIgnoringMouse) {
+      ghostState.currentlyIgnoringMouse = false;
+      window.usagiAPI?.setIgnoreMouseEvents(false);
+    }
+    return;
+  }
+
   const usagiTarget: HitTarget = {
     x: state.x,
     y: state.y,
@@ -117,6 +145,11 @@ window.addEventListener('mouseleave', () => {
 });
 
 window.addEventListener('pointerdown', (e: MouseEvent) => {
+  if (isGiantAlarmInteractive(giantAlarmState)) {
+    handleGiantAlarmDismiss();
+    return;
+  }
+
   if (ghostState.ghostModeLocked) return;
 
   const distToUsagi = Math.hypot(e.clientX - state.x, e.clientY - state.y);
@@ -127,6 +160,15 @@ window.addEventListener('pointerdown', (e: MouseEvent) => {
     const text = playSound(soundEvent);
     state.speechBubble = text ?? prev ?? state.speechBubble;
     updateMouseIgnoreState();
+  }
+});
+
+window.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (isGiantAlarmInteractive(giantAlarmState)) {
+    if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      handleGiantAlarmDismiss();
+    }
   }
 });
 
@@ -174,6 +216,40 @@ if (window.usagiAPI) {
     const text = playSound(soundEvent);
     state.speechBubble = text ?? prev ?? state.speechBubble;
   });
+
+  window.usagiAPI.onGiantAlarmTriggered(() => {
+    giantAlarmState = triggerGiantAlarm(giantAlarmState);
+    playSound('timer-complete');
+    updateMouseIgnoreState();
+  });
+}
+
+function processImageToFrame(name: string, img: HTMLImageElement): ProcessedFrame {
+  const offscreen = document.createElement('canvas');
+  offscreen.width = img.naturalWidth;
+  offscreen.height = img.naturalHeight;
+  const offCtx = offscreen.getContext('2d')!;
+  offCtx.drawImage(img, 0, 0);
+
+  const imgData = offCtx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
+  const cropped: CroppedSprite = cropSpriteToAlphaBounds(name, imgData, 10);
+
+  const trimmed = document.createElement('canvas');
+  trimmed.width = cropped.bounds.width;
+  trimmed.height = cropped.bounds.height;
+  const trimmedCtx = trimmed.getContext('2d')!;
+
+  const trimmedData = trimmedCtx.createImageData(cropped.bounds.width, cropped.bounds.height);
+  trimmedData.data.set(cropped.trimmedData);
+  trimmedCtx.putImageData(trimmedData, 0, 0);
+
+  return {
+    canvas: trimmed,
+    width: cropped.bounds.width,
+    height: cropped.bounds.height,
+    centerX: cropped.bounds.centerX,
+    centerY: cropped.bounds.centerY,
+  };
 }
 
 function loadSingleSprite(index: number): Promise<ProcessedFrame> {
@@ -186,31 +262,25 @@ function loadSingleSprite(index: number): Promise<ProcessedFrame> {
     };
 
     img.onload = () => {
-      const offscreen = document.createElement('canvas');
-      offscreen.width = img.naturalWidth;
-      offscreen.height = img.naturalHeight;
-      const offCtx = offscreen.getContext('2d')!;
-      offCtx.drawImage(img, 0, 0);
+      resolve(processImageToFrame(`Usagi${index}`, img));
+    };
+  });
+}
 
-      const imgData = offCtx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
-      const cropped: CroppedSprite = cropSpriteToAlphaBounds(`Usagi${index}`, imgData, 10);
+function loadCustomGiantSprite(): Promise<ProcessedFrame | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = '../../assets/GiantUsagi.png';
 
-      const trimmed = document.createElement('canvas');
-      trimmed.width = cropped.bounds.width;
-      trimmed.height = cropped.bounds.height;
-      const trimmedCtx = trimmed.getContext('2d')!;
+    img.onerror = () => {
+      const imgAlt = new Image();
+      imgAlt.src = '../assets/GiantUsagi.png';
+      imgAlt.onload = () => resolve(processImageToFrame('GiantUsagi', imgAlt));
+      imgAlt.onerror = () => resolve(null);
+    };
 
-      const trimmedData = trimmedCtx.createImageData(cropped.bounds.width, cropped.bounds.height);
-      trimmedData.data.set(cropped.trimmedData);
-      trimmedCtx.putImageData(trimmedData, 0, 0);
-
-      resolve({
-        canvas: trimmed,
-        width: cropped.bounds.width,
-        height: cropped.bounds.height,
-        centerX: cropped.bounds.centerX,
-        centerY: cropped.bounds.centerY,
-      });
+    img.onload = () => {
+      resolve(processImageToFrame('GiantUsagi', img));
     };
   });
 }
@@ -222,6 +292,12 @@ async function loadAllSprites(): Promise<void> {
   }
   const loaded = await Promise.all(promises);
   processedFrames.push(...loaded);
+
+  try {
+    giantSpriteFrame = await loadCustomGiantSprite();
+  } catch {
+    giantSpriteFrame = null;
+  }
 }
 
 function drawSnack(context: CanvasRenderingContext2D, x: number, y: number, radius: number): void {
@@ -360,11 +436,180 @@ function drawUsagi(
   context.restore();
 }
 
+function drawSpeedLines(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  alpha: number,
+  timeMs: number
+): void {
+  if (alpha <= 0.01) return;
+  context.save();
+  context.translate(width / 2, height / 2);
+  const numLines = 40;
+  const maxRadius = Math.hypot(width, height) / 2;
+  const innerRadius = Math.min(width, height) * 0.3;
+
+  context.fillStyle = `rgba(255, 235, 100, ${alpha * 0.7})`;
+  for (let i = 0; i < numLines; i++) {
+    const baseAngle = (i / numLines) * Math.PI * 2;
+    const jitter = Math.sin(timeMs * 0.018 + i * 2.7) * 0.02;
+    const angle = baseAngle + jitter;
+    const widthOffset = 0.018 + ((i * 3) % 4) * 0.005;
+
+    context.beginPath();
+    context.moveTo(
+      Math.cos(angle - widthOffset) * maxRadius,
+      Math.sin(angle - widthOffset) * maxRadius
+    );
+    context.lineTo(
+      Math.cos(angle + widthOffset) * maxRadius,
+      Math.sin(angle + widthOffset) * maxRadius
+    );
+    context.lineTo(Math.cos(angle) * innerRadius, Math.sin(angle) * innerRadius);
+    context.closePath();
+    context.fill();
+  }
+  context.restore();
+}
+
+function drawGiantComicBanner(
+  context: CanvasRenderingContext2D,
+  cx: number,
+  topY: number,
+  text: string
+): void {
+  context.save();
+  context.font = '900 32px "Segoe UI", "Comic Sans MS", "Nunito", sans-serif';
+  const metrics = context.measureText(text);
+  const paddingX = 28;
+  const bw = metrics.width + paddingX * 2;
+  const bh = 54;
+  const bx = cx - bw / 2;
+  const by = topY;
+  const r = 16;
+
+  // Comic border & shadow
+  context.shadowColor = 'rgba(0, 0, 0, 0.4)';
+  context.shadowBlur = 12;
+  context.shadowOffsetY = 4;
+
+  context.beginPath();
+  context.roundRect(bx, by, bw, bh, r);
+  context.fillStyle = '#FFEAA7';
+  context.fill();
+
+  context.shadowColor = 'transparent';
+  context.lineWidth = 3.5;
+  context.strokeStyle = '#2D3436';
+  context.stroke();
+
+  // Vibrant text
+  context.fillStyle = '#D63031';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(text, cx, by + bh / 2);
+
+  context.restore();
+}
+
+function drawDismissHint(
+  context: CanvasRenderingContext2D,
+  cx: number,
+  bottomY: number,
+  hintText: string,
+  timeMs: number
+): void {
+  context.save();
+  const pulse = 0.85 + Math.sin(timeMs * 0.006) * 0.15;
+  context.font = 'bold 16px "Segoe UI", "Nunito", sans-serif';
+  const metrics = context.measureText(hintText);
+  const bw = metrics.width + 36;
+  const bh = 36;
+  const bx = cx - bw / 2;
+  const by = bottomY - bh;
+
+  context.beginPath();
+  context.roundRect(bx, by, bw, bh, 18);
+  context.fillStyle = `rgba(20, 20, 25, ${0.75 * pulse})`;
+  context.fill();
+
+  context.lineWidth = 1.5;
+  context.strokeStyle = `rgba(255, 255, 255, ${0.4 * pulse})`;
+  context.stroke();
+
+  context.fillStyle = '#FFFFFF';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(hintText, cx, by + bh / 2);
+
+  context.restore();
+}
+
+function drawGiantAlarmOverlay(
+  context: CanvasRenderingContext2D,
+  model: GiantAlarmRenderModel,
+  frame: ProcessedFrame,
+  screen: ScreenBounds,
+  timeMs: number
+): void {
+  if (!model.visible) return;
+
+  context.save();
+
+  // 1. Dark vignette / backdrop
+  context.fillStyle = `rgba(15, 10, 25, ${model.backdropAlpha})`;
+  context.fillRect(0, 0, screen.width, screen.height);
+
+  // 2. Anime speed lines
+  drawSpeedLines(context, screen.width, screen.height, model.speedLinesAlpha, timeMs);
+
+  // 3. Screen shake translation
+  context.translate(model.shakeOffsetX, model.shakeOffsetY);
+
+  // 4. Draw Giant Usagi at screen center
+  const centerX = screen.width / 2;
+  const centerY = screen.height / 2 + 25;
+
+  context.save();
+  context.translate(centerX, centerY);
+  context.rotate(model.wobbleRad);
+
+  const targetHeight = screen.height * 0.68;
+  const baseScale = (targetHeight / frame.height) * model.scale;
+  context.scale(baseScale, baseScale);
+
+  context.globalAlpha = model.opacity;
+
+  // Comic glow behind giant Usagi
+  context.shadowColor = 'rgba(255, 200, 50, 0.5)';
+  context.shadowBlur = 35;
+  context.drawImage(frame.canvas, -frame.centerX, -frame.centerY);
+  context.restore();
+
+  // 5. Giant Comic Speech Banner
+  const bannerTop = Math.max(30, centerY - (targetHeight * model.scale) / 2 - 75);
+  drawGiantComicBanner(context, centerX, bannerTop, model.speechText);
+
+  // 6. Dismiss hint at screen bottom
+  drawDismissHint(context, centerX, screen.height - 45, model.hintText, timeMs);
+
+  context.restore();
+}
+
 let lastTime = performance.now();
 
 function animationLoop(now: number): void {
   const dt = now - lastTime;
   lastTime = now;
+
+  if (giantAlarmState.active) {
+    const wasActive = giantAlarmState.active;
+    giantAlarmState = tickGiantAlarm(giantAlarmState, dt);
+    if (wasActive && !giantAlarmState.active) {
+      updateMouseIgnoreState();
+    }
+  }
 
   const cursorTarget = playModeEnabled && !ghostState.ghostModeLocked ? cursorPos : null;
   const result = stepUsagiPhysics(state, dt, screenBounds, activeSnack, undefined, cursorTarget);
@@ -400,6 +645,16 @@ function animationLoop(now: number): void {
       state.y - DEFAULT_PHYSICS_CONFIG.spriteRadius - 15,
       state.speechBubble
     );
+  }
+
+  // Draw giant alarm overlay on top of canvas when active
+  if (giantAlarmState.active) {
+    const giantFrame =
+      giantSpriteFrame || processedFrames[UPRIGHT_SPRITE_INDEX] || processedFrames[0];
+    if (giantFrame) {
+      const renderModel = getGiantAlarmRenderModel(giantAlarmState);
+      drawGiantAlarmOverlay(ctx, renderModel, giantFrame, screenBounds, now);
+    }
   }
 
   requestAnimationFrame(animationLoop);

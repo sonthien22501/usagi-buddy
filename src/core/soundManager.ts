@@ -1,5 +1,10 @@
 export type SoundEvent =
-  'click-normal' | 'click-combo' | 'snack-eaten' | 'wellness-reminder' | 'welcome-back';
+  | 'click-normal'
+  | 'click-combo'
+  | 'snack-eaten'
+  | 'wellness-reminder'
+  | 'welcome-back'
+  | 'timer-complete';
 
 export const SOUND_ASSET_FILES = [
   'una.mp3',
@@ -74,6 +79,12 @@ function resolveClipFile(
     case 'wellness-reminder':
       return {
         file: 'huhhhh.mp3',
+        nextNormalCounter: state.normalClickCounter,
+        nextComboCounter: state.comboClickCounter,
+      };
+    case 'timer-complete':
+      return {
+        file: 'wuuulaaaa.mp3',
         nextNormalCounter: state.normalClickCounter,
         nextComboCounter: state.comboClickCounter,
       };
