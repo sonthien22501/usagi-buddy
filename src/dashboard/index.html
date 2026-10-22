@@ -13,21 +13,56 @@
         -webkit-user-select: none;
       }
 
+      html,
       body {
-        width: 100vw;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        overflow-x: hidden !important;
+      }
+
+      body {
         min-height: 100vh;
         background: #140f1d;
         color: #ffffff;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Nunito", sans-serif;
-        padding: 22px 24px;
+        padding: 18px 20px 26px;
         overflow-y: auto;
+        overflow-x: hidden !important;
+      }
+
+      /* Completely eradicate horizontal scrollbar */
+      ::-webkit-scrollbar:horizontal {
+        display: none !important;
+        height: 0px !important;
+        width: 0px !important;
+      }
+
+      /* Discreet, modern vertical scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 0px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 234, 167, 0.22);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 234, 167, 0.45);
       }
 
       .app-header {
         display: flex;
         align-items: center;
         gap: 14px;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
         padding-bottom: 14px;
         border-bottom: 1px solid rgba(255, 234, 167, 0.18);
       }
@@ -67,8 +102,8 @@
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.09);
         border-radius: 18px;
-        padding: 18px 20px;
-        margin-bottom: 16px;
+        padding: 16px 18px;
+        margin-bottom: 14px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
       }
 
@@ -76,11 +111,11 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
       }
 
       .card-title {
-        font-size: 14px;
+        font-size: 13.5px;
         font-weight: 700;
         color: #fab1a0;
         text-transform: uppercase;
@@ -95,7 +130,7 @@
         color: #ffeaa7;
         padding: 3px 10px;
         border-radius: 12px;
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: 800;
       }
 
@@ -104,7 +139,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
       }
 
       .volume-slider {
@@ -188,11 +223,11 @@
       /* Pomodoro Timer Display */
       .clock-display {
         text-align: center;
-        padding: 10px 0 16px;
+        padding: 8px 0 14px;
       }
 
       .clock-time {
-        font-size: 42px;
+        font-size: 40px;
         font-weight: 900;
         color: #ffeaa7;
         letter-spacing: 1px;
@@ -212,7 +247,7 @@
         display: flex;
         gap: 6px;
         flex-wrap: wrap;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
         justify-content: center;
       }
 
@@ -220,9 +255,9 @@
         background: rgba(255, 255, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.14);
         color: #ffeaa7;
-        padding: 6px 13px;
+        padding: 6px 12px;
         border-radius: 12px;
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: bold;
         cursor: pointer;
         transition: all 0.12s ease;
@@ -239,7 +274,7 @@
         display: flex;
         gap: 8px;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
       }
 
       .number-input {
@@ -248,9 +283,9 @@
         border: 1.5px solid rgba(255, 255, 255, 0.2);
         border-radius: 12px;
         color: #ffffff;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: bold;
-        padding: 8px 12px;
+        padding: 7px 12px;
         outline: none;
         -webkit-user-select: text;
         user-select: text;
@@ -265,14 +300,54 @@
         border: 1.5px solid rgba(255, 255, 255, 0.2);
         border-radius: 12px;
         color: #ffffff;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
-        padding: 8px 10px;
+        padding: 7px 10px;
         outline: none;
         cursor: pointer;
       }
 
-      /* Switch Row */
+      /* Mode List */
+      .mode-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .mode-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .mode-item:last-child {
+        padding-bottom: 0;
+        border-bottom: none;
+      }
+
+      .mode-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-right: 12px;
+      }
+
+      .mode-title {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .mode-desc {
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
       .switch-row {
         display: flex;
         justify-content: space-between;
@@ -280,13 +355,14 @@
       }
 
       .switch-desc {
-        font-size: 13px;
+        font-size: 12.5px;
         color: rgba(255, 255, 255, 0.75);
+        padding-right: 12px;
       }
 
       .app-footer {
         text-align: center;
-        font-size: 12px;
+        font-size: 11.5px;
         color: rgba(255, 255, 255, 0.45);
         margin-top: 14px;
         padding-top: 10px;
@@ -331,21 +407,7 @@
       </div>
     </div>
 
-    <!-- 2. Stay Still / Focus Anchor Card -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">📌 Focus Anchor Mode</div>
-        <span class="badge" id="stationary-badge">SWIMMING</span>
-      </div>
-      <div class="switch-row">
-        <div class="switch-desc">
-          Pin Usagi still in one spot so he doesn't float around while focusing.
-        </div>
-        <button class="btn btn-success" id="stationary-toggle-btn">📌 Pin Usagi Still</button>
-      </div>
-    </div>
-
-    <!-- 3. Pomodoro Focus Timer Card -->
+    <!-- 2. Pomodoro Focus Timer Card -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">🍅 Custom Focus Timer</div>
@@ -384,9 +446,62 @@
         <button class="btn btn-primary" id="start-timer-btn">▶ Start</button>
       </div>
 
-      <div class="card-actions" style="margin-top: 10px">
+      <div class="card-actions" style="margin-top: 8px">
         <button class="btn" id="pause-timer-btn">⏸ Pause</button>
         <button class="btn" id="reset-timer-btn">🔄 Reset</button>
+      </div>
+    </div>
+
+    <!-- 3. Companion Modes & Actions Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🎮 Companion Modes & Actions</div>
+      </div>
+      <div class="mode-list">
+        <!-- Anchor / Stay Still -->
+        <div class="mode-item">
+          <div class="mode-info">
+            <div class="mode-title">
+              📌 Stay Still (Anchor Mode)
+              <span class="badge" id="stationary-badge">SWIMMING</span>
+            </div>
+            <div class="mode-desc">Pin Usagi in one place so he doesn't float around while focusing.</div>
+          </div>
+          <button class="btn btn-success" id="stationary-toggle-btn">📌 Pin Usagi Still</button>
+        </div>
+
+        <!-- Play Mode / Follow Cursor -->
+        <div class="mode-item">
+          <div class="mode-info">
+            <div class="mode-title">
+              🪄 Play Mode (Cursor Follow)
+              <span class="badge" id="play-mode-badge">FREE SWIM</span>
+            </div>
+            <div class="mode-desc">Usagi swims joyfully after your mouse pointer on screen.</div>
+          </div>
+          <button class="btn" id="play-mode-toggle-btn">🪄 Enable</button>
+        </div>
+
+        <!-- Ghost Mode / Click-Through -->
+        <div class="mode-item">
+          <div class="mode-info">
+            <div class="mode-title">
+              👻 Ghost Mode (Click-Through)
+              <span class="badge" id="ghost-mode-badge">SOLID</span>
+            </div>
+            <div class="mode-desc">Ignore all mouse clicks on Usagi so clicks pass through to background apps.</div>
+          </div>
+          <button class="btn" id="ghost-mode-toggle-btn">👻 Enable</button>
+        </div>
+
+        <!-- Drop Pudding Snack -->
+        <div class="mode-item">
+          <div class="mode-info">
+            <div class="mode-title">🍮 Drop Pudding Snack</div>
+            <div class="mode-desc">Toss a delicious pudding treat for Usagi to chase and gobble up!</div>
+          </div>
+          <button class="btn" id="drop-snack-btn">🍮 Drop Snack</button>
+        </div>
       </div>
     </div>
 

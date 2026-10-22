@@ -11,6 +11,18 @@ const stationaryToggleBtn = document.getElementById(
   'stationary-toggle-btn'
 ) as HTMLButtonElement | null;
 
+const playModeBadge = document.getElementById('play-mode-badge') as HTMLSpanElement | null;
+const playModeToggleBtn = document.getElementById(
+  'play-mode-toggle-btn'
+) as HTMLButtonElement | null;
+
+const ghostModeBadge = document.getElementById('ghost-mode-badge') as HTMLSpanElement | null;
+const ghostModeToggleBtn = document.getElementById(
+  'ghost-mode-toggle-btn'
+) as HTMLButtonElement | null;
+
+const dropSnackBtn = document.getElementById('drop-snack-btn') as HTMLButtonElement | null;
+
 const timerBadge = document.getElementById('timer-badge') as HTMLSpanElement | null;
 const clockTime = document.getElementById('clock-time') as HTMLDivElement | null;
 const clockStatus = document.getElementById('clock-status') as HTMLDivElement | null;
@@ -35,6 +47,8 @@ let currentVolumeConfig: VolumeConfig = {
 let currentPomodoroState: PomodoroState | null = null;
 let isMuted = false;
 let isStationary = false;
+let isPlayMode = false;
+let isGhostMode = false;
 
 // 1. Unified Volume Slider (Pull Left & Right)
 if (volumeSlider) {
@@ -67,26 +81,7 @@ if (muteToggleBtn) {
   });
 }
 
-// 2. Stay Still / Anchor Mode
-function updateStationaryUI(stationary: boolean): void {
-  isStationary = stationary;
-  if (stationaryBadge) {
-    stationaryBadge.textContent = stationary ? 'STILL (ANCHORED)' : 'SWIMMING';
-    stationaryBadge.style.color = stationary ? '#55efc4' : '#ffeaa7';
-  }
-  if (stationaryToggleBtn) {
-    stationaryToggleBtn.textContent = stationary ? '🌊 Resume Swimming' : '📌 Pin Usagi Still';
-    stationaryToggleBtn.className = stationary ? 'btn btn-primary' : 'btn btn-success';
-  }
-}
-
-if (stationaryToggleBtn) {
-  stationaryToggleBtn.addEventListener('click', () => {
-    window.usagiAPI?.toggleStationaryMode();
-  });
-}
-
-// 3. Custom Pomodoro Timer
+// 2. Custom Pomodoro Timer
 function updatePomodoroUI(state: PomodoroState): void {
   currentPomodoroState = state;
   const timeFormatted = formatPomodoroTime(state.remainingMs);
@@ -148,6 +143,67 @@ if (resetTimerBtn) {
   });
 }
 
+// 3. Companion Modes & Actions
+function updateStationaryUI(stationary: boolean): void {
+  isStationary = stationary;
+  if (stationaryBadge) {
+    stationaryBadge.textContent = stationary ? 'STILL (ANCHORED)' : 'SWIMMING';
+    stationaryBadge.style.color = stationary ? '#55efc4' : '#ffeaa7';
+  }
+  if (stationaryToggleBtn) {
+    stationaryToggleBtn.textContent = stationary ? '🌊 Resume Swimming' : '📌 Pin Usagi Still';
+    stationaryToggleBtn.className = stationary ? 'btn btn-primary' : 'btn btn-success';
+  }
+}
+
+function updatePlayModeUI(enabled: boolean): void {
+  isPlayMode = enabled;
+  if (playModeBadge) {
+    playModeBadge.textContent = enabled ? 'FOLLOWING' : 'FREE SWIM';
+    playModeBadge.style.color = enabled ? '#55efc4' : '#ffeaa7';
+  }
+  if (playModeToggleBtn) {
+    playModeToggleBtn.textContent = enabled ? '🪄 Stop Following' : '🪄 Follow Mouse';
+    playModeToggleBtn.className = enabled ? 'btn btn-primary' : 'btn';
+  }
+}
+
+function updateGhostModeUI(locked: boolean): void {
+  isGhostMode = locked;
+  if (ghostModeBadge) {
+    ghostModeBadge.textContent = locked ? 'CLICK-THROUGH' : 'SOLID';
+    ghostModeBadge.style.color = locked ? '#a29bfe' : '#ffeaa7';
+  }
+  if (ghostModeToggleBtn) {
+    ghostModeToggleBtn.textContent = locked ? '👻 Disable Ghost' : '👻 Enable Ghost';
+    ghostModeToggleBtn.className = locked ? 'btn btn-primary' : 'btn';
+  }
+}
+
+if (stationaryToggleBtn) {
+  stationaryToggleBtn.addEventListener('click', () => {
+    window.usagiAPI?.toggleStationaryMode();
+  });
+}
+
+if (playModeToggleBtn) {
+  playModeToggleBtn.addEventListener('click', () => {
+    window.usagiAPI?.togglePlayMode();
+  });
+}
+
+if (ghostModeToggleBtn) {
+  ghostModeToggleBtn.addEventListener('click', () => {
+    window.usagiAPI?.toggleGhostMode();
+  });
+}
+
+if (dropSnackBtn) {
+  dropSnackBtn.addEventListener('click', () => {
+    window.usagiAPI?.dropSnackNow();
+  });
+}
+
 // 4. Giant Usagi Jumpscare Alarm Test
 if (testGiantAlarmBtn) {
   testGiantAlarmBtn.addEventListener('click', () => {
@@ -177,6 +233,14 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onStationaryModeChanged((stationary) => {
     updateStationaryUI(stationary);
+  });
+
+  window.usagiAPI.onPlayModeChanged((enabled) => {
+    updatePlayModeUI(enabled);
+  });
+
+  window.usagiAPI.onGhostModeChanged((locked) => {
+    updateGhostModeUI(locked);
   });
 
   window.usagiAPI.onPomodoroStateChanged((state) => {

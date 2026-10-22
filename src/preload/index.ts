@@ -16,6 +16,9 @@ export interface UsagiAPI {
   onTriggerInteraction: (callback: () => void) => () => void;
   notifySnackConsumed: () => void;
   onPlayModeChanged: (callback: (enabled: boolean) => void) => () => void;
+  togglePlayMode: () => void;
+  toggleGhostMode: () => void;
+  dropSnackNow: () => void;
   onStationaryModeChanged: (callback: (stationary: boolean) => void) => () => void;
   toggleStationaryMode: () => void;
   onSoundMutedChanged: (callback: (muted: boolean) => void) => () => void;
@@ -61,6 +64,15 @@ const api: UsagiAPI = {
     const handler = (_event: Electron.IpcRendererEvent, enabled: boolean) => callback(enabled);
     ipcRenderer.on('play-mode-toggle', handler);
     return () => ipcRenderer.removeListener('play-mode-toggle', handler);
+  },
+  togglePlayMode: () => {
+    ipcRenderer.send('toggle-play-mode');
+  },
+  toggleGhostMode: () => {
+    ipcRenderer.send('toggle-ghost-mode');
+  },
+  dropSnackNow: () => {
+    ipcRenderer.send('drop-snack-now');
   },
   onStationaryModeChanged: (callback: (stationary: boolean) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, stationary: boolean) =>

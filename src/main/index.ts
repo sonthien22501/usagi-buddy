@@ -117,6 +117,8 @@ function createDashboardWindow(): void {
     if (dashboardWindow && !dashboardWindow.isDestroyed()) {
       dashboardWindow.webContents.send('stationary-mode-toggle', stationaryMode);
       dashboardWindow.webContents.send('sound-mute-toggle', soundMuted);
+      dashboardWindow.webContents.send('ghost-mode-toggle', ghostLocked);
+      dashboardWindow.webContents.send('play-mode-toggle', playModeEnabled);
     }
   });
 }
@@ -130,106 +132,14 @@ function updateTrayMenu(): void {
   tray.setToolTip(`Usagi Float — ${pomodoroState.phase.toUpperCase()} (${timeStr})`);
 
   const isRunning = pomodoroState.phase === 'running';
-  const statsLabel = formatStatsTrayLabel(wellnessState.stats);
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: '🎛️ Open Usagi Dashboard',
-      click: () => createDashboardWindow(),
-    },
-    { type: 'separator' },
-    {
-      label: statsLabel,
+      label: `⏱️ Focus Timer: ${timeStr} (${pomodoroState.phase.toUpperCase()})`,
       enabled: false,
     },
-    { type: 'separator' },
     {
-      label: '🪄 Play Mode',
-      type: 'checkbox',
-      checked: playModeEnabled,
-      accelerator: 'CommandOrControl+Shift+P',
-      click: () => togglePlayMode(),
-    },
-    {
-      label: stationaryMode ? '📌 Resume Swimming (Moving)' : '📌 Stay Still (Anchor Mode)',
-      type: 'checkbox',
-      checked: stationaryMode,
-      accelerator: 'CommandOrControl+Shift+A',
-      click: () => toggleStationaryMode(),
-    },
-    {
-      label: '🔊 Sound & Volume',
-      submenu: [
-        {
-          label: 'Mute All Audio',
-          type: 'checkbox',
-          checked: soundMuted,
-          click: () => toggleSoundMute(),
-        },
-        {
-          label: '⚖️ Equalize Clip Loudness (Normalizer)',
-          type: 'checkbox',
-          checked: volumeConfig.equalizeLoudness,
-          click: () => {
-            volumeConfig = { ...volumeConfig, equalizeLoudness: !volumeConfig.equalizeLoudness };
-            broadcastVolumeConfig();
-            updateTrayMenu();
-          },
-        },
-        { type: 'separator' },
-        {
-          label: `🐰 Buddy Voice Volume (${Math.round(volumeConfig.buddy * 100)}%)`,
-          submenu: [
-            { label: '100% (Full)', value: 1.0 },
-            { label: '80% (Default)', value: 0.8 },
-            { label: '50% (Medium)', value: 0.5 },
-            { label: '25% (Quiet)', value: 0.25 },
-            { label: '0% (Mute Buddy)', value: 0.0 },
-          ].map((item) => ({
-            label: item.label,
-            type: 'radio',
-            checked: Math.abs(volumeConfig.buddy - item.value) < 0.05,
-            click: () => {
-              volumeConfig = { ...volumeConfig, buddy: item.value };
-              broadcastVolumeConfig();
-              updateTrayMenu();
-            },
-          })),
-        },
-        {
-          label: `🚨 Giant Alarm Volume (${Math.round(volumeConfig.alarm * 100)}%)`,
-          submenu: [
-            { label: '100% (Full)', value: 1.0 },
-            { label: '70% (Default - Balanced)', value: 0.7 },
-            { label: '50% (Medium)', value: 0.5 },
-            { label: '25% (Quiet)', value: 0.25 },
-            { label: '0% (Mute Alarm)', value: 0.0 },
-          ].map((item) => ({
-            label: item.label,
-            type: 'radio',
-            checked: Math.abs(volumeConfig.alarm - item.value) < 0.05,
-            click: () => {
-              volumeConfig = { ...volumeConfig, alarm: item.value };
-              broadcastVolumeConfig();
-              updateTrayMenu();
-            },
-          })),
-        },
-      ],
-    },
-    {
-      label: ghostLocked ? '👻 Disable Ghost Mode' : '👻 Enable Ghost Mode',
-      accelerator: 'CommandOrControl+Shift+G',
-      click: () => toggleGhostMode(),
-    },
-    { type: 'separator' },
-    {
-      label: '⚙️ Settings (Volume Slider & Custom Timer)...',
-      accelerator: 'CommandOrControl+Shift+S',
-      click: () => openSettingsModal(),
-    },
-    {
-      label: isRunning ? '⏸ Pause Pomodoro' : '🍅 Start Pomodoro',
+      label: isRunning ? '⏸ Pause Timer' : '▶ Start Timer',
       click: () => {
         if (isRunning) {
           pomodoroState = pausePomodoro(pomodoroState);
@@ -241,56 +151,17 @@ function updateTrayMenu(): void {
       },
     },
     {
-      label: '🔄 Reset Pomodoro Timer',
+      label: '🔄 Reset Timer',
       click: () => {
         pomodoroState = resetPomodoro(pomodoroState);
         updateTrayMenu();
         broadcastPomodoroState();
       },
     },
-    {
-      label: '🚨 Test Giant Usagi Alarm (Chaos!)',
-      click: () => {
-        triggerGiantAlarmNow();
-      },
-    },
-    {
-      label: '⏱ Timer Presets',
-      submenu: [
-        {
-          label: '⚡ 1-Minute Quick Test',
-          click: () => setPomodoroDuration(60_000),
-        },
-        {
-          label: '🍅 25-Minute Standard',
-          click: () => setPomodoroDuration(1_500_000),
-        },
-        {
-          label: '🍅 40-Minute Extended',
-          click: () => setPomodoroDuration(2_400_000),
-        },
-        {
-          label: '🍅 60-Minute (1 Hour)',
-          click: () => setPomodoroDuration(3_600_000),
-        },
-        {
-          label: '☕ 5-Minute Break',
-          click: () => setPomodoroDuration(300_000),
-        },
-      ],
-    },
-    {
-      label: '🍮 Drop Snack Now!',
-      click: () => {
-        dropSnackNow();
-      },
-    },
     { type: 'separator' },
     {
-      label: '☕ Buy Usagi a Coffee...',
-      click: () => {
-        shell.openExternal('https://ko-fi.com/rodannguyen');
-      },
+      label: '🎛️ Open Usagi Dashboard...',
+      click: () => createDashboardWindow(),
     },
     { type: 'separator' },
     {
@@ -413,14 +284,6 @@ function createSystemTray(): void {
 
   tray = new Tray(trayIcon);
   updateTrayMenu();
-
-  tray.on('click', () => {
-    if (dashboardWindow && !dashboardWindow.isDestroyed() && dashboardWindow.isVisible()) {
-      dashboardWindow.hide();
-    } else {
-      createDashboardWindow();
-    }
-  });
 }
 
 function setupPomodoroTicker(): void {
@@ -553,6 +416,18 @@ app.whenReady().then(() => {
 
   ipcMain.on('toggle-stationary-mode', () => {
     toggleStationaryMode();
+  });
+
+  ipcMain.on('toggle-ghost-mode', () => {
+    toggleGhostMode();
+  });
+
+  ipcMain.on('toggle-play-mode', () => {
+    togglePlayMode();
+  });
+
+  ipcMain.on('drop-snack-now', () => {
+    dropSnackNow();
   });
 
   ipcMain.on('snack-consumed', () => {
