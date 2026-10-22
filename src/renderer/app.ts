@@ -22,6 +22,17 @@ import {
   SoundEvent,
   SoundState,
 } from '../core/soundManager';
+import { formatPomodoroTime, parseCustomDuration, PomodoroState } from '../core/pomodoroTimer';
+import {
+  createGiantAlarmState,
+  dismissGiantAlarm,
+  getGiantAlarmRenderModel,
+  GiantAlarmRenderModel,
+  GiantAlarmState,
+  isGiantAlarmInteractive,
+  tickGiantAlarm,
+  triggerGiantAlarm,
+} from '../core/giantAlarmController';
 
 interface ProcessedFrame {
   readonly canvas: HTMLCanvasElement;
@@ -51,25 +62,28 @@ resizeCanvas();
 let state: UsagiState = createInitialUsagiState(screenBounds);
 let ghostState = createGhostModeState(false);
 let soundState: SoundState = createSoundState(false, 250);
+let giantAlarmState: GiantAlarmState = createGiantAlarmState();
 let playModeEnabled = false;
 let activeSnack: SnackTarget | null = null;
 let cursorPos: Vector2D | null = null;
 const processedFrames: ProcessedFrame[] = [];
+let giantSpriteFrame: ProcessedFrame | null = null;
 
-function playSound(event: SoundEvent): string | null {
+function playSound(event: SoundEvent, customVolume?: number): string | null {
   const now = performance.now();
   const result = selectSoundForEvent(soundState, event, now, '../../assets');
   soundState = result.state;
 
-  if (result.url) {
+  if (result.url && result.volume > 0) {
     try {
       const audio = new Audio(result.url);
-      audio.volume = 0.85;
+      const targetVol = customVolume !== undefined ? customVolume : result.volume;
+      audio.volume = Math.min(1.0, Math.max(0.0, targetVol));
       audio.play().catch(() => {
         if (result.file) {
           const fallbackUrl = resolveSoundAssetUrl(result.file, '../assets');
           const fallbackAudio = new Audio(fallbackUrl);
-          fallbackAudio.volume = 0.85;
+          fallbackAudio.volume = Math.min(1.0, Math.max(0.0, targetVol));
           fallbackAudio.play().catch(() => {});
         }
       });
@@ -81,7 +95,85 @@ function playSound(event: SoundEvent): string | null {
   return result.text;
 }
 
+let isSettingsModalOpen = false;
+let currentPomodoroState: PomodoroState | null = null;
+let isDraggingUsagi = false;
+let dragStartPos: Vector2D | null = null;
+let dragOffset: Vector2D = { x: 0, y: 0 };
+let dragMovedBeyondThreshold = false;
+
+const settingsOverlay = document.getElementById('settings-overlay') as HTMLDivElement | null;
+const closeSettingsBtn = document.getElementById('close-settings-btn') as HTMLButtonElement | null;
+const volumeRange = document.getElementById('volume-range') as HTMLInputElement | null;
+const volumeValBadge = document.getElementById('volume-val-badge') as HTMLSpanElement | null;
+const testSoundBtn = document.getElementById('test-sound-btn') as HTMLButtonElement | null;
+const muteToggleBtn = document.getElementById('mute-toggle-btn') as HTMLButtonElement | null;
+const pomodoroStatusBadge = document.getElementById(
+  'pomodoro-status-badge'
+) as HTMLSpanElement | null;
+const customTimeInput = document.getElementById('custom-time-input') as HTMLInputElement | null;
+const customUnitSelect = document.getElementById('custom-unit-select') as HTMLSelectElement | null;
+const startCustomTimerBtn = document.getElementById(
+  'start-custom-timer-btn'
+) as HTMLButtonElement | null;
+const stationaryValBadge = document.getElementById(
+  'stationary-val-badge'
+) as HTMLSpanElement | null;
+const stationaryToggleBtn = document.getElementById(
+  'stationary-toggle-btn'
+) as HTMLButtonElement | null;
+
+function updateStationaryBadge(): void {
+  const isStill = !!state.stationary;
+  if (stationaryValBadge) {
+    stationaryValBadge.textContent = isStill ? 'STILL' : 'SWIMMING';
+    stationaryValBadge.style.color = isStill ? '#55efc4' : '#ffeaa7';
+  }
+  if (stationaryToggleBtn) {
+    stationaryToggleBtn.textContent = isStill ? '🌊 Resume Swim' : '📌 Pin Still';
+  }
+}
+
+function openSettingsModal(): void {
+  isSettingsModalOpen = true;
+  if (settingsOverlay) {
+    settingsOverlay.style.display = 'flex';
+  }
+  if (volumeRange && volumeValBadge) {
+    volumeRange.value = String(Math.round(soundState.volumeConfig.master * 100));
+    volumeValBadge.textContent = `${volumeRange.value}%`;
+  }
+  if (muteToggleBtn) {
+    muteToggleBtn.textContent = soundState.muted ? '🔊 Unmute' : '🔇 Mute';
+  }
+  updateStationaryBadge();
+  updateMouseIgnoreState();
+}
+
+function closeSettingsModal(): void {
+  isSettingsModalOpen = false;
+  if (settingsOverlay) {
+    settingsOverlay.style.display = 'none';
+  }
+  updateMouseIgnoreState();
+}
+
+function handleGiantAlarmDismiss(): void {
+  if (!isGiantAlarmInteractive(giantAlarmState)) return;
+  giantAlarmState = dismissGiantAlarm(giantAlarmState);
+  playSound('click-normal');
+  window.usagiAPI?.notifyGiantAlarmDismissed();
+}
+
 function updateMouseIgnoreState(): void {
+  if (isDraggingUsagi || isSettingsModalOpen || isGiantAlarmInteractive(giantAlarmState)) {
+    if (ghostState.currentlyIgnoringMouse) {
+      ghostState.currentlyIgnoringMouse = false;
+      window.usagiAPI?.setIgnoreMouseEvents(false);
+    }
+    return;
+  }
+
   const usagiTarget: HitTarget = {
     x: state.x,
     y: state.y,
@@ -108,6 +200,20 @@ function updateMouseIgnoreState(): void {
 
 window.addEventListener('pointermove', (e: MouseEvent) => {
   cursorPos = { x: e.clientX, y: e.clientY };
+
+  if (isDraggingUsagi && dragStartPos) {
+    const dist = Math.hypot(e.clientX - dragStartPos.x, e.clientY - dragStartPos.y);
+    if (dist >= 5) {
+      dragMovedBeyondThreshold = true;
+      const r = DEFAULT_PHYSICS_CONFIG.spriteRadius;
+      state.x = Math.max(r, Math.min(screenBounds.width - r, e.clientX + dragOffset.x));
+      state.y = Math.max(r, Math.min(screenBounds.height - r, e.clientY + dragOffset.y));
+      state.vx = 0;
+      state.vy = 0;
+    }
+    return;
+  }
+
   updateMouseIgnoreState();
 });
 
@@ -117,18 +223,153 @@ window.addEventListener('mouseleave', () => {
 });
 
 window.addEventListener('pointerdown', (e: MouseEvent) => {
+  if (isSettingsModalOpen) {
+    return;
+  }
+
+  if (isGiantAlarmInteractive(giantAlarmState)) {
+    handleGiantAlarmDismiss();
+    return;
+  }
+
   if (ghostState.ghostModeLocked) return;
 
   const distToUsagi = Math.hypot(e.clientX - state.x, e.clientY - state.y);
   if (distToUsagi <= DEFAULT_PHYSICS_CONFIG.spriteRadius * 1.25) {
-    const prev = state.speechBubble;
-    state = triggerUsagiInteraction(state);
-    const soundEvent: SoundEvent = state.comboClicks >= 3 ? 'click-combo' : 'click-normal';
-    const text = playSound(soundEvent);
-    state.speechBubble = text ?? prev ?? state.speechBubble;
+    isDraggingUsagi = true;
+    dragStartPos = { x: e.clientX, y: e.clientY };
+    dragOffset = { x: state.x - e.clientX, y: state.y - e.clientY };
+    dragMovedBeyondThreshold = false;
     updateMouseIgnoreState();
   }
 });
+
+function handlePointerUp(): void {
+  if (isDraggingUsagi) {
+    const wasDragged = dragMovedBeyondThreshold;
+    isDraggingUsagi = false;
+    dragStartPos = null;
+
+    if (!wasDragged) {
+      const prev = state.speechBubble;
+      state = triggerUsagiInteraction(state);
+      const soundEvent: SoundEvent = state.comboClicks >= 3 ? 'click-combo' : 'click-normal';
+      const text = playSound(soundEvent);
+      state.speechBubble = text ?? prev ?? state.speechBubble;
+    } else {
+      if (!state.stationary) {
+        state.vx = 25 * state.scaleFlipX;
+        state.vy = 15;
+      }
+    }
+
+    updateMouseIgnoreState();
+  }
+}
+
+window.addEventListener('pointerup', handlePointerUp);
+window.addEventListener('pointercancel', handlePointerUp);
+
+window.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (isSettingsModalOpen) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeSettingsModal();
+      return;
+    }
+  }
+
+  if (isGiantAlarmInteractive(giantAlarmState)) {
+    if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      handleGiantAlarmDismiss();
+    }
+  }
+});
+
+// Modal UI Event Listeners
+if (closeSettingsBtn) {
+  closeSettingsBtn.addEventListener('click', closeSettingsModal);
+}
+
+if (settingsOverlay) {
+  settingsOverlay.addEventListener('click', (e) => {
+    if (e.target === settingsOverlay) {
+      closeSettingsModal();
+    }
+  });
+}
+
+if (volumeRange) {
+  volumeRange.addEventListener('input', () => {
+    const nextMaster = Number(volumeRange.value) / 100;
+    if (volumeValBadge) {
+      volumeValBadge.textContent = `${volumeRange.value}%`;
+    }
+    const updatedConfig = { ...soundState.volumeConfig, master: nextMaster };
+    soundState = { ...soundState, volumeConfig: updatedConfig };
+    window.usagiAPI?.updateVolumeConfig(updatedConfig);
+  });
+}
+
+if (testSoundBtn) {
+  testSoundBtn.addEventListener('click', () => {
+    playSound('click-normal');
+  });
+}
+
+if (muteToggleBtn) {
+  muteToggleBtn.addEventListener('click', () => {
+    const nextMuted = !soundState.muted;
+    soundState = { ...soundState, muted: nextMuted };
+    muteToggleBtn.textContent = nextMuted ? '🔊 Unmute' : '🔇 Mute';
+    if (!nextMuted && soundState.volumeConfig.master <= 0) {
+      const updatedConfig = { ...soundState.volumeConfig, master: 0.7 };
+      soundState = { ...soundState, volumeConfig: updatedConfig };
+      if (volumeRange && volumeValBadge) {
+        volumeRange.value = '70';
+        volumeValBadge.textContent = '70%';
+      }
+      window.usagiAPI?.updateVolumeConfig(updatedConfig);
+    }
+  });
+}
+
+const chipButtons = document.querySelectorAll<HTMLButtonElement>('.chip-btn');
+chipButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const minAttr = btn.getAttribute('data-min');
+    const hoursAttr = btn.getAttribute('data-hours');
+    let durationMs = 1_500_000;
+    if (minAttr) {
+      durationMs = parseCustomDuration(Number(minAttr), 'minutes');
+    } else if (hoursAttr) {
+      durationMs = parseCustomDuration(Number(hoursAttr), 'hours');
+    }
+    window.usagiAPI?.setPomodoroDuration(durationMs, true);
+    if (pomodoroStatusBadge) {
+      pomodoroStatusBadge.textContent = `${formatPomodoroTime(durationMs)} RUNNING`;
+    }
+  });
+});
+
+if (startCustomTimerBtn && customTimeInput && customUnitSelect) {
+  startCustomTimerBtn.addEventListener('click', () => {
+    const val = Number(customTimeInput.value);
+    const unit = customUnitSelect.value as 'minutes' | 'hours';
+    const durationMs = parseCustomDuration(val, unit);
+    window.usagiAPI?.setPomodoroDuration(durationMs, true);
+    if (pomodoroStatusBadge) {
+      pomodoroStatusBadge.textContent = `${formatPomodoroTime(durationMs)} RUNNING`;
+    }
+  });
+}
+
+if (stationaryToggleBtn) {
+  stationaryToggleBtn.addEventListener('click', () => {
+    window.usagiAPI?.toggleStationaryMode();
+  });
+}
 
 if (window.usagiAPI) {
   window.usagiAPI.onGhostModeChanged((locked) => {
@@ -140,8 +381,41 @@ if (window.usagiAPI) {
     playModeEnabled = enabled;
   });
 
+  window.usagiAPI.onStationaryModeChanged((stationary) => {
+    state = {
+      ...state,
+      stationary,
+      vx: stationary ? 0 : state.vx,
+      vy: stationary ? 0 : state.vy,
+    };
+    updateStationaryBadge();
+  });
+
   window.usagiAPI.onSoundMutedChanged((muted) => {
     soundState = { ...soundState, muted };
+    if (muteToggleBtn) {
+      muteToggleBtn.textContent = muted ? '🔊 Unmute' : '🔇 Mute';
+    }
+  });
+
+  window.usagiAPI.onVolumeConfigChanged((config) => {
+    soundState = { ...soundState, volumeConfig: config };
+    if (volumeRange && volumeValBadge) {
+      volumeRange.value = String(Math.round(config.master * 100));
+      volumeValBadge.textContent = `${volumeRange.value}%`;
+    }
+  });
+
+  window.usagiAPI.onOpenSettingsModal(() => {
+    openSettingsModal();
+  });
+
+  window.usagiAPI.onPomodoroStateChanged((pState) => {
+    currentPomodoroState = pState;
+    if (pomodoroStatusBadge) {
+      const timeStr = formatPomodoroTime(pState.remainingMs);
+      pomodoroStatusBadge.textContent = `${timeStr} ${pState.phase.toUpperCase()}`;
+    }
   });
 
   window.usagiAPI.onWellnessUpdate((payload) => {
@@ -174,6 +448,48 @@ if (window.usagiAPI) {
     const text = playSound(soundEvent);
     state.speechBubble = text ?? prev ?? state.speechBubble;
   });
+
+  window.usagiAPI.onGiantAlarmTriggered(() => {
+    giantAlarmState = triggerGiantAlarm(giantAlarmState);
+    playSound('timer-complete');
+    updateMouseIgnoreState();
+  });
+
+  window.usagiAPI.onTestSound(() => {
+    const text = playSound('click-normal');
+    if (text) {
+      state.speechBubble = text;
+      state.speechTimerMs = DEFAULT_PHYSICS_CONFIG.speechDurationMs;
+    }
+  });
+}
+
+function processImageToFrame(name: string, img: HTMLImageElement): ProcessedFrame {
+  const offscreen = document.createElement('canvas');
+  offscreen.width = img.naturalWidth;
+  offscreen.height = img.naturalHeight;
+  const offCtx = offscreen.getContext('2d')!;
+  offCtx.drawImage(img, 0, 0);
+
+  const imgData = offCtx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
+  const cropped: CroppedSprite = cropSpriteToAlphaBounds(name, imgData, 10);
+
+  const trimmed = document.createElement('canvas');
+  trimmed.width = cropped.bounds.width;
+  trimmed.height = cropped.bounds.height;
+  const trimmedCtx = trimmed.getContext('2d')!;
+
+  const trimmedData = trimmedCtx.createImageData(cropped.bounds.width, cropped.bounds.height);
+  trimmedData.data.set(cropped.trimmedData);
+  trimmedCtx.putImageData(trimmedData, 0, 0);
+
+  return {
+    canvas: trimmed,
+    width: cropped.bounds.width,
+    height: cropped.bounds.height,
+    centerX: cropped.bounds.centerX,
+    centerY: cropped.bounds.centerY,
+  };
 }
 
 function loadSingleSprite(index: number): Promise<ProcessedFrame> {
@@ -186,32 +502,40 @@ function loadSingleSprite(index: number): Promise<ProcessedFrame> {
     };
 
     img.onload = () => {
-      const offscreen = document.createElement('canvas');
-      offscreen.width = img.naturalWidth;
-      offscreen.height = img.naturalHeight;
-      const offCtx = offscreen.getContext('2d')!;
-      offCtx.drawImage(img, 0, 0);
-
-      const imgData = offCtx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
-      const cropped: CroppedSprite = cropSpriteToAlphaBounds(`Usagi${index}`, imgData, 10);
-
-      const trimmed = document.createElement('canvas');
-      trimmed.width = cropped.bounds.width;
-      trimmed.height = cropped.bounds.height;
-      const trimmedCtx = trimmed.getContext('2d')!;
-
-      const trimmedData = trimmedCtx.createImageData(cropped.bounds.width, cropped.bounds.height);
-      trimmedData.data.set(cropped.trimmedData);
-      trimmedCtx.putImageData(trimmedData, 0, 0);
-
-      resolve({
-        canvas: trimmed,
-        width: cropped.bounds.width,
-        height: cropped.bounds.height,
-        centerX: cropped.bounds.centerX,
-        centerY: cropped.bounds.centerY,
-      });
+      resolve(processImageToFrame(`Usagi${index}`, img));
     };
+  });
+}
+
+function loadCustomGiantSprite(): Promise<ProcessedFrame | null> {
+  const candidateNames = ['Usagi_Big.png', 'GiantUsagi.png', 'giant-usagi.png'];
+
+  return new Promise((resolve) => {
+    let index = 0;
+
+    const tryCandidate = () => {
+      if (index >= candidateNames.length) {
+        resolve(null);
+        return;
+      }
+
+      const filename = candidateNames[index++];
+      const img = new Image();
+      img.src = `../../assets/${filename}`;
+
+      img.onerror = () => {
+        const imgAlt = new Image();
+        imgAlt.src = `../assets/${filename}`;
+        imgAlt.onload = () => resolve(processImageToFrame(filename, imgAlt));
+        imgAlt.onerror = () => tryCandidate();
+      };
+
+      img.onload = () => {
+        resolve(processImageToFrame(filename, img));
+      };
+    };
+
+    tryCandidate();
   });
 }
 
@@ -222,6 +546,12 @@ async function loadAllSprites(): Promise<void> {
   }
   const loaded = await Promise.all(promises);
   processedFrames.push(...loaded);
+
+  try {
+    giantSpriteFrame = await loadCustomGiantSprite();
+  } catch {
+    giantSpriteFrame = null;
+  }
 }
 
 function drawSnack(context: CanvasRenderingContext2D, x: number, y: number, radius: number): void {
@@ -360,11 +690,180 @@ function drawUsagi(
   context.restore();
 }
 
+function drawSpeedLines(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  alpha: number,
+  timeMs: number
+): void {
+  if (alpha <= 0.01) return;
+  context.save();
+  context.translate(width / 2, height / 2);
+  const numLines = 40;
+  const maxRadius = Math.hypot(width, height) / 2;
+  const innerRadius = Math.min(width, height) * 0.3;
+
+  context.fillStyle = `rgba(255, 235, 100, ${alpha * 0.7})`;
+  for (let i = 0; i < numLines; i++) {
+    const baseAngle = (i / numLines) * Math.PI * 2;
+    const jitter = Math.sin(timeMs * 0.018 + i * 2.7) * 0.02;
+    const angle = baseAngle + jitter;
+    const widthOffset = 0.018 + ((i * 3) % 4) * 0.005;
+
+    context.beginPath();
+    context.moveTo(
+      Math.cos(angle - widthOffset) * maxRadius,
+      Math.sin(angle - widthOffset) * maxRadius
+    );
+    context.lineTo(
+      Math.cos(angle + widthOffset) * maxRadius,
+      Math.sin(angle + widthOffset) * maxRadius
+    );
+    context.lineTo(Math.cos(angle) * innerRadius, Math.sin(angle) * innerRadius);
+    context.closePath();
+    context.fill();
+  }
+  context.restore();
+}
+
+function drawGiantComicBanner(
+  context: CanvasRenderingContext2D,
+  cx: number,
+  topY: number,
+  text: string
+): void {
+  context.save();
+  context.font = '900 32px "Segoe UI", "Comic Sans MS", "Nunito", sans-serif';
+  const metrics = context.measureText(text);
+  const paddingX = 28;
+  const bw = metrics.width + paddingX * 2;
+  const bh = 54;
+  const bx = cx - bw / 2;
+  const by = topY;
+  const r = 16;
+
+  // Comic border & shadow
+  context.shadowColor = 'rgba(0, 0, 0, 0.4)';
+  context.shadowBlur = 12;
+  context.shadowOffsetY = 4;
+
+  context.beginPath();
+  context.roundRect(bx, by, bw, bh, r);
+  context.fillStyle = '#FFEAA7';
+  context.fill();
+
+  context.shadowColor = 'transparent';
+  context.lineWidth = 3.5;
+  context.strokeStyle = '#2D3436';
+  context.stroke();
+
+  // Vibrant text
+  context.fillStyle = '#D63031';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(text, cx, by + bh / 2);
+
+  context.restore();
+}
+
+function drawDismissHint(
+  context: CanvasRenderingContext2D,
+  cx: number,
+  bottomY: number,
+  hintText: string,
+  timeMs: number
+): void {
+  context.save();
+  const pulse = 0.85 + Math.sin(timeMs * 0.006) * 0.15;
+  context.font = 'bold 16px "Segoe UI", "Nunito", sans-serif';
+  const metrics = context.measureText(hintText);
+  const bw = metrics.width + 36;
+  const bh = 36;
+  const bx = cx - bw / 2;
+  const by = bottomY - bh;
+
+  context.beginPath();
+  context.roundRect(bx, by, bw, bh, 18);
+  context.fillStyle = `rgba(20, 20, 25, ${0.75 * pulse})`;
+  context.fill();
+
+  context.lineWidth = 1.5;
+  context.strokeStyle = `rgba(255, 255, 255, ${0.4 * pulse})`;
+  context.stroke();
+
+  context.fillStyle = '#FFFFFF';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(hintText, cx, by + bh / 2);
+
+  context.restore();
+}
+
+function drawGiantAlarmOverlay(
+  context: CanvasRenderingContext2D,
+  model: GiantAlarmRenderModel,
+  frame: ProcessedFrame,
+  screen: ScreenBounds,
+  timeMs: number
+): void {
+  if (!model.visible) return;
+
+  context.save();
+
+  // 1. Dark vignette / backdrop
+  context.fillStyle = `rgba(15, 10, 25, ${model.backdropAlpha})`;
+  context.fillRect(0, 0, screen.width, screen.height);
+
+  // 2. Anime speed lines
+  drawSpeedLines(context, screen.width, screen.height, model.speedLinesAlpha, timeMs);
+
+  // 3. Screen shake translation
+  context.translate(model.shakeOffsetX, model.shakeOffsetY);
+
+  // 4. Draw Giant Usagi at screen center
+  const centerX = screen.width / 2;
+  const centerY = screen.height / 2 + 25;
+
+  context.save();
+  context.translate(centerX, centerY);
+  context.rotate(model.wobbleRad);
+
+  const targetHeight = screen.height * 0.68;
+  const baseScale = (targetHeight / frame.height) * model.scale;
+  context.scale(baseScale, baseScale);
+
+  context.globalAlpha = model.opacity;
+
+  // Comic glow behind giant Usagi
+  context.shadowColor = 'rgba(255, 200, 50, 0.5)';
+  context.shadowBlur = 35;
+  context.drawImage(frame.canvas, -frame.centerX, -frame.centerY);
+  context.restore();
+
+  // 5. Giant Comic Speech Banner
+  const bannerTop = Math.max(30, centerY - (targetHeight * model.scale) / 2 - 75);
+  drawGiantComicBanner(context, centerX, bannerTop, model.speechText);
+
+  // 6. Dismiss hint at screen bottom
+  drawDismissHint(context, centerX, screen.height - 45, model.hintText, timeMs);
+
+  context.restore();
+}
+
 let lastTime = performance.now();
 
 function animationLoop(now: number): void {
   const dt = now - lastTime;
   lastTime = now;
+
+  if (giantAlarmState.active) {
+    const wasActive = giantAlarmState.active;
+    giantAlarmState = tickGiantAlarm(giantAlarmState, dt);
+    if (wasActive && !giantAlarmState.active) {
+      updateMouseIgnoreState();
+    }
+  }
 
   const cursorTarget = playModeEnabled && !ghostState.ghostModeLocked ? cursorPos : null;
   const result = stepUsagiPhysics(state, dt, screenBounds, activeSnack, undefined, cursorTarget);
@@ -400,6 +899,16 @@ function animationLoop(now: number): void {
       state.y - DEFAULT_PHYSICS_CONFIG.spriteRadius - 15,
       state.speechBubble
     );
+  }
+
+  // Draw giant alarm overlay on top of canvas when active
+  if (giantAlarmState.active) {
+    const giantFrame =
+      giantSpriteFrame || processedFrames[UPRIGHT_SPRITE_INDEX] || processedFrames[0];
+    if (giantFrame) {
+      const renderModel = getGiantAlarmRenderModel(giantAlarmState);
+      drawGiantAlarmOverlay(ctx, renderModel, giantFrame, screenBounds, now);
+    }
   }
 
   requestAnimationFrame(animationLoop);

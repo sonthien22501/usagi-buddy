@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { SnackTarget } from '../core/physicsEngine';
+import { PomodoroState } from '../core/pomodoroTimer';
+import { VolumeConfig } from '../core/soundManager';
 
 export interface WellnessUpdatePayload {
   mood: 'active' | 'sleeping';
@@ -14,8 +16,26 @@ export interface UsagiAPI {
   onTriggerInteraction: (callback: () => void) => () => void;
   notifySnackConsumed: () => void;
   onPlayModeChanged: (callback: (enabled: boolean) => void) => () => void;
+  togglePlayMode: () => void;
+  toggleGhostMode: () => void;
+  dropSnackNow: () => void;
+  onStationaryModeChanged: (callback: (stationary: boolean) => void) => () => void;
+  toggleStationaryMode: () => void;
   onSoundMutedChanged: (callback: (muted: boolean) => void) => () => void;
+  toggleSoundMute: () => void;
+  onVolumeConfigChanged: (callback: (config: VolumeConfig) => void) => () => void;
   onWellnessUpdate: (callback: (payload: WellnessUpdatePayload) => void) => () => void;
+  onGiantAlarmTriggered: (callback: () => void) => () => void;
+  notifyGiantAlarmDismissed: () => void;
+  onOpenSettingsModal: (callback: () => void) => () => void;
+  setPomodoroDuration: (durationMs: number, startImmediately?: boolean) => void;
+  updateVolumeConfig: (config: VolumeConfig) => void;
+  onPomodoroStateChanged: (callback: (state: PomodoroState) => void) => () => void;
+  pausePomodoroTimer: () => void;
+  resetPomodoroTimer: () => void;
+  triggerGiantAlarmNow: () => void;
+  triggerTestSound: () => void;
+  onTestSound: (callback: () => void) => () => void;
 }
 
 const api: UsagiAPI = {
@@ -45,16 +65,83 @@ const api: UsagiAPI = {
     ipcRenderer.on('play-mode-toggle', handler);
     return () => ipcRenderer.removeListener('play-mode-toggle', handler);
   },
+  togglePlayMode: () => {
+    ipcRenderer.send('toggle-play-mode');
+  },
+  toggleGhostMode: () => {
+    ipcRenderer.send('toggle-ghost-mode');
+  },
+  dropSnackNow: () => {
+    ipcRenderer.send('drop-snack-now');
+  },
+  onStationaryModeChanged: (callback: (stationary: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, stationary: boolean) =>
+      callback(stationary);
+    ipcRenderer.on('stationary-mode-toggle', handler);
+    return () => ipcRenderer.removeListener('stationary-mode-toggle', handler);
+  },
+  toggleStationaryMode: () => {
+    ipcRenderer.send('toggle-stationary-mode');
+  },
   onSoundMutedChanged: (callback: (muted: boolean) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, muted: boolean) => callback(muted);
     ipcRenderer.on('sound-mute-toggle', handler);
     return () => ipcRenderer.removeListener('sound-mute-toggle', handler);
+  },
+  toggleSoundMute: () => {
+    ipcRenderer.send('toggle-sound-mute');
+  },
+  onVolumeConfigChanged: (callback: (config: VolumeConfig) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, config: VolumeConfig) => callback(config);
+    ipcRenderer.on('volume-config-changed', handler);
+    return () => ipcRenderer.removeListener('volume-config-changed', handler);
   },
   onWellnessUpdate: (callback: (payload: WellnessUpdatePayload) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, payload: WellnessUpdatePayload) =>
       callback(payload);
     ipcRenderer.on('wellness-update', handler);
     return () => ipcRenderer.removeListener('wellness-update', handler);
+  },
+  onGiantAlarmTriggered: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('trigger-giant-alarm', handler);
+    return () => ipcRenderer.removeListener('trigger-giant-alarm', handler);
+  },
+  notifyGiantAlarmDismissed: () => {
+    ipcRenderer.send('giant-alarm-dismissed');
+  },
+  onOpenSettingsModal: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('open-settings-modal', handler);
+    return () => ipcRenderer.removeListener('open-settings-modal', handler);
+  },
+  setPomodoroDuration: (durationMs: number, startImmediately: boolean = true) => {
+    ipcRenderer.send('set-pomodoro-duration', durationMs, startImmediately);
+  },
+  updateVolumeConfig: (config: VolumeConfig) => {
+    ipcRenderer.send('update-volume-config', config);
+  },
+  onPomodoroStateChanged: (callback: (state: PomodoroState) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, state: PomodoroState) => callback(state);
+    ipcRenderer.on('pomodoro-state-changed', handler);
+    return () => ipcRenderer.removeListener('pomodoro-state-changed', handler);
+  },
+  pausePomodoroTimer: () => {
+    ipcRenderer.send('pause-pomodoro-timer');
+  },
+  resetPomodoroTimer: () => {
+    ipcRenderer.send('reset-pomodoro-timer');
+  },
+  triggerGiantAlarmNow: () => {
+    ipcRenderer.send('trigger-giant-alarm');
+  },
+  triggerTestSound: () => {
+    ipcRenderer.send('test-sound');
+  },
+  onTestSound: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('test-sound', handler);
+    return () => ipcRenderer.removeListener('test-sound', handler);
   },
 };
 

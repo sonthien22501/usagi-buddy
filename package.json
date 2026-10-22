@@ -1,6 +1,6 @@
 {
   "name": "usagi-buddy",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Usagi Float - Desktop Companion",
   "author": "sonthien22501",
   "main": "dist/main/index.js",

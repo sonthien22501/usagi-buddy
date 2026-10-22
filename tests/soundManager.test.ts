@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  calculatePlaybackVolume,
   createSoundState,
   resolveSoundAssetUrl,
   selectSoundForEvent,
@@ -81,6 +82,14 @@ describe('soundManager', () => {
     expect(r.text).toBe('Huhhhh?');
   });
 
+  it('plays wuuulaaaa.mp3 for timer-complete event for giant alarm takeover', () => {
+    const state = createSoundState(false, 100);
+    const r = selectSoundForEvent(state, 'timer-complete', 1000);
+    expect(r.file).toBe('wuuulaaaa.mp3');
+    expect(r.url).toBe('../../assets/wuuulaaaa.mp3');
+    expect(r.text).toBe('Wuuulaaaa!');
+  });
+
   it('throttles sound playback during cooldown window and respects mute gate (Review Focus #2)', () => {
     let state = createSoundState(false, 250);
     const r1 = selectSoundForEvent(state, 'click-normal', 1000);
@@ -115,5 +124,95 @@ describe('soundManager', () => {
       'unayahayahauna.mp3',
       'wuuulaaaa.mp3',
     ]);
+  });
+
+  it('separates buddy sound volume from giant alarm volume', () => {
+    const config = {
+      master: 1.0,
+      buddy: 0.5,
+      alarm: 0.9,
+      equalizeLoudness: false,
+    };
+
+    const buddyVol = calculatePlaybackVolume(config, 'click-normal', 'una.mp3', false);
+    const alarmVol = calculatePlaybackVolume(config, 'timer-complete', 'wuuulaaaa.mp3', false);
+
+    expect(buddyVol).toBeCloseTo(0.5, 2);
+    expect(alarmVol).toBeCloseTo(0.9, 2);
+  });
+
+  it('equalizes clip loudness so loud screams and speech have normalized load levels', () => {
+    const config = {
+      master: 1.0,
+      buddy: 1.0,
+      alarm: 1.0,
+      equalizeLoudness: true,
+    };
+
+    const unaVol = calculatePlaybackVolume(config, 'click-normal', 'una.mp3', false);
+    const wuuulaaaaVol = calculatePlaybackVolume(config, 'timer-complete', 'wuuulaaaa.mp3', false);
+    const huhhhhVol = calculatePlaybackVolume(config, 'wellness-reminder', 'huhhhh.mp3', false);
+    const unayahaVol = calculatePlaybackVolume(config, 'snack-eaten', 'unayahayahauna.mp3', false);
+
+    expect(unaVol).toBe(1.0);
+    // Heavy scream clips and dense speech get attenuated so they match perceived loudness of softer clips
+    expect(wuuulaaaaVol).toBeLessThan(unaVol);
+    expect(huhhhhVol).toBeLessThan(unaVol);
+    expect(unayahaVol).toBeLessThan(unaVol);
+    expect(wuuulaaaaVol).toBeGreaterThan(0.7);
+  });
+
+  it('returns 0 volume when muted or channel volume is zero', () => {
+    const config = {
+      master: 1.0,
+      buddy: 0.0,
+      alarm: 0.8,
+      equalizeLoudness: true,
+    };
+
+    // Buddy volume muted via channel
+    expect(calculatePlaybackVolume(config, 'click-normal', 'una.mp3', false)).toBe(0);
+    // Alarm volume still plays
+    expect(
+      calculatePlaybackVolume(config, 'timer-complete', 'wuuulaaaa.mp3', false)
+    ).toBeGreaterThan(0);
+    // Global mute mutes both
+    expect(calculatePlaybackVolume(config, 'timer-complete', 'wuuulaaaa.mp3', true)).toBe(0);
+  });
+
+  it('smoothly scales both buddy and alarm volumes via master volume slider', () => {
+    const fullConfig = { master: 1.0, buddy: 0.8, alarm: 0.7, equalizeLoudness: false };
+    const halfConfig = { master: 0.5, buddy: 0.8, alarm: 0.7, equalizeLoudness: false };
+    const zeroConfig = { master: 0.0, buddy: 0.8, alarm: 0.7, equalizeLoudness: false };
+
+    const fullBuddy = calculatePlaybackVolume(fullConfig, 'click-normal', 'una.mp3', false);
+    const halfBuddy = calculatePlaybackVolume(halfConfig, 'click-normal', 'una.mp3', false);
+    const zeroBuddy = calculatePlaybackVolume(zeroConfig, 'click-normal', 'una.mp3', false);
+
+    const fullAlarm = calculatePlaybackVolume(fullConfig, 'timer-complete', 'wuuulaaaa.mp3', false);
+    const halfAlarm = calculatePlaybackVolume(halfConfig, 'timer-complete', 'wuuulaaaa.mp3', false);
+    const zeroAlarm = calculatePlaybackVolume(zeroConfig, 'timer-complete', 'wuuulaaaa.mp3', false);
+
+    expect(halfBuddy).toBeCloseTo(fullBuddy * 0.5, 3);
+    expect(halfAlarm).toBeCloseTo(fullAlarm * 0.5, 3);
+    expect(zeroBuddy).toBe(0);
+    expect(zeroAlarm).toBe(0);
+  });
+
+  it('provides a unified single-slider configuration combining buddy and alarm sounds', () => {
+    // When buddy and alarm are unified (1.0), master slider controls the entire app volume cleanly
+    const unified75 = { master: 0.75, buddy: 1.0, alarm: 1.0, equalizeLoudness: true };
+    const unified25 = { master: 0.25, buddy: 1.0, alarm: 1.0, equalizeLoudness: true };
+
+    const buddy75 = calculatePlaybackVolume(unified75, 'click-normal', 'una.mp3', false);
+    const alarm75 = calculatePlaybackVolume(unified75, 'timer-complete', 'wuuulaaaa.mp3', false);
+    const buddy25 = calculatePlaybackVolume(unified25, 'click-normal', 'una.mp3', false);
+    const alarm25 = calculatePlaybackVolume(unified25, 'timer-complete', 'wuuulaaaa.mp3', false);
+
+    expect(buddy75).toBeCloseTo(0.75, 2);
+    // wuuulaaaa is balanced by loudness factor (0.80) to avoid ear-piercing scream
+    expect(alarm75).toBeCloseTo(0.75 * 0.8, 2);
+    expect(buddy25).toBeCloseTo(0.25, 2);
+    expect(alarm25).toBeCloseTo(0.25 * 0.8, 2);
   });
 });

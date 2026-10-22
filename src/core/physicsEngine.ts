@@ -34,6 +34,7 @@ export interface UsagiState {
   scaleFlipX: 1 | -1;
   snacksEaten: number;
   sleeping: boolean;
+  stationary: boolean;
 }
 
 export interface PhysicsConfig {
@@ -91,6 +92,7 @@ export function createInitialUsagiState(
     scaleFlipX: 1,
     snacksEaten: 0,
     sleeping: false,
+    stationary: false,
   };
 }
 
@@ -155,13 +157,16 @@ export function stepUsagiPhysics(
 
   // Organic jellyfish/otter squash-and-stretch
   const stroke = Math.sin(swimPhaseRad);
-  const scaleX = 1 + stroke * 0.055;
-  const scaleY = 1 - stroke * 0.055;
+  const scaleX = state.stationary ? 1 + stroke * 0.02 : 1 + stroke * 0.055;
+  const scaleY = state.stationary ? 1 - stroke * 0.02 : 1 - stroke * 0.055;
 
   let vx = state.vx;
   let vy = state.vy;
 
-  if (state.sleeping) {
+  if (state.stationary) {
+    vx = 0;
+    vy = 0;
+  } else if (state.sleeping) {
     // Drifts lazily when sleeping
     vx = vx * 0.95;
     vy = Math.sin(swimPhaseRad) * 15;
@@ -207,24 +212,29 @@ export function stepUsagiPhysics(
   }
 
   // Update position
-  let x = state.x + vx * dtSec;
-  let y = state.y + vy * dtSec;
+  let x = state.stationary ? state.x : state.x + vx * dtSec;
+  let y = state.stationary ? state.y : state.y + vy * dtSec;
+
+  if (state.stationary) {
+    vx = 0;
+    vy = 0;
+  }
 
   // Wall bounce reflection & screen boundary clamping
   if (x >= maxX) {
     x = maxX;
-    vx = -Math.abs(vx) * cfg.bounceRestitution;
+    vx = state.stationary ? 0 : -Math.abs(vx) * cfg.bounceRestitution;
   } else if (x <= minX) {
     x = minX;
-    vx = Math.abs(vx) * cfg.bounceRestitution;
+    vx = state.stationary ? 0 : Math.abs(vx) * cfg.bounceRestitution;
   }
 
   if (y >= maxY) {
     y = maxY;
-    vy = -Math.abs(vy) * cfg.bounceRestitution;
+    vy = state.stationary ? 0 : -Math.abs(vy) * cfg.bounceRestitution;
   } else if (y <= minY) {
     y = minY;
-    vy = Math.abs(vy) * cfg.bounceRestitution;
+    vy = state.stationary ? 0 : Math.abs(vy) * cfg.bounceRestitution;
   }
 
   // Orientation flip based on horizontal travel direction
@@ -250,10 +260,12 @@ export function stepUsagiPhysics(
     }
   } else {
     // Gentle banking tilt into movement direction (stays upright, bounded within [-0.28, 0.28])
-    const targetTilt = Math.max(
-      -0.28,
-      Math.min(0.28, (vy / cfg.maxSpeed) * 0.22 * scaleFlipX + Math.sin(swimPhaseRad) * 0.05)
-    );
+    const targetTilt = state.stationary
+      ? 0
+      : Math.max(
+          -0.28,
+          Math.min(0.28, (vy / cfg.maxSpeed) * 0.22 * scaleFlipX + Math.sin(swimPhaseRad) * 0.05)
+        );
     rotation = rotation + (targetTilt - rotation) * Math.min(1, dtSec * 6);
     angularVelocity = 0;
   }
@@ -306,6 +318,7 @@ export function stepUsagiPhysics(
       scaleFlipX,
       snacksEaten,
       sleeping: state.sleeping,
+      stationary: state.stationary,
     },
     snackConsumed,
   };

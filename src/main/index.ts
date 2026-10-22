@@ -32,12 +32,17 @@ import {
   WellnessState,
   WATER_REMINDER_MESSAGE,
 } from '../core/wellnessCoach';
+import { DEFAULT_VOLUME_CONFIG, VolumeConfig } from '../core/soundManager';
 
 let mainWindow: BrowserWindow | null = null;
+let dashboardWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let ghostLocked = false;
 let playModeEnabled = false;
 let soundMuted = false;
+let stationaryMode = false;
+let isQuitting = false;
+let volumeConfig: VolumeConfig = { ...DEFAULT_VOLUME_CONFIG };
 
 let pomodoroState: PomodoroState = createPomodoroTimer();
 let wellnessState: WellnessState = createWellnessState();
@@ -53,44 +58,102 @@ function getScreenBounds(): ScreenBounds {
   };
 }
 
+function broadcastToAllWindows(channel: string, ...args: any[]): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, ...args);
+  }
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+    dashboardWindow.webContents.send(channel, ...args);
+  }
+}
+
+function broadcastVolumeConfig(): void {
+  broadcastToAllWindows('volume-config-changed', volumeConfig);
+}
+
+function broadcastPomodoroState(): void {
+  broadcastToAllWindows('pomodoro-state-changed', pomodoroState);
+}
+
+function openSettingsModal(): void {
+  createDashboardWindow();
+}
+
+function getAppLogoPath(): string {
+  const candidates = [
+    path.resolve(__dirname, '../../assets/Usagi_logo.png'),
+    path.resolve(__dirname, '../assets/Usagi_logo.png'),
+    path.resolve(__dirname, '../../assets/Usagi1.png'),
+    path.resolve(__dirname, '../assets/Usagi1.png'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return '';
+}
+
+function createDashboardWindow(): void {
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+    dashboardWindow.show();
+    dashboardWindow.focus();
+    return;
+  }
+
+  dashboardWindow = new BrowserWindow({
+    width: 480,
+    height: 720,
+    minWidth: 440,
+    minHeight: 650,
+    title: 'Usagi Buddy Dashboard',
+    icon: getAppLogoPath(),
+    resizable: true,
+    backgroundColor: '#140f1d',
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  const htmlPath = path.join(__dirname, '../dashboard/index.html');
+  dashboardWindow.loadFile(htmlPath);
+
+  dashboardWindow.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault();
+      dashboardWindow?.hide();
+    }
+  });
+
+  dashboardWindow.webContents.on('did-finish-load', () => {
+    broadcastVolumeConfig();
+    broadcastPomodoroState();
+    if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+      dashboardWindow.webContents.send('stationary-mode-toggle', stationaryMode);
+      dashboardWindow.webContents.send('sound-mute-toggle', soundMuted);
+      dashboardWindow.webContents.send('ghost-mode-toggle', ghostLocked);
+      dashboardWindow.webContents.send('play-mode-toggle', playModeEnabled);
+    }
+  });
+}
+
 function updateTrayMenu(): void {
   if (!tray) return;
 
   const timeStr = formatPomodoroTime(pomodoroState.remainingMs);
-  const statusPrefix = ghostLocked ? '👻 Ghost' : '🐰 Usagi';
-  tray.setTitle(`${statusPrefix} ${timeStr}`);
+  const titleText = ghostLocked ? `👻 ${timeStr}` : timeStr;
+  tray.setTitle(titleText);
   tray.setToolTip(`Usagi Float — ${pomodoroState.phase.toUpperCase()} (${timeStr})`);
 
   const isRunning = pomodoroState.phase === 'running';
-  const statsLabel = formatStatsTrayLabel(wellnessState.stats);
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: statsLabel,
+      label: `⏱️ Focus Timer: ${timeStr} (${pomodoroState.phase.toUpperCase()})`,
       enabled: false,
     },
-    { type: 'separator' },
     {
-      label: '🪄 Play Mode',
-      type: 'checkbox',
-      checked: playModeEnabled,
-      accelerator: 'CommandOrControl+Shift+P',
-      click: () => togglePlayMode(),
-    },
-    {
-      label: '🔊 Sound Effects',
-      type: 'checkbox',
-      checked: !soundMuted,
-      click: () => toggleSoundMute(),
-    },
-    {
-      label: ghostLocked ? '👻 Disable Ghost Mode' : '👻 Enable Ghost Mode',
-      accelerator: 'CommandOrControl+Shift+G',
-      click: () => toggleGhostMode(),
-    },
-    { type: 'separator' },
-    {
-      label: isRunning ? '⏸ Pause 25m Pomodoro' : '🍅 Start 25m Pomodoro',
+      label: isRunning ? '⏸ Pause Timer' : '▶ Start Timer',
       click: () => {
         if (isRunning) {
           pomodoroState = pausePomodoro(pomodoroState);
@@ -98,33 +161,21 @@ function updateTrayMenu(): void {
           pomodoroState = startPomodoro(pomodoroState);
         }
         updateTrayMenu();
+        broadcastPomodoroState();
       },
     },
     {
-      label: '🔄 Reset Pomodoro Timer',
+      label: '🔄 Reset Timer',
       click: () => {
         pomodoroState = resetPomodoro(pomodoroState);
         updateTrayMenu();
-      },
-    },
-    {
-      label: '🍮 Drop Snack Now!',
-      click: () => {
-        dropSnackNow();
-      },
-    },
-    {
-      label: '💧 Water Reminder',
-      click: () => {
-        triggerPreviewWellnessReminder();
+        broadcastPomodoroState();
       },
     },
     { type: 'separator' },
     {
-      label: '☕ Buy Usagi a Coffee...',
-      click: () => {
-        shell.openExternal('https://ko-fi.com/rodannguyen');
-      },
+      label: '🎛️ Open Usagi Dashboard...',
+      click: () => createDashboardWindow(),
     },
     { type: 'separator' },
     {
@@ -140,25 +191,25 @@ function updateTrayMenu(): void {
 
 function toggleGhostMode(): void {
   ghostLocked = !ghostLocked;
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('ghost-mode-toggle', ghostLocked);
-  }
+  broadcastToAllWindows('ghost-mode-toggle', ghostLocked);
   updateTrayMenu();
 }
 
 function togglePlayMode(): void {
   playModeEnabled = !playModeEnabled;
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('play-mode-toggle', playModeEnabled);
-  }
+  broadcastToAllWindows('play-mode-toggle', playModeEnabled);
+  updateTrayMenu();
+}
+
+function toggleStationaryMode(): void {
+  stationaryMode = !stationaryMode;
+  broadcastToAllWindows('stationary-mode-toggle', stationaryMode);
   updateTrayMenu();
 }
 
 function toggleSoundMute(): void {
   soundMuted = !soundMuted;
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('sound-mute-toggle', soundMuted);
-  }
+  broadcastToAllWindows('sound-mute-toggle', soundMuted);
   updateTrayMenu();
 }
 
@@ -167,6 +218,18 @@ function dropSnackNow(): void {
   const bounds = getScreenBounds();
   const snack = spawnSnackOnScreen(bounds);
   mainWindow.webContents.send('spawn-snack', snack);
+}
+
+function triggerGiantAlarmNow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('trigger-giant-alarm');
+}
+
+function setPomodoroDuration(durationMs: number): void {
+  pomodoroState = createPomodoroTimer(durationMs);
+  pomodoroState = startPomodoro(pomodoroState);
+  updateTrayMenu();
+  broadcastPomodoroState();
 }
 
 function triggerPreviewWellnessReminder(): void {
@@ -210,17 +273,18 @@ function createMainWindow(): void {
   const htmlPath = path.join(__dirname, '../renderer/index.html');
   mainWindow.loadFile(htmlPath);
 
+  mainWindow.webContents.on('did-finish-load', () => {
+    broadcastVolumeConfig();
+    mainWindow?.webContents.send('stationary-mode-toggle', stationaryMode);
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
 function createSystemTray(): void {
-  let iconPath = path.resolve(__dirname, '../../assets/Usagi1.png');
-  if (!fs.existsSync(iconPath)) {
-    iconPath = path.resolve(__dirname, '../assets/Usagi1.png');
-  }
-
+  const iconPath = getAppLogoPath();
   let trayIcon = nativeImage.createFromPath(iconPath);
   if (trayIcon.isEmpty()) {
     trayIcon = nativeImage.createEmpty();
@@ -240,11 +304,13 @@ function setupPomodoroTicker(): void {
       pomodoroState = nextState;
 
       if (spawnedSnack && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('trigger-giant-alarm');
         mainWindow.webContents.send('spawn-snack', spawnedSnack);
         wellnessState = recordPomodoroCompleted(wellnessState);
       }
     }
     updateTrayMenu();
+    broadcastPomodoroState();
   }, 1000);
 }
 
@@ -290,6 +356,7 @@ function setupWellnessCoachTicker(): void {
 
 app.whenReady().then(() => {
   createMainWindow();
+  createDashboardWindow();
   createSystemTray();
   setupPomodoroTicker();
   setupWellnessCoachTicker();
@@ -302,15 +369,88 @@ app.whenReady().then(() => {
     togglePlayMode();
   });
 
+  globalShortcut.register('CommandOrControl+Shift+S', () => {
+    openSettingsModal();
+  });
+
+  globalShortcut.register('CommandOrControl+Shift+A', () => {
+    toggleStationaryMode();
+  });
+
   ipcMain.on('set-ignore-mouse-events', (_event, ignore: boolean, options = { forward: true }) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setIgnoreMouseEvents(ignore, options);
     }
   });
 
+  ipcMain.on('set-pomodoro-duration', (_e, durationMs: number, startImmediately = true) => {
+    pomodoroState = createPomodoroTimer(durationMs);
+    if (startImmediately) {
+      pomodoroState = startPomodoro(pomodoroState);
+    }
+    updateTrayMenu();
+    broadcastPomodoroState();
+  });
+
+  ipcMain.on('pause-pomodoro-timer', () => {
+    if (pomodoroState.phase === 'running') {
+      pomodoroState = pausePomodoro(pomodoroState);
+    } else {
+      pomodoroState = startPomodoro(pomodoroState);
+    }
+    updateTrayMenu();
+    broadcastPomodoroState();
+  });
+
+  ipcMain.on('reset-pomodoro-timer', () => {
+    pomodoroState = resetPomodoro(pomodoroState);
+    updateTrayMenu();
+    broadcastPomodoroState();
+  });
+
+  ipcMain.on('update-volume-config', (_e, nextConfig: VolumeConfig) => {
+    volumeConfig = { ...nextConfig };
+    broadcastVolumeConfig();
+    updateTrayMenu();
+  });
+
+  ipcMain.on('test-sound', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('test-sound');
+    }
+  });
+
+  ipcMain.on('toggle-sound-mute', () => {
+    toggleSoundMute();
+  });
+
+  ipcMain.on('toggle-stationary-mode', () => {
+    toggleStationaryMode();
+  });
+
+  ipcMain.on('toggle-ghost-mode', () => {
+    toggleGhostMode();
+  });
+
+  ipcMain.on('toggle-play-mode', () => {
+    togglePlayMode();
+  });
+
+  ipcMain.on('drop-snack-now', () => {
+    dropSnackNow();
+  });
+
   ipcMain.on('snack-consumed', () => {
     wellnessState = recordSnackFed(wellnessState);
     updateTrayMenu();
+  });
+
+  ipcMain.on('trigger-giant-alarm', () => {
+    triggerGiantAlarmNow();
+  });
+
+  ipcMain.on('giant-alarm-dismissed', () => {
+    dropSnackNow();
   });
 
   screen.on('display-metrics-changed', () => {
@@ -319,6 +459,14 @@ app.whenReady().then(() => {
       mainWindow.setBounds(primaryDisplay.bounds);
     }
   });
+});
+
+app.on('before-quit', () => {
+  isQuitting = true;
+});
+
+app.on('activate', () => {
+  createDashboardWindow();
 });
 
 app.on('will-quit', () => {

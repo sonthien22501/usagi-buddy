@@ -142,4 +142,23 @@ describe('physicsEngine', () => {
     expect(clamped.x).toBeLessThanOrEqual(smallScreen.width - DEFAULT_PHYSICS_CONFIG.spriteRadius);
     expect(clamped.y).toBeLessThanOrEqual(smallScreen.height - DEFAULT_PHYSICS_CONFIG.spriteRadius);
   });
+
+  it('keeps Usagi standing completely still when stationary mode is active', () => {
+    let state = {
+      ...createInitialUsagiState(screen),
+      x: 500,
+      y: 400,
+      vx: 100,
+      vy: 80,
+      stationary: true,
+    };
+
+    for (let i = 0; i < 30; i++) {
+      state = stepUsagiPhysics(state, 50, screen).state;
+      expect(state.x).toBe(500);
+      expect(state.y).toBe(400);
+      expect(state.vx).toBe(0);
+      expect(state.vy).toBe(0);
+    }
+  });
 });
