@@ -153,7 +153,7 @@ function updateTrayMenu(): void {
       enabled: false,
     },
     {
-      label: isRunning ? '⏸ Pause Timer' : '▶ Start Timer',
+      label: isRunning ? '⏸️ Pause Timer' : '▶️ Start Timer',
       click: () => {
         if (isRunning) {
           pomodoroState = pausePomodoro(pomodoroState);
@@ -172,6 +172,44 @@ function updateTrayMenu(): void {
         broadcastPomodoroState();
       },
     },
+    {
+      label: '⏱️ Set Timer Duration',
+      submenu: [
+        {
+          label: '⚡ 1-Minute Quick Test',
+          click: () => setPomodoroDuration(60_000),
+        },
+        {
+          label: '🍅 20-Minute Focus',
+          click: () => setPomodoroDuration(1_200_000),
+        },
+        {
+          label: '🍅 25-Minute Standard (Pomodoro)',
+          click: () => setPomodoroDuration(1_500_000),
+        },
+        {
+          label: '🍅 30-Minute Focus',
+          click: () => setPomodoroDuration(1_800_000),
+        },
+        {
+          label: '🍅 45-Minute Focus',
+          click: () => setPomodoroDuration(2_700_000),
+        },
+        {
+          label: '🍅 60-Minute Focus (1 Hour)',
+          click: () => setPomodoroDuration(3_600_000),
+        },
+        {
+          label: '☕ 5-Minute Break',
+          click: () => setPomodoroDuration(300_000),
+        },
+        { type: 'separator' },
+        {
+          label: '✏️ Custom Duration... (Open Dashboard)',
+          click: () => createDashboardWindow(),
+        },
+      ],
+    },
     { type: 'separator' },
     {
       label: '🎛️ Open Usagi Dashboard...',
@@ -179,7 +217,7 @@ function updateTrayMenu(): void {
     },
     { type: 'separator' },
     {
-      label: 'Quit Usagi Float',
+      label: '🚪 Quit Usagi Float',
       click: () => {
         app.quit();
       },

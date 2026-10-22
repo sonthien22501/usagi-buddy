@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  calculateSnoozeDurationMs,
   createGiantAlarmState,
   DEFAULT_GIANT_ALARM_CONFIG,
   dismissGiantAlarm,
+  formatRepeatActionLabel,
   getGiantAlarmRenderModel,
   isGiantAlarmInteractive,
   tickGiantAlarm,
@@ -83,5 +85,21 @@ describe('giantAlarmController', () => {
     expect(render.shakeOffsetX).not.toBe(0);
     expect(render.speechText).toContain('YAHA');
     expect(render.hintText.toLowerCase()).toContain('click');
+  });
+
+  it('formats repeat action labels accurately for minutes and hours', () => {
+    expect(formatRepeatActionLabel(20 * 60_000)).toBe('Study Another 20m');
+    expect(formatRepeatActionLabel(25 * 60_000)).toBe('Study Another 25m');
+    expect(formatRepeatActionLabel(40 * 60_000)).toBe('Study Another 40m');
+    expect(formatRepeatActionLabel(60 * 60_000)).toBe('Study Another 1h');
+    expect(formatRepeatActionLabel(120 * 60_000)).toBe('Study Another 2h');
+    expect(formatRepeatActionLabel(0)).toBe('Study Another 25m');
+    expect(formatRepeatActionLabel(NaN)).toBe('Study Another 25m');
+  });
+
+  it('calculates snooze and break durations accurately with minimum safety bounds', () => {
+    expect(calculateSnoozeDurationMs(5)).toBe(300_000);
+    expect(calculateSnoozeDurationMs(10)).toBe(600_000);
+    expect(calculateSnoozeDurationMs(0)).toBe(60_000);
   });
 });

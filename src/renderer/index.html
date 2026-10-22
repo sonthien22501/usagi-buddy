@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -18,7 +18,7 @@
         height: 100vh;
         overflow: hidden;
         background: transparent;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Nunito", sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Nunito', sans-serif;
       }
       #stage {
         position: absolute;
@@ -52,7 +52,9 @@
         border: 2px solid rgba(255, 234, 167, 0.4);
         border-radius: 24px;
         padding: 24px 26px;
-        box-shadow: 0 16px 45px rgba(0, 0, 0, 0.55), 0 0 30px rgba(255, 200, 80, 0.15);
+        box-shadow:
+          0 16px 45px rgba(0, 0, 0, 0.55),
+          0 0 30px rgba(255, 200, 80, 0.15);
         color: #ffffff;
       }
 
@@ -85,7 +87,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 0.15s, transform 0.1s;
+        transition:
+          background 0.15s,
+          transform 0.1s;
       }
       .close-btn:hover {
         background: #ff7675;
@@ -149,7 +153,9 @@
         border: 3px solid #ff7675;
         cursor: grab;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-        transition: transform 0.1s, box-shadow 0.1s;
+        transition:
+          transform 0.1s,
+          box-shadow 0.1s;
       }
       .volume-slider::-webkit-slider-thumb:hover {
         transform: scale(1.18);
@@ -283,6 +289,129 @@
         color: rgba(255, 255, 255, 0.4);
         margin-top: 4px;
       }
+
+      /* Giant Alarm Quick Actions Bar */
+      #alarm-actions-overlay {
+        position: fixed;
+        bottom: 32px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(22, 16, 32, 0.94);
+        border: 2px solid rgba(255, 234, 167, 0.45);
+        border-radius: 20px;
+        padding: 12px 20px 10px;
+        box-shadow:
+          0 12px 36px rgba(0, 0, 0, 0.7),
+          0 0 24px rgba(255, 118, 117, 0.25);
+        backdrop-filter: blur(10px);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        z-index: 9998;
+        pointer-events: auto;
+        animation: alarmBarPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      @keyframes alarmBarPop {
+        0% {
+          opacity: 0;
+          transform: translateX(-50%) translateY(20px) scale(0.92);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0) scale(1);
+        }
+      }
+
+      .alarm-actions-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .alarm-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 16px;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 13.5px;
+        font-weight: 700;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.15s ease;
+        border: 1px solid transparent;
+      }
+
+      .alarm-action-btn:active {
+        transform: scale(0.95);
+      }
+
+      .alarm-repeat-btn {
+        background: linear-gradient(135deg, #ff7675, #d63031);
+        border: none;
+        color: #ffffff;
+        font-weight: 800;
+        box-shadow: 0 4px 14px rgba(214, 48, 49, 0.45);
+      }
+
+      .alarm-repeat-btn:hover {
+        filter: brightness(1.12);
+        transform: translateY(-1.5px);
+        box-shadow: 0 6px 18px rgba(214, 48, 49, 0.55);
+      }
+
+      .alarm-snooze-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 234, 167, 0.4);
+        color: #ffeaa7;
+      }
+
+      .alarm-snooze-btn:hover {
+        background: rgba(255, 234, 167, 0.22);
+        border-color: #ffeaa7;
+        color: #ffffff;
+        transform: translateY(-1px);
+      }
+
+      .alarm-break-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #fab1a0;
+      }
+
+      .alarm-break-btn:hover {
+        background: rgba(250, 177, 160, 0.2);
+        border-color: #fab1a0;
+        color: #ffffff;
+        transform: translateY(-1px);
+      }
+
+      .kbd-chip {
+        font-size: 10px;
+        font-weight: 800;
+        background: rgba(0, 0, 0, 0.35);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 2px 5px;
+        border-radius: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        letter-spacing: 0.3px;
+      }
+
+      .alarm-footer-hint {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.48);
+        cursor: pointer;
+        transition: color 0.15s;
+        text-align: center;
+        padding-top: 1px;
+      }
+
+      .alarm-footer-hint:hover {
+        color: #ffeaa7;
+      }
     </style>
   </head>
   <body>
@@ -371,6 +500,42 @@
         </div>
 
         <div class="settings-footer">[ Press ESC or click outside to close ]</div>
+      </div>
+    </div>
+
+    <!-- Giant Alarm Interactive Actions Overlay -->
+    <div id="alarm-actions-overlay">
+      <div class="alarm-actions-row">
+        <button
+          class="alarm-action-btn alarm-repeat-btn"
+          id="alarm-repeat-btn"
+          title="Repeat Session (Space or Enter)"
+        >
+          <span>🔁</span>
+          <span id="alarm-repeat-text">Study Another 25m</span>
+          <span class="kbd-chip">Space</span>
+        </button>
+        <button
+          class="alarm-action-btn alarm-snooze-btn"
+          id="alarm-snooze-btn"
+          title="Add 5 Minutes (S or +)"
+        >
+          <span>⏳</span>
+          <span>+5m Wrap-up</span>
+          <span class="kbd-chip">S</span>
+        </button>
+        <button
+          class="alarm-action-btn alarm-break-btn"
+          id="alarm-break-btn"
+          title="5-Minute Break (B)"
+        >
+          <span>☕</span>
+          <span>5m Break</span>
+          <span class="kbd-chip">B</span>
+        </button>
+      </div>
+      <div class="alarm-footer-hint" id="alarm-dismiss-hint">
+        Click anywhere or press [ESC] to dismiss &amp; rest
       </div>
     </div>
 

@@ -22,10 +22,17 @@ import {
   SoundEvent,
   SoundState,
 } from '../core/soundManager';
-import { formatPomodoroTime, parseCustomDuration, PomodoroState } from '../core/pomodoroTimer';
 import {
+  DEFAULT_POMODORO_MS,
+  formatPomodoroTime,
+  parseCustomDuration,
+  PomodoroState,
+} from '../core/pomodoroTimer';
+import {
+  calculateSnoozeDurationMs,
   createGiantAlarmState,
   dismissGiantAlarm,
+  formatRepeatActionLabel,
   getGiantAlarmRenderModel,
   GiantAlarmRenderModel,
   GiantAlarmState,
@@ -123,6 +130,66 @@ const stationaryToggleBtn = document.getElementById(
   'stationary-toggle-btn'
 ) as HTMLButtonElement | null;
 
+const alarmActionsOverlay = document.getElementById(
+  'alarm-actions-overlay'
+) as HTMLDivElement | null;
+const alarmRepeatBtn = document.getElementById('alarm-repeat-btn') as HTMLButtonElement | null;
+const alarmRepeatText = document.getElementById('alarm-repeat-text') as HTMLSpanElement | null;
+const alarmSnoozeBtn = document.getElementById('alarm-snooze-btn') as HTMLButtonElement | null;
+const alarmBreakBtn = document.getElementById('alarm-break-btn') as HTMLButtonElement | null;
+const alarmDismissHint = document.getElementById('alarm-dismiss-hint') as HTMLDivElement | null;
+
+function showAlarmActionsOverlay(): void {
+  if (!alarmActionsOverlay) return;
+  const lastDuration =
+    currentPomodoroState && currentPomodoroState.durationMs > 0
+      ? currentPomodoroState.durationMs
+      : DEFAULT_POMODORO_MS;
+  if (alarmRepeatText) {
+    alarmRepeatText.textContent = formatRepeatActionLabel(lastDuration);
+  }
+  alarmActionsOverlay.style.display = 'flex';
+}
+
+function hideAlarmActionsOverlay(): void {
+  if (alarmActionsOverlay) {
+    alarmActionsOverlay.style.display = 'none';
+  }
+}
+
+function handleRepeatSession(): void {
+  if (!isGiantAlarmInteractive(giantAlarmState)) return;
+  const duration =
+    currentPomodoroState && currentPomodoroState.durationMs > 0
+      ? currentPomodoroState.durationMs
+      : DEFAULT_POMODORO_MS;
+  giantAlarmState = dismissGiantAlarm(giantAlarmState);
+  hideAlarmActionsOverlay();
+  playSound('click-normal');
+  window.usagiAPI?.setPomodoroDuration(duration, true);
+  window.usagiAPI?.notifyGiantAlarmDismissed();
+}
+
+function handleSnoozeWrapUp(minutes: number = 5): void {
+  if (!isGiantAlarmInteractive(giantAlarmState)) return;
+  const duration = calculateSnoozeDurationMs(minutes);
+  giantAlarmState = dismissGiantAlarm(giantAlarmState);
+  hideAlarmActionsOverlay();
+  playSound('click-normal');
+  window.usagiAPI?.setPomodoroDuration(duration, true);
+  window.usagiAPI?.notifyGiantAlarmDismissed();
+}
+
+function handleTakeBreak(minutes: number = 5): void {
+  if (!isGiantAlarmInteractive(giantAlarmState)) return;
+  const duration = calculateSnoozeDurationMs(minutes);
+  giantAlarmState = dismissGiantAlarm(giantAlarmState);
+  hideAlarmActionsOverlay();
+  playSound('click-normal');
+  window.usagiAPI?.setPomodoroDuration(duration, true);
+  window.usagiAPI?.notifyGiantAlarmDismissed();
+}
+
 function updateStationaryBadge(): void {
   const isStill = !!state.stationary;
   if (stationaryValBadge) {
@@ -161,6 +228,7 @@ function closeSettingsModal(): void {
 function handleGiantAlarmDismiss(): void {
   if (!isGiantAlarmInteractive(giantAlarmState)) return;
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
+  hideAlarmActionsOverlay();
   playSound('click-normal');
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
@@ -228,6 +296,10 @@ window.addEventListener('pointerdown', (e: MouseEvent) => {
   }
 
   if (isGiantAlarmInteractive(giantAlarmState)) {
+    const target = e.target as HTMLElement | null;
+    if (target && target.closest('#alarm-actions-overlay')) {
+      return;
+    }
     handleGiantAlarmDismiss();
     return;
   }
@@ -280,14 +352,58 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   }
 
   if (isGiantAlarmInteractive(giantAlarmState)) {
-    if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+    if (e.key === 'Escape') {
       e.preventDefault();
       handleGiantAlarmDismiss();
+      return;
+    }
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'r' || e.key === 'R') {
+      e.preventDefault();
+      handleRepeatSession();
+      return;
+    }
+    if (e.key === 's' || e.key === 'S' || e.key === '+') {
+      e.preventDefault();
+      handleSnoozeWrapUp(5);
+      return;
+    }
+    if (e.key === 'b' || e.key === 'B') {
+      e.preventDefault();
+      handleTakeBreak(5);
+      return;
     }
   }
 });
 
 // Modal UI Event Listeners
+if (alarmRepeatBtn) {
+  alarmRepeatBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleRepeatSession();
+  });
+}
+
+if (alarmSnoozeBtn) {
+  alarmSnoozeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleSnoozeWrapUp(5);
+  });
+}
+
+if (alarmBreakBtn) {
+  alarmBreakBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleTakeBreak(5);
+  });
+}
+
+if (alarmDismissHint) {
+  alarmDismissHint.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleGiantAlarmDismiss();
+  });
+}
+
 if (closeSettingsBtn) {
   closeSettingsBtn.addEventListener('click', closeSettingsModal);
 }
@@ -453,6 +569,7 @@ if (window.usagiAPI) {
     giantAlarmState = triggerGiantAlarm(giantAlarmState);
     playSound('timer-complete');
     updateMouseIgnoreState();
+    showAlarmActionsOverlay();
   });
 
   window.usagiAPI.onTestSound(() => {
@@ -845,8 +962,10 @@ function drawGiantAlarmOverlay(
   const bannerTop = Math.max(30, centerY - (targetHeight * model.scale) / 2 - 75);
   drawGiantComicBanner(context, centerX, bannerTop, model.speechText);
 
-  // 6. Dismiss hint at screen bottom
-  drawDismissHint(context, centerX, screen.height - 45, model.hintText, timeMs);
+  // 6. Dismiss hint at screen bottom (only drawn if HTML overlay is not active)
+  if (!alarmActionsOverlay) {
+    drawDismissHint(context, centerX, screen.height - 45, model.hintText, timeMs);
+  }
 
   context.restore();
 }
@@ -861,6 +980,7 @@ function animationLoop(now: number): void {
     const wasActive = giantAlarmState.active;
     giantAlarmState = tickGiantAlarm(giantAlarmState, dt);
     if (wasActive && !giantAlarmState.active) {
+      hideAlarmActionsOverlay();
       updateMouseIgnoreState();
     }
   }
