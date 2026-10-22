@@ -24,7 +24,7 @@ const timerBadge = document.getElementById('timer-badge') as HTMLSpanElement | n
 const clockTime = document.getElementById('clock-time') as HTMLDivElement | null;
 const clockStatus = document.getElementById('clock-status') as HTMLDivElement | null;
 const manualTimeInput = document.getElementById('manual-time-input') as HTMLInputElement | null;
-const manualUnitSelect = document.getElementById('manual-unit-select') as HTMLSelectElement | null;
+const add10Btn = document.getElementById('add-10-btn') as HTMLButtonElement | null;
 const startTimerBtn = document.getElementById('start-timer-btn') as HTMLButtonElement | null;
 const pauseTimerBtn = document.getElementById('pause-timer-btn') as HTMLButtonElement | null;
 const resetTimerBtn = document.getElementById('reset-timer-btn') as HTMLButtonElement | null;
@@ -118,22 +118,27 @@ function updatePomodoroUI(state: PomodoroState): void {
 chipButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
     const minAttr = btn.getAttribute('data-min');
-    const hoursAttr = btn.getAttribute('data-hours');
     let durationMs = 1_500_000;
     if (minAttr) {
       durationMs = parseCustomDuration(Number(minAttr), 'minutes');
-    } else if (hoursAttr) {
-      durationMs = parseCustomDuration(Number(hoursAttr), 'hours');
     }
     window.usagiAPI?.setPomodoroDuration(durationMs, true);
   });
 });
 
-if (startTimerBtn && manualTimeInput && manualUnitSelect) {
+if (add10Btn && manualTimeInput) {
+  add10Btn.addEventListener('click', () => {
+    const current = Number(manualTimeInput.value) || 0;
+    const next = current + 10;
+    manualTimeInput.value = String(next);
+    manualTimeInput.focus();
+  });
+}
+
+if (startTimerBtn && manualTimeInput) {
   startTimerBtn.addEventListener('click', () => {
     const val = Number(manualTimeInput.value);
-    const unit = manualUnitSelect.value as 'minutes' | 'hours';
-    const durationMs = parseCustomDuration(val, unit);
+    const durationMs = parseCustomDuration(val > 0 ? val : 25, 'minutes');
     window.usagiAPI?.setPomodoroDuration(durationMs, true);
   });
 }

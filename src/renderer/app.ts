@@ -22,11 +22,19 @@ import {
   SoundEvent,
   SoundState,
 } from '../core/soundManager';
-import { formatPomodoroTime, parseCustomDuration, PomodoroState } from '../core/pomodoroTimer';
 import {
+  DEFAULT_POMODORO_MS,
+  formatPomodoroTime,
+  parseCustomDuration,
+  PomodoroState,
+} from '../core/pomodoroTimer';
+import {
+  calculateSnoozeDurationMs,
   createGiantAlarmState,
   dismissGiantAlarm,
+  formatRepeatActionLabel,
   getGiantAlarmRenderModel,
+  getRecommendedBreakMinutes,
   GiantAlarmRenderModel,
   GiantAlarmState,
   isGiantAlarmInteractive,
@@ -43,7 +51,23 @@ interface ProcessedFrame {
 }
 
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d')!;
+const ctx =
+  (canvas.getContext('2d', {
+    alpha: true,
+    desynchronized: true,
+  }) as CanvasRenderingContext2D | null) || canvas.getContext('2d')!;
+
+const audioCache = new Map<string, HTMLAudioElement>();
+
+function getOrCreateAudio(url: string): HTMLAudioElement {
+  let audio = audioCache.get(url);
+  if (!audio) {
+    audio = new Audio(url);
+    audio.preload = 'auto';
+    audioCache.set(url, audio);
+  }
+  return audio;
+}
 
 let screenBounds: ScreenBounds = {
   width: window.innerWidth,
@@ -76,14 +100,16 @@ function playSound(event: SoundEvent, customVolume?: number): string | null {
 
   if (result.url && result.volume > 0) {
     try {
-      const audio = new Audio(result.url);
+      const audio = getOrCreateAudio(result.url);
       const targetVol = customVolume !== undefined ? customVolume : result.volume;
       audio.volume = Math.min(1.0, Math.max(0.0, targetVol));
+      audio.currentTime = 0;
       audio.play().catch(() => {
         if (result.file) {
           const fallbackUrl = resolveSoundAssetUrl(result.file, '../assets');
-          const fallbackAudio = new Audio(fallbackUrl);
+          const fallbackAudio = getOrCreateAudio(fallbackUrl);
           fallbackAudio.volume = Math.min(1.0, Math.max(0.0, targetVol));
+          fallbackAudio.currentTime = 0;
           fallbackAudio.play().catch(() => {});
         }
       });
@@ -112,7 +138,7 @@ const pomodoroStatusBadge = document.getElementById(
   'pomodoro-status-badge'
 ) as HTMLSpanElement | null;
 const customTimeInput = document.getElementById('custom-time-input') as HTMLInputElement | null;
-const customUnitSelect = document.getElementById('custom-unit-select') as HTMLSelectElement | null;
+const customAdd10Btn = document.getElementById('custom-add-10-btn') as HTMLButtonElement | null;
 const startCustomTimerBtn = document.getElementById(
   'start-custom-timer-btn'
 ) as HTMLButtonElement | null;
@@ -122,6 +148,76 @@ const stationaryValBadge = document.getElementById(
 const stationaryToggleBtn = document.getElementById(
   'stationary-toggle-btn'
 ) as HTMLButtonElement | null;
+
+const alarmActionsOverlay = document.getElementById(
+  'alarm-actions-overlay'
+) as HTMLDivElement | null;
+const alarmRepeatBtn = document.getElementById('alarm-repeat-btn') as HTMLButtonElement | null;
+const alarmRepeatText = document.getElementById('alarm-repeat-text') as HTMLSpanElement | null;
+const alarmSnoozeBtn = document.getElementById('alarm-snooze-btn') as HTMLButtonElement | null;
+const alarmBreakBtn = document.getElementById('alarm-break-btn') as HTMLButtonElement | null;
+const alarmBreakText = document.getElementById('alarm-break-text') as HTMLSpanElement | null;
+const alarmDismissHint = document.getElementById('alarm-dismiss-hint') as HTMLDivElement | null;
+
+function showAlarmActionsOverlay(): void {
+  if (!alarmActionsOverlay) return;
+  const lastDuration =
+    currentPomodoroState && currentPomodoroState.durationMs > 0
+      ? currentPomodoroState.durationMs
+      : DEFAULT_POMODORO_MS;
+  if (alarmRepeatText) {
+    alarmRepeatText.textContent = formatRepeatActionLabel(lastDuration);
+  }
+  const breakMins = getRecommendedBreakMinutes(lastDuration);
+  if (alarmBreakText) {
+    alarmBreakText.textContent = `${breakMins}m Break`;
+  }
+  alarmActionsOverlay.style.display = 'flex';
+}
+
+function hideAlarmActionsOverlay(): void {
+  if (alarmActionsOverlay) {
+    alarmActionsOverlay.style.display = 'none';
+  }
+}
+
+function handleRepeatSession(): void {
+  if (!isGiantAlarmInteractive(giantAlarmState)) return;
+  const duration =
+    currentPomodoroState && currentPomodoroState.durationMs > 0
+      ? currentPomodoroState.durationMs
+      : DEFAULT_POMODORO_MS;
+  giantAlarmState = dismissGiantAlarm(giantAlarmState);
+  hideAlarmActionsOverlay();
+  playSound('click-normal');
+  window.usagiAPI?.setPomodoroDuration(duration, true);
+  window.usagiAPI?.notifyGiantAlarmDismissed();
+}
+
+function handleSnoozeWrapUp(minutes: number = 5): void {
+  if (!isGiantAlarmInteractive(giantAlarmState)) return;
+  const duration = calculateSnoozeDurationMs(minutes);
+  giantAlarmState = dismissGiantAlarm(giantAlarmState);
+  hideAlarmActionsOverlay();
+  playSound('click-normal');
+  window.usagiAPI?.setPomodoroDuration(duration, true);
+  window.usagiAPI?.notifyGiantAlarmDismissed();
+}
+
+function handleTakeBreak(minutes?: number): void {
+  if (!isGiantAlarmInteractive(giantAlarmState)) return;
+  const lastDuration =
+    currentPomodoroState && currentPomodoroState.durationMs > 0
+      ? currentPomodoroState.durationMs
+      : DEFAULT_POMODORO_MS;
+  const breakMins = minutes ?? getRecommendedBreakMinutes(lastDuration);
+  const duration = calculateSnoozeDurationMs(breakMins);
+  giantAlarmState = dismissGiantAlarm(giantAlarmState);
+  hideAlarmActionsOverlay();
+  playSound('click-normal');
+  window.usagiAPI?.setPomodoroDuration(duration, true);
+  window.usagiAPI?.notifyGiantAlarmDismissed();
+}
 
 function updateStationaryBadge(): void {
   const isStill = !!state.stationary;
@@ -161,6 +257,7 @@ function closeSettingsModal(): void {
 function handleGiantAlarmDismiss(): void {
   if (!isGiantAlarmInteractive(giantAlarmState)) return;
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
+  hideAlarmActionsOverlay();
   playSound('click-normal');
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
@@ -228,6 +325,10 @@ window.addEventListener('pointerdown', (e: MouseEvent) => {
   }
 
   if (isGiantAlarmInteractive(giantAlarmState)) {
+    const target = e.target as HTMLElement | null;
+    if (target && target.closest('#alarm-actions-overlay')) {
+      return;
+    }
     handleGiantAlarmDismiss();
     return;
   }
@@ -280,14 +381,58 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   }
 
   if (isGiantAlarmInteractive(giantAlarmState)) {
-    if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+    if (e.key === 'Escape') {
       e.preventDefault();
       handleGiantAlarmDismiss();
+      return;
+    }
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'r' || e.key === 'R') {
+      e.preventDefault();
+      handleRepeatSession();
+      return;
+    }
+    if (e.key === 's' || e.key === 'S' || e.key === '+') {
+      e.preventDefault();
+      handleSnoozeWrapUp(5);
+      return;
+    }
+    if (e.key === 'b' || e.key === 'B') {
+      e.preventDefault();
+      handleTakeBreak();
+      return;
     }
   }
 });
 
 // Modal UI Event Listeners
+if (alarmRepeatBtn) {
+  alarmRepeatBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleRepeatSession();
+  });
+}
+
+if (alarmSnoozeBtn) {
+  alarmSnoozeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleSnoozeWrapUp(5);
+  });
+}
+
+if (alarmBreakBtn) {
+  alarmBreakBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleTakeBreak();
+  });
+}
+
+if (alarmDismissHint) {
+  alarmDismissHint.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleGiantAlarmDismiss();
+  });
+}
+
 if (closeSettingsBtn) {
   closeSettingsBtn.addEventListener('click', closeSettingsModal);
 }
@@ -339,12 +484,9 @@ const chipButtons = document.querySelectorAll<HTMLButtonElement>('.chip-btn');
 chipButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
     const minAttr = btn.getAttribute('data-min');
-    const hoursAttr = btn.getAttribute('data-hours');
     let durationMs = 1_500_000;
     if (minAttr) {
       durationMs = parseCustomDuration(Number(minAttr), 'minutes');
-    } else if (hoursAttr) {
-      durationMs = parseCustomDuration(Number(hoursAttr), 'hours');
     }
     window.usagiAPI?.setPomodoroDuration(durationMs, true);
     if (pomodoroStatusBadge) {
@@ -353,11 +495,19 @@ chipButtons.forEach((btn) => {
   });
 });
 
-if (startCustomTimerBtn && customTimeInput && customUnitSelect) {
+if (customAdd10Btn && customTimeInput) {
+  customAdd10Btn.addEventListener('click', () => {
+    const current = Number(customTimeInput.value) || 0;
+    const next = current + 10;
+    customTimeInput.value = String(next);
+    customTimeInput.focus();
+  });
+}
+
+if (startCustomTimerBtn && customTimeInput) {
   startCustomTimerBtn.addEventListener('click', () => {
     const val = Number(customTimeInput.value);
-    const unit = customUnitSelect.value as 'minutes' | 'hours';
-    const durationMs = parseCustomDuration(val, unit);
+    const durationMs = parseCustomDuration(val > 0 ? val : 25, 'minutes');
     window.usagiAPI?.setPomodoroDuration(durationMs, true);
     if (pomodoroStatusBadge) {
       pomodoroStatusBadge.textContent = `${formatPomodoroTime(durationMs)} RUNNING`;
@@ -453,6 +603,7 @@ if (window.usagiAPI) {
     giantAlarmState = triggerGiantAlarm(giantAlarmState);
     playSound('timer-complete');
     updateMouseIgnoreState();
+    showAlarmActionsOverlay();
   });
 
   window.usagiAPI.onTestSound(() => {
@@ -464,7 +615,11 @@ if (window.usagiAPI) {
   });
 }
 
-function processImageToFrame(name: string, img: HTMLImageElement): ProcessedFrame {
+function processImageToFrame(
+  name: string,
+  img: HTMLImageElement,
+  maxDimension: number = 320
+): ProcessedFrame {
   const offscreen = document.createElement('canvas');
   offscreen.width = img.naturalWidth;
   offscreen.height = img.naturalHeight;
@@ -474,21 +629,44 @@ function processImageToFrame(name: string, img: HTMLImageElement): ProcessedFram
   const imgData = offCtx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
   const cropped: CroppedSprite = cropSpriteToAlphaBounds(name, imgData, 10);
 
+  const naturalW = cropped.bounds.width;
+  const naturalH = cropped.bounds.height;
+  const scale = Math.min(1.0, maxDimension / Math.max(naturalW, naturalH));
+  const targetW = Math.max(1, Math.round(naturalW * scale));
+  const targetH = Math.max(1, Math.round(naturalH * scale));
+
   const trimmed = document.createElement('canvas');
-  trimmed.width = cropped.bounds.width;
-  trimmed.height = cropped.bounds.height;
+  trimmed.width = targetW;
+  trimmed.height = targetH;
   const trimmedCtx = trimmed.getContext('2d')!;
 
-  const trimmedData = trimmedCtx.createImageData(cropped.bounds.width, cropped.bounds.height);
-  trimmedData.data.set(cropped.trimmedData);
-  trimmedCtx.putImageData(trimmedData, 0, 0);
+  if (scale === 1.0) {
+    const trimmedData = trimmedCtx.createImageData(targetW, targetH);
+    trimmedData.data.set(cropped.trimmedData);
+    trimmedCtx.putImageData(trimmedData, 0, 0);
+  } else {
+    // Hardware accelerated downscaling into a lightweight high-DPI texture
+    trimmedCtx.imageSmoothingEnabled = true;
+    trimmedCtx.imageSmoothingQuality = 'high';
+    trimmedCtx.drawImage(
+      offscreen,
+      cropped.bounds.minX,
+      cropped.bounds.minY,
+      naturalW,
+      naturalH,
+      0,
+      0,
+      targetW,
+      targetH
+    );
+  }
 
   return {
     canvas: trimmed,
-    width: cropped.bounds.width,
-    height: cropped.bounds.height,
-    centerX: cropped.bounds.centerX,
-    centerY: cropped.bounds.centerY,
+    width: targetW,
+    height: targetH,
+    centerX: targetW / 2,
+    centerY: targetH / 2,
   };
 }
 
@@ -502,7 +680,7 @@ function loadSingleSprite(index: number): Promise<ProcessedFrame> {
     };
 
     img.onload = () => {
-      resolve(processImageToFrame(`Usagi${index}`, img));
+      resolve(processImageToFrame(`Usagi${index}`, img, 320));
     };
   });
 }
@@ -526,12 +704,12 @@ function loadCustomGiantSprite(): Promise<ProcessedFrame | null> {
       img.onerror = () => {
         const imgAlt = new Image();
         imgAlt.src = `../assets/${filename}`;
-        imgAlt.onload = () => resolve(processImageToFrame(filename, imgAlt));
+        imgAlt.onload = () => resolve(processImageToFrame(filename, imgAlt, 768));
         imgAlt.onerror = () => tryCandidate();
       };
 
       img.onload = () => {
-        resolve(processImageToFrame(filename, img));
+        resolve(processImageToFrame(filename, img, 768));
       };
     };
 
@@ -547,11 +725,14 @@ async function loadAllSprites(): Promise<void> {
   const loaded = await Promise.all(promises);
   processedFrames.push(...loaded);
 
-  try {
-    giantSpriteFrame = await loadCustomGiantSprite();
-  } catch {
-    giantSpriteFrame = null;
-  }
+  // Background load giant sprite without delaying initial Usagi spawn
+  loadCustomGiantSprite()
+    .then((frame) => {
+      giantSpriteFrame = frame;
+    })
+    .catch(() => {
+      giantSpriteFrame = null;
+    });
 }
 
 function drawSnack(context: CanvasRenderingContext2D, x: number, y: number, radius: number): void {
@@ -845,8 +1026,10 @@ function drawGiantAlarmOverlay(
   const bannerTop = Math.max(30, centerY - (targetHeight * model.scale) / 2 - 75);
   drawGiantComicBanner(context, centerX, bannerTop, model.speechText);
 
-  // 6. Dismiss hint at screen bottom
-  drawDismissHint(context, centerX, screen.height - 45, model.hintText, timeMs);
+  // 6. Dismiss hint at screen bottom (only drawn if HTML overlay is not active)
+  if (!alarmActionsOverlay) {
+    drawDismissHint(context, centerX, screen.height - 45, model.hintText, timeMs);
+  }
 
   context.restore();
 }
@@ -861,6 +1044,7 @@ function animationLoop(now: number): void {
     const wasActive = giantAlarmState.active;
     giantAlarmState = tickGiantAlarm(giantAlarmState, dt);
     if (wasActive && !giantAlarmState.active) {
+      hideAlarmActionsOverlay();
       updateMouseIgnoreState();
     }
   }

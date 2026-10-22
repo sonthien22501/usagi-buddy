@@ -218,3 +218,34 @@ export function getGiantAlarmRenderModel(
     hintText: '[ Click anywhere or press ESC to dismiss ]',
   };
 }
+
+export function formatRepeatActionLabel(durationMs: number): string {
+  if (!Number.isFinite(durationMs) || durationMs <= 0) {
+    return 'Study Another 25m';
+  }
+  const totalMins = Math.round(durationMs / 60_000);
+  if (totalMins >= 60 && totalMins % 60 === 0) {
+    const hours = Math.floor(totalMins / 60);
+    return `Study Another ${hours}h`;
+  }
+  return `Study Another ${totalMins}m`;
+}
+
+export function calculateSnoozeDurationMs(snoozeMinutes: number = 5): number {
+  const mins = Math.max(1, Number.isFinite(snoozeMinutes) ? Math.round(snoozeMinutes) : 5);
+  return mins * 60_000;
+}
+
+export function getRecommendedBreakMinutes(workDurationMs: number): number {
+  if (!Number.isFinite(workDurationMs) || workDurationMs <= 0) {
+    return 5;
+  }
+  const workMins = Math.round(workDurationMs / 60_000);
+  if (workMins >= 80) {
+    return 20;
+  }
+  if (workMins >= 45 && workMins <= 65) {
+    return 17;
+  }
+  return 5;
+}

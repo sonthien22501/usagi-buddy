@@ -47,28 +47,61 @@ export function computeAlphaBounds(
 ): BoundingBox | null {
   validateImageAndThreshold(image, alphaThreshold);
 
-  let minX = image.width;
-  let minY = image.height;
-  let maxX = -1;
-  let maxY = -1;
-
   const { width, height, data } = image;
 
+  // 1. Scan top-down to find minY (first row containing opaque pixel)
+  let minY = -1;
   for (let y = 0; y < height; y++) {
     const rowOffset = y * width * 4;
     for (let x = 0; x < width; x++) {
-      const alpha = data[rowOffset + x * 4 + 3];
-      if (alpha > alphaThreshold) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+      if (data[rowOffset + x * 4 + 3] > alphaThreshold) {
+        minY = y;
+        break;
       }
     }
+    if (minY !== -1) break;
   }
 
-  if (maxX === -1) {
+  // Entire image is transparent
+  if (minY === -1) {
     return null;
+  }
+
+  // 2. Scan bottom-up to find maxY (last row containing opaque pixel)
+  let maxY = minY;
+  for (let y = height - 1; y >= minY; y--) {
+    const rowOffset = y * width * 4;
+    for (let x = 0; x < width; x++) {
+      if (data[rowOffset + x * 4 + 3] > alphaThreshold) {
+        maxY = y;
+        break;
+      }
+    }
+    if (maxY !== minY || y === minY) break;
+  }
+
+  // 3. Scan between minY and maxY only, shrinking search bounds horizontally
+  let minX = width;
+  let maxX = -1;
+
+  for (let y = minY; y <= maxY; y++) {
+    const rowOffset = y * width * 4;
+
+    // Scan from left to current minX only
+    for (let x = 0; x < minX; x++) {
+      if (data[rowOffset + x * 4 + 3] > alphaThreshold) {
+        minX = x;
+        break;
+      }
+    }
+
+    // Scan from right down to current maxX only
+    for (let x = width - 1; x > maxX; x--) {
+      if (data[rowOffset + x * 4 + 3] > alphaThreshold) {
+        maxX = x;
+        break;
+      }
+    }
   }
 
   const boxWidth = maxX - minX + 1;

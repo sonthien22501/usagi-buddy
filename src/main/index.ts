@@ -153,7 +153,7 @@ function updateTrayMenu(): void {
       enabled: false,
     },
     {
-      label: isRunning ? '⏸ Pause Timer' : '▶ Start Timer',
+      label: isRunning ? '⏸️ Pause Timer' : '▶️ Start Timer',
       click: () => {
         if (isRunning) {
           pomodoroState = pausePomodoro(pomodoroState);
@@ -172,6 +172,45 @@ function updateTrayMenu(): void {
         broadcastPomodoroState();
       },
     },
+    {
+      label: '⏱️ Set Timer Duration',
+      submenu: [
+        {
+          label: '🍅 25-Min Pomodoro (5m Break)',
+          click: () => setPomodoroDuration(25 * 60_000),
+        },
+        {
+          label: '⚡ 52-Min Focus (17m Break)',
+          click: () => setPomodoroDuration(52 * 60_000),
+        },
+        {
+          label: '🌊 90-Min Ultradian (20m Break)',
+          click: () => setPomodoroDuration(90 * 60_000),
+        },
+        { type: 'separator' },
+        {
+          label: '☕ 5-Minute Short Break',
+          click: () => setPomodoroDuration(5 * 60_000),
+        },
+        {
+          label: '☕ 17-Minute 52/17 Rest Break',
+          click: () => setPomodoroDuration(17 * 60_000),
+        },
+        {
+          label: '☕ 20-Minute Deep Rest Break',
+          click: () => setPomodoroDuration(20 * 60_000),
+        },
+        {
+          label: '⚡ 1-Minute Quick Test',
+          click: () => setPomodoroDuration(60_000),
+        },
+        { type: 'separator' },
+        {
+          label: '✏️ Custom Duration... (Open Dashboard)',
+          click: () => createDashboardWindow(),
+        },
+      ],
+    },
     { type: 'separator' },
     {
       label: '🎛️ Open Usagi Dashboard...',
@@ -179,7 +218,7 @@ function updateTrayMenu(): void {
     },
     { type: 'separator' },
     {
-      label: 'Quit Usagi Float',
+      label: '🚪 Quit Usagi Float',
       click: () => {
         app.quit();
       },
@@ -356,7 +395,6 @@ function setupWellnessCoachTicker(): void {
 
 app.whenReady().then(() => {
   createMainWindow();
-  createDashboardWindow();
   createSystemTray();
   setupPomodoroTicker();
   setupWellnessCoachTicker();

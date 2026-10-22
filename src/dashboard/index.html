@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -26,7 +26,7 @@
         min-height: 100vh;
         background: #140f1d;
         color: #ffffff;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Nunito", sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Nunito', sans-serif;
         padding: 18px 20px 24px;
         overflow-y: auto;
         overflow-x: hidden !important;
@@ -167,7 +167,9 @@
         border: 3px solid #ff7675;
         cursor: grab;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-        transition: transform 0.1s, box-shadow 0.1s;
+        transition:
+          transform 0.1s,
+          box-shadow 0.1s;
       }
 
       .volume-slider::-webkit-slider-thumb:hover {
@@ -347,17 +349,36 @@
         border-color: #ffeaa7;
       }
 
-      .unit-select {
-        height: 36px;
-        background: rgba(0, 0, 0, 0.45);
-        border: 1.5px solid rgba(255, 255, 255, 0.2);
-        border-radius: 10px;
-        color: #ffffff;
+      .unit-tag {
         font-size: 13px;
-        font-weight: 600;
-        padding: 0 10px;
-        outline: none;
+        font-weight: 700;
+        color: rgba(255, 234, 167, 0.7);
+        padding: 0 4px;
+        user-select: none;
+      }
+
+      .btn-step {
+        height: 36px;
+        padding: 0 12px;
+        font-size: 13px;
+        font-weight: 800;
+        color: #ffeaa7;
+        background: rgba(255, 234, 167, 0.12);
+        border: 1px solid rgba(255, 234, 167, 0.35);
+        border-radius: 10px;
         cursor: pointer;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+      }
+
+      .btn-step:hover {
+        background: rgba(255, 234, 167, 0.25);
+        border-color: #ffeaa7;
+        transform: translateY(-1px);
+      }
+
+      .btn-step:active {
+        transform: scale(0.95);
       }
 
       /* Clean Mode Rows (No small descriptions) */
@@ -448,31 +469,49 @@
         <div class="clock-status" id="clock-status">READY TO FOCUS</div>
       </div>
 
-      <!-- Quick Preset Chips -->
+      <!-- Scientific Focus Method Chips -->
       <div class="preset-chips">
-        <button class="chip-btn" data-min="25">25m Standard</button>
-        <button class="chip-btn" data-min="40">40m Extended</button>
-        <button class="chip-btn" data-min="60">60m (1h)</button>
-        <button class="chip-btn" data-min="90">90m</button>
-        <button class="chip-btn" data-hours="2">2h</button>
+        <button
+          class="chip-btn"
+          data-min="25"
+          title="Pomodoro Technique: 25m work / 5m break (Beginners, high-friction tasks, or admin work)"
+        >
+          🍅 25m Pomodoro
+        </button>
+        <button
+          class="chip-btn"
+          data-min="52"
+          title="52/17 Method: 52m work / 17m break (Deep reading, writing, coding, and sustained knowledge work)"
+        >
+          ⚡ 52m Rule (17m rest)
+        </button>
+        <button
+          class="chip-btn"
+          data-min="90"
+          title="Ultradian Rhythm: 90m work / 20m break (Complex problem-solving, marathon study sessions, or creative flow)"
+        >
+          🌊 90m Ultradian (20m rest)
+        </button>
       </div>
 
-      <!-- Manual Input Row -->
+      <!-- Manual Input Row (Starts at 0 with +10m Button) -->
       <div class="input-group">
         <input
           type="number"
           class="number-input"
           id="manual-time-input"
-          min="1"
+          min="0"
           max="720"
-          value="40"
-          placeholder="e.g. 40"
+          value="0"
+          placeholder="0"
         />
-        <select class="unit-select" id="manual-unit-select">
-          <option value="minutes">Minutes</option>
-          <option value="hours">Hours</option>
-        </select>
-        <button class="btn btn-primary" id="start-timer-btn" style="width: 85px; height: 36px">▶ Start</button>
+        <span class="unit-tag">min</span>
+        <button class="btn-step" id="add-10-btn" type="button" title="Add 10 minutes to timer">
+          +10m
+        </button>
+        <button class="btn btn-primary" id="start-timer-btn" style="width: 85px; height: 36px">
+          ▶ Start
+        </button>
       </div>
 
       <div class="card-actions" style="margin-top: 8px">

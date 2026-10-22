@@ -1,18 +1,21 @@
-# Usagi Float — Architecture Cache (v0.2)
+# Usagi Float — Architecture Cache (v0.3)
 
 ## 1. System Overview & Tech Stack
+
 - **Product**: Cross-platform (macOS + Windows) frameless, transparent, always-on-top desktop companion ("Usagi Float").
 - **Runtime & UI**: Electron + TypeScript + HTML5 2D Canvas (60 FPS continuous kick-and-glide swimming transforms, Web Audio MP3 playback, per-pixel `setIgnoreMouseEvents(true, { forward: true })` hit-testing).
 - **Bundler & Compiler**: `typescript` (`tsc --noEmit`) + `esbuild` (bundles main, preload, renderer, and copies `.png` + `.mp3` assets).
 - **Test & Format**: `vitest` (unit + asset integration tests) + `prettier`.
 
 ## 2. Exact Commands (Law 1 & Law 2 Quiet Flags)
+
 - **Typecheck**: `npx --no-install -p typescript tsc --noEmit --pretty false`
 - **Unit Tests**: `npx --no-install vitest run`
 - **Build**: `npm run build`
 - **Format**: `npx --no-install prettier --write "src/**/*.ts" "tests/**/*.ts"`
 
 ## 3. Directory & Module Map
+
 ```
 usagi-buddy/
 ├── assets/
@@ -50,6 +53,7 @@ usagi-buddy/
 ```
 
 ## 4. Core Data Contracts
+
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
 - `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', nextReminderAtMs, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
 - `SoundEvent`: `'click-normal' | 'click-combo' | 'snack-eaten' | 'wellness-reminder' | 'welcome-back' | 'timer-complete'`
@@ -57,6 +61,7 @@ usagi-buddy/
 - `GiantAlarmState`: `{ active, phase, elapsedMs, phaseElapsedMs, shakeIntensity, scale, opacity, wobbleRad, dismissTriggered }`
 
 ## 5. Milestone Progress Checklist
+
 - [x] M1 (MVP): Alpha Cropper, Basic Physics, Ghost Mode, 25m Pomodoro, Electron Shell
 - [x] M2 Task 1: 60 FPS Organic Kick-and-Glide Swimming, Squash/Stretch, Combo Spin & Cursor Follow (`src/core/physicsEngine.ts`)
 - [x] M2 Task 2: Sound Effect Mapper, URL-Safe Encoder (`huhhhh?.mp3`) & Mute/Cooldown (`src/core/soundManager.ts`)
@@ -69,3 +74,6 @@ usagi-buddy/
 - [x] M7: Interactive pull-slider volume control, floating Usagi Control Center modal, custom Pomodoro duration input (minutes/hours) & presets (`pomodoroTimer.ts`, `renderer/index.html`, `renderer/app.ts`, `main/index.ts`)
 - [x] M8: Drag & drop Usagi positioning, Stay Still (Anchor Mode) for deep focus, and fixed 20-40 min ambient water reminder with AFK time preservation (`physicsEngine.ts`, `wellnessCoach.ts`, `main/index.ts`, `renderer/app.ts`)
 - [x] M9: Standalone Usagi Buddy Dashboard desktop application with unified volume slider, custom Pomodoro duration, Stay Still toggle, and background persistence on window close (`src/dashboard/`, `src/main/index.ts`, `src/preload/index.ts`, `scripts/build.mjs`)
+- [x] M10: Menu bar tray alignment & timer presets submenu, interactive Big Usagi alarm actions bar with dynamic session repeat, +5m wrap-up snooze, 5m break, and keyboard shortcuts (`src/main/index.ts`, `src/core/giantAlarmController.ts`, `src/renderer/index.html`, `src/renderer/app.ts`)
+- [x] M11: Scientific study method presets (Pomodoro 25/5, 52/17 Method, Ultradian Rhythm 90/20), dynamic alarm break matching, minute-only manual input starting at 0, and +10m rapid increment button (`src/dashboard/`, `src/renderer/`, `src/main/index.ts`, `src/core/`)
+- [x] M12: Low-spec device performance & startup optimizations (lazy Dashboard window creation on startup, fast 4-sided alpha bounds scan, 320px high-DPI texture downscaling, audio element pooling, desynchronized canvas rendering) (`src/core/alphaCropper.ts`, `src/renderer/app.ts`, `src/main/index.ts`)
