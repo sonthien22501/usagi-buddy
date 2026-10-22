@@ -27,7 +27,7 @@
         background: #140f1d;
         color: #ffffff;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Nunito", sans-serif;
-        padding: 18px 20px 26px;
+        padding: 18px 20px 24px;
         overflow-y: auto;
         overflow-x: hidden !important;
       }
@@ -62,17 +62,15 @@
         display: flex;
         align-items: center;
         gap: 14px;
-        margin-bottom: 18px;
+        margin-bottom: 16px;
         padding-bottom: 14px;
-        border-bottom: 1px solid rgba(255, 234, 167, 0.18);
+        border-bottom: 1px solid rgba(255, 234, 167, 0.16);
       }
 
       .app-logo {
         width: 48px;
         height: 48px;
-        border-radius: 14px;
-        background: rgba(255, 234, 167, 0.15);
-        border: 1.5px solid rgba(255, 234, 167, 0.35);
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -80,13 +78,13 @@
       }
 
       .app-logo img {
-        width: 40px;
-        height: 40px;
+        width: 100%;
+        height: 100%;
         object-fit: contain;
       }
 
       .app-header-text h1 {
-        font-size: 20px;
+        font-size: 19px;
         font-weight: 800;
         color: #ffeaa7;
         letter-spacing: 0.3px;
@@ -101,7 +99,7 @@
       .card {
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.09);
-        border-radius: 18px;
+        border-radius: 16px;
         padding: 16px 18px;
         margin-bottom: 14px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -126,15 +124,16 @@
       }
 
       .badge {
-        background: rgba(255, 234, 167, 0.18);
+        background: rgba(255, 234, 167, 0.16);
         color: #ffeaa7;
-        padding: 3px 10px;
-        border-radius: 12px;
+        padding: 3px 9px;
+        border-radius: 10px;
         font-size: 11.5px;
         font-weight: 800;
+        letter-spacing: 0.3px;
       }
 
-      /* Unified Left & Right Slider */
+      /* Unified Left & Right Slider with Dynamic Track Fill & Grey Inactive */
       .slider-row {
         display: flex;
         align-items: center;
@@ -147,31 +146,38 @@
         width: 100%;
         height: 8px;
         border-radius: 4px;
-        background: linear-gradient(90deg, #ff7675, #ffeaa7);
+        background: linear-gradient(
+          to right,
+          #ff7675 0%,
+          #ffeaa7 80%,
+          rgba(255, 255, 255, 0.16) 80%,
+          rgba(255, 255, 255, 0.16) 100%
+        );
         outline: none;
         cursor: pointer;
+        transition: background 0.05s ease;
       }
 
       .volume-slider::-webkit-slider-thumb {
         -webkit-appearance: none;
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
         background: #ffffff;
         border: 3px solid #ff7675;
         cursor: grab;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
         transition: transform 0.1s, box-shadow 0.1s;
       }
 
       .volume-slider::-webkit-slider-thumb:hover {
-        transform: scale(1.18);
+        transform: scale(1.15);
         box-shadow: 0 0 10px rgba(255, 118, 117, 0.7);
       }
 
       .volume-slider::-webkit-slider-thumb:active {
         cursor: grabbing;
-        transform: scale(1.25);
+        transform: scale(1.22);
       }
 
       .card-actions {
@@ -180,30 +186,73 @@
         justify-content: flex-end;
       }
 
+      /* Equal, Identical Action Buttons */
       .btn {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.16);
         color: #ffffff;
         padding: 7px 14px;
-        border-radius: 12px;
+        border-radius: 10px;
         font-size: 13px;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         transition: all 0.15s ease;
       }
 
       .btn:hover {
         background: rgba(255, 234, 167, 0.22);
         border-color: #ffeaa7;
+        color: #ffeaa7;
       }
 
       .btn:active {
         transform: scale(0.96);
       }
 
+      .btn-action-pair {
+        width: 120px;
+        height: 36px;
+      }
+
+      .feature-btn {
+        width: 135px;
+        height: 36px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        color: #ffffff;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+      }
+
+      .feature-btn:hover {
+        background: rgba(255, 234, 167, 0.22);
+        border-color: #ffeaa7;
+        color: #ffeaa7;
+      }
+
+      .feature-btn:active {
+        transform: scale(0.96);
+      }
+
+      .feature-btn.active {
+        background: rgba(255, 118, 117, 0.22);
+        border-color: #ff7675;
+        color: #ff7675;
+      }
+
       .btn-primary {
         background: linear-gradient(135deg, #ff7675, #d63031);
         border: none;
+        color: #ffffff;
         font-weight: 800;
         box-shadow: 0 3px 10px rgba(214, 48, 49, 0.35);
       }
@@ -211,23 +260,17 @@
       .btn-primary:hover {
         filter: brightness(1.1);
         border: none;
-      }
-
-      .btn-success {
-        background: linear-gradient(135deg, #55efc4, #00b894);
-        color: #0f1c16;
-        border: none;
-        font-weight: 800;
+        color: #ffffff;
       }
 
       /* Pomodoro Timer Display */
       .clock-display {
         text-align: center;
-        padding: 8px 0 14px;
+        padding: 6px 0 12px;
       }
 
       .clock-time {
-        font-size: 40px;
+        font-size: 38px;
         font-weight: 900;
         color: #ffeaa7;
         letter-spacing: 1px;
@@ -236,11 +279,11 @@
       }
 
       .clock-status {
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: 700;
         color: rgba(255, 255, 255, 0.5);
         text-transform: uppercase;
-        margin-top: 4px;
+        margin-top: 3px;
       }
 
       .preset-chips {
@@ -256,7 +299,7 @@
         border: 1px solid rgba(255, 255, 255, 0.14);
         color: #ffeaa7;
         padding: 6px 12px;
-        border-radius: 12px;
+        border-radius: 10px;
         font-size: 12.5px;
         font-weight: bold;
         cursor: pointer;
@@ -279,13 +322,14 @@
 
       .number-input {
         flex: 1;
+        height: 36px;
         background: rgba(0, 0, 0, 0.35);
         border: 1.5px solid rgba(255, 255, 255, 0.2);
-        border-radius: 12px;
+        border-radius: 10px;
         color: #ffffff;
         font-size: 14px;
         font-weight: bold;
-        padding: 7px 12px;
+        padding: 0 12px;
         outline: none;
         -webkit-user-select: text;
         user-select: text;
@@ -296,22 +340,23 @@
       }
 
       .unit-select {
+        height: 36px;
         background: rgba(0, 0, 0, 0.45);
         border: 1.5px solid rgba(255, 255, 255, 0.2);
-        border-radius: 12px;
+        border-radius: 10px;
         color: #ffffff;
         font-size: 13px;
         font-weight: 600;
-        padding: 7px 10px;
+        padding: 0 10px;
         outline: none;
         cursor: pointer;
       }
 
-      /* Mode List */
+      /* Clean Mode Rows (No small descriptions) */
       .mode-list {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
       }
 
       .mode-item {
@@ -327,37 +372,13 @@
         border-bottom: none;
       }
 
-      .mode-info {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        padding-right: 12px;
-      }
-
       .mode-title {
         font-size: 13.5px;
         font-weight: 700;
         color: #ffffff;
         display: flex;
         align-items: center;
-        gap: 6px;
-      }
-
-      .mode-desc {
-        font-size: 11.5px;
-        color: rgba(255, 255, 255, 0.6);
-      }
-
-      .switch-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .switch-desc {
-        font-size: 12.5px;
-        color: rgba(255, 255, 255, 0.75);
-        padding-right: 12px;
+        gap: 8px;
       }
 
       .app-footer {
@@ -374,10 +395,10 @@
     <!-- App Header -->
     <div class="app-header">
       <div class="app-logo">
-        <img src="../assets/Usagi1.png" alt="Usagi Logo" />
+        <img src="../assets/Usagi_logo.png" alt="Usagi Logo" />
       </div>
       <div class="app-header-text">
-        <h1>🐰 Usagi Buddy Dashboard</h1>
+        <h1>Usagi Buddy Dashboard</h1>
         <p>Unified Controls & Focus Companion</p>
       </div>
     </div>
@@ -389,7 +410,7 @@
         <span class="badge" id="volume-val-badge">80%</span>
       </div>
       <div class="slider-row">
-        <span style="font-size: 15px">🔈</span>
+        <span style="font-size: 14px">🔈</span>
         <input
           type="range"
           class="volume-slider"
@@ -399,11 +420,11 @@
           value="80"
           step="1"
         />
-        <span style="font-size: 15px">🔊</span>
+        <span style="font-size: 14px">🔊</span>
       </div>
       <div class="card-actions">
-        <button class="btn" id="test-sound-btn">🎵 Test Sound</button>
-        <button class="btn" id="mute-toggle-btn">🔇 Mute</button>
+        <button class="btn btn-action-pair" id="test-sound-btn">🎵 Test Sound</button>
+        <button class="btn btn-action-pair" id="mute-toggle-btn">🔇 Mute</button>
       </div>
     </div>
 
@@ -443,79 +464,66 @@
           <option value="minutes">Minutes</option>
           <option value="hours">Hours</option>
         </select>
-        <button class="btn btn-primary" id="start-timer-btn">▶ Start</button>
+        <button class="btn btn-primary" id="start-timer-btn" style="width: 85px; height: 36px">▶ Start</button>
       </div>
 
       <div class="card-actions" style="margin-top: 8px">
-        <button class="btn" id="pause-timer-btn">⏸ Pause</button>
-        <button class="btn" id="reset-timer-btn">🔄 Reset</button>
+        <button class="btn btn-action-pair" id="pause-timer-btn">⏸ Pause</button>
+        <button class="btn btn-action-pair" id="reset-timer-btn">🔄 Reset</button>
       </div>
     </div>
 
-    <!-- 3. Companion Modes & Actions Card -->
+    <!-- 3. Companion Modes & Actions Card (Clean & Equal Buttons) -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">🎮 Companion Modes & Actions</div>
       </div>
       <div class="mode-list">
-        <!-- Anchor / Stay Still -->
+        <!-- Stay Still -->
         <div class="mode-item">
-          <div class="mode-info">
-            <div class="mode-title">
-              📌 Stay Still (Anchor Mode)
-              <span class="badge" id="stationary-badge">SWIMMING</span>
-            </div>
-            <div class="mode-desc">Pin Usagi in one place so he doesn't float around while focusing.</div>
+          <div class="mode-title">
+            📌 Stay Still
+            <span class="badge" id="stationary-badge">SWIMMING</span>
           </div>
-          <button class="btn btn-success" id="stationary-toggle-btn">📌 Pin Usagi Still</button>
+          <button class="feature-btn" id="stationary-toggle-btn">📌 Pin Still</button>
         </div>
 
         <!-- Play Mode / Follow Cursor -->
         <div class="mode-item">
-          <div class="mode-info">
-            <div class="mode-title">
-              🪄 Play Mode (Cursor Follow)
-              <span class="badge" id="play-mode-badge">FREE SWIM</span>
-            </div>
-            <div class="mode-desc">Usagi swims joyfully after your mouse pointer on screen.</div>
+          <div class="mode-title">
+            🪄 Play Mode
+            <span class="badge" id="play-mode-badge">FREE SWIM</span>
           </div>
-          <button class="btn" id="play-mode-toggle-btn">🪄 Enable</button>
+          <button class="feature-btn" id="play-mode-toggle-btn">🪄 Follow Mouse</button>
         </div>
 
         <!-- Ghost Mode / Click-Through -->
         <div class="mode-item">
-          <div class="mode-info">
-            <div class="mode-title">
-              👻 Ghost Mode (Click-Through)
-              <span class="badge" id="ghost-mode-badge">SOLID</span>
-            </div>
-            <div class="mode-desc">Ignore all mouse clicks on Usagi so clicks pass through to background apps.</div>
+          <div class="mode-title">
+            👻 Ghost Mode
+            <span class="badge" id="ghost-mode-badge">SOLID</span>
           </div>
-          <button class="btn" id="ghost-mode-toggle-btn">👻 Enable</button>
+          <button class="feature-btn" id="ghost-mode-toggle-btn">👻 Ghost Mode</button>
         </div>
 
         <!-- Drop Pudding Snack -->
         <div class="mode-item">
-          <div class="mode-info">
-            <div class="mode-title">🍮 Drop Pudding Snack</div>
-            <div class="mode-desc">Toss a delicious pudding treat for Usagi to chase and gobble up!</div>
+          <div class="mode-title">
+            🍮 Pudding Snack
           </div>
-          <button class="btn" id="drop-snack-btn">🍮 Drop Snack</button>
+          <button class="feature-btn" id="drop-snack-btn">🍮 Drop Snack</button>
         </div>
       </div>
     </div>
 
-    <!-- 4. Giant Usagi Jumpscare Alarm Test -->
+    <!-- 4. Giant Usagi Jumpscare Alarm Test (Identical Button Alignment) -->
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">🚨 Giant Usagi Alarm</div>
-        <span class="badge">Chaos Mode</span>
-      </div>
-      <div class="switch-row">
-        <div class="switch-desc">
-          When timer reaches 0, <strong>Usagi_Big.png</strong> covers your screen with anime speed lines!
+      <div class="card-header" style="margin-bottom: 0">
+        <div class="mode-title">
+          🚨 Giant Alarm
+          <span class="badge">CHAOS</span>
         </div>
-        <button class="btn btn-primary" id="test-giant-alarm-btn">🚨 Test Alarm</button>
+        <button class="feature-btn btn-primary" id="test-giant-alarm-btn">🚨 Test Alarm</button>
       </div>
     </div>
 

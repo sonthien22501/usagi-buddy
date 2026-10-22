@@ -47,4 +47,19 @@ describe('Usagi PNG and MP3 assets verification', () => {
     // Color type at byte 25 should be 6 (RGBA)
     expect(buf[25]).toBe(6);
   });
+
+  it('verifies Usagi_logo.png exists in assets/ with valid 755x755 RGBA PNG header', () => {
+    const filePath = path.resolve(__dirname, '../assets/Usagi_logo.png');
+    expect(fs.existsSync(filePath)).toBe(true);
+    const buf = fs.readFileSync(filePath);
+    expect(buf[0]).toBe(0x89);
+    expect(buf[1]).toBe(0x50);
+    expect(buf[2]).toBe(0x4e);
+    expect(buf[3]).toBe(0x47);
+    const width = buf.readUInt32BE(16);
+    const height = buf.readUInt32BE(20);
+    expect(width).toBe(755);
+    expect(height).toBe(755);
+    expect(buf[25]).toBe(6);
+  });
 });

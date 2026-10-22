@@ -50,10 +50,20 @@ let isStationary = false;
 let isPlayMode = false;
 let isGhostMode = false;
 
-// 1. Unified Volume Slider (Pull Left & Right)
+// 1. Unified Volume Slider with Active Dynamic Fill & Grey Inactive Track
+function updateSliderTrack(val: number): void {
+  if (!volumeSlider) return;
+  const pct = Math.max(0, Math.min(100, val));
+  volumeSlider.style.background = `linear-gradient(to right, #ff7675 0%, #ffeaa7 ${pct}%, rgba(255, 255, 255, 0.16) ${pct}%, rgba(255, 255, 255, 0.16) 100%)`;
+}
+
+// Initialize track fill at 80%
+updateSliderTrack(80);
+
 if (volumeSlider) {
   volumeSlider.addEventListener('input', () => {
     const val = Number(volumeSlider.value);
+    updateSliderTrack(val);
     if (volumeValBadge) {
       volumeValBadge.textContent = `${val}%`;
     }
@@ -143,16 +153,20 @@ if (resetTimerBtn) {
   });
 }
 
-// 3. Companion Modes & Actions
+// 3. Companion Modes & Actions (Equal & Symmetrical Buttons)
 function updateStationaryUI(stationary: boolean): void {
   isStationary = stationary;
   if (stationaryBadge) {
-    stationaryBadge.textContent = stationary ? 'STILL (ANCHORED)' : 'SWIMMING';
+    stationaryBadge.textContent = stationary ? 'STILL' : 'SWIMMING';
     stationaryBadge.style.color = stationary ? '#55efc4' : '#ffeaa7';
   }
   if (stationaryToggleBtn) {
-    stationaryToggleBtn.textContent = stationary ? '🌊 Resume Swimming' : '📌 Pin Usagi Still';
-    stationaryToggleBtn.className = stationary ? 'btn btn-primary' : 'btn btn-success';
+    stationaryToggleBtn.textContent = stationary ? '🌊 Unpin' : '📌 Pin Still';
+    if (stationary) {
+      stationaryToggleBtn.classList.add('active');
+    } else {
+      stationaryToggleBtn.classList.remove('active');
+    }
   }
 }
 
@@ -163,8 +177,12 @@ function updatePlayModeUI(enabled: boolean): void {
     playModeBadge.style.color = enabled ? '#55efc4' : '#ffeaa7';
   }
   if (playModeToggleBtn) {
-    playModeToggleBtn.textContent = enabled ? '🪄 Stop Following' : '🪄 Follow Mouse';
-    playModeToggleBtn.className = enabled ? 'btn btn-primary' : 'btn';
+    playModeToggleBtn.textContent = enabled ? '🪄 Stop Follow' : '🪄 Follow Mouse';
+    if (enabled) {
+      playModeToggleBtn.classList.add('active');
+    } else {
+      playModeToggleBtn.classList.remove('active');
+    }
   }
 }
 
@@ -175,8 +193,12 @@ function updateGhostModeUI(locked: boolean): void {
     ghostModeBadge.style.color = locked ? '#a29bfe' : '#ffeaa7';
   }
   if (ghostModeToggleBtn) {
-    ghostModeToggleBtn.textContent = locked ? '👻 Disable Ghost' : '👻 Enable Ghost';
-    ghostModeToggleBtn.className = locked ? 'btn btn-primary' : 'btn';
+    ghostModeToggleBtn.textContent = locked ? '👻 Solid Mode' : '👻 Ghost Mode';
+    if (locked) {
+      ghostModeToggleBtn.classList.add('active');
+    } else {
+      ghostModeToggleBtn.classList.remove('active');
+    }
   }
 }
 
@@ -218,6 +240,7 @@ if (window.usagiAPI) {
     const pct = Math.round(config.master * 100);
     if (volumeSlider) {
       volumeSlider.value = String(pct);
+      updateSliderTrack(pct);
     }
     if (volumeValBadge) {
       volumeValBadge.textContent = `${pct}%`;
@@ -228,6 +251,11 @@ if (window.usagiAPI) {
     isMuted = muted;
     if (muteToggleBtn) {
       muteToggleBtn.textContent = muted ? '🔊 Unmute' : '🔇 Mute';
+      if (muted) {
+        muteToggleBtn.classList.add('active');
+      } else {
+        muteToggleBtn.classList.remove('active');
+      }
     }
   });
 

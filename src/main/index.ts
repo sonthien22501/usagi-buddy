@@ -79,6 +79,19 @@ function openSettingsModal(): void {
   createDashboardWindow();
 }
 
+function getAppLogoPath(): string {
+  const candidates = [
+    path.resolve(__dirname, '../../assets/Usagi_logo.png'),
+    path.resolve(__dirname, '../assets/Usagi_logo.png'),
+    path.resolve(__dirname, '../../assets/Usagi1.png'),
+    path.resolve(__dirname, '../assets/Usagi1.png'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return '';
+}
+
 function createDashboardWindow(): void {
   if (dashboardWindow && !dashboardWindow.isDestroyed()) {
     dashboardWindow.show();
@@ -88,10 +101,11 @@ function createDashboardWindow(): void {
 
   dashboardWindow = new BrowserWindow({
     width: 480,
-    height: 700,
-    minWidth: 420,
-    minHeight: 600,
+    height: 720,
+    minWidth: 440,
+    minHeight: 650,
     title: 'Usagi Buddy Dashboard',
+    icon: getAppLogoPath(),
     resizable: true,
     backgroundColor: '#140f1d',
     webPreferences: {
@@ -270,11 +284,7 @@ function createMainWindow(): void {
 }
 
 function createSystemTray(): void {
-  let iconPath = path.resolve(__dirname, '../../assets/Usagi1.png');
-  if (!fs.existsSync(iconPath)) {
-    iconPath = path.resolve(__dirname, '../assets/Usagi1.png');
-  }
-
+  const iconPath = getAppLogoPath();
   let trayIcon = nativeImage.createFromPath(iconPath);
   if (trayIcon.isEmpty()) {
     trayIcon = nativeImage.createEmpty();

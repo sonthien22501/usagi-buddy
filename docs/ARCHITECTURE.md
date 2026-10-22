@@ -18,6 +18,7 @@ usagi-buddy/
 ├── assets/
 │   ├── Usagi1.png .. Usagi6.png   # 1170x1560 RGBA sprites (Usagi3.png upright primary sprite)
 │   ├── Usagi_Big.png              # 736x736 RGBA big fat Usagi for pomodoro takeover alarm
+│   ├── Usagi_logo.png             # 755x755 RGBA official app logo & tray icon
 │   └── *.mp3                      # una, bryy, huhhhh?, urararusk, unayahayahauna, wuuulaaaa
 ├── src/
 │   ├── core/
