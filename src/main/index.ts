@@ -61,6 +61,18 @@ function broadcastVolumeConfig(): void {
   }
 }
 
+function broadcastPomodoroState(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('pomodoro-state-changed', pomodoroState);
+  }
+}
+
+function openSettingsModal(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('open-settings-modal');
+  }
+}
+
 function updateTrayMenu(): void {
   if (!tray) return;
 
@@ -152,7 +164,12 @@ function updateTrayMenu(): void {
     },
     { type: 'separator' },
     {
-      label: isRunning ? '⏸ Pause 25m Pomodoro' : '🍅 Start 25m Pomodoro',
+      label: '⚙️ Settings (Volume Slider & Custom Timer)...',
+      accelerator: 'CommandOrControl+Shift+S',
+      click: () => openSettingsModal(),
+    },
+    {
+      label: isRunning ? '⏸ Pause Pomodoro' : '🍅 Start Pomodoro',
       click: () => {
         if (isRunning) {
           pomodoroState = pausePomodoro(pomodoroState);
@@ -160,6 +177,7 @@ function updateTrayMenu(): void {
           pomodoroState = startPomodoro(pomodoroState);
         }
         updateTrayMenu();
+        broadcastPomodoroState();
       },
     },
     {
@@ -167,6 +185,7 @@ function updateTrayMenu(): void {
       click: () => {
         pomodoroState = resetPomodoro(pomodoroState);
         updateTrayMenu();
+        broadcastPomodoroState();
       },
     },
     {
@@ -183,8 +202,16 @@ function updateTrayMenu(): void {
           click: () => setPomodoroDuration(60_000),
         },
         {
-          label: '🍅 25-Minute Focus',
+          label: '🍅 25-Minute Standard',
           click: () => setPomodoroDuration(1_500_000),
+        },
+        {
+          label: '🍅 40-Minute Extended',
+          click: () => setPomodoroDuration(2_400_000),
+        },
+        {
+          label: '🍅 60-Minute (1 Hour)',
+          click: () => setPomodoroDuration(3_600_000),
         },
         {
           label: '☕ 5-Minute Break',
@@ -263,6 +290,7 @@ function setPomodoroDuration(durationMs: number): void {
   pomodoroState = createPomodoroTimer(durationMs);
   pomodoroState = startPomodoro(pomodoroState);
   updateTrayMenu();
+  broadcastPomodoroState();
 }
 
 function triggerPreviewWellnessReminder(): void {
@@ -346,6 +374,7 @@ function setupPomodoroTicker(): void {
       }
     }
     updateTrayMenu();
+    broadcastPomodoroState();
   }, 1000);
 }
 
@@ -403,10 +432,29 @@ app.whenReady().then(() => {
     togglePlayMode();
   });
 
+  globalShortcut.register('CommandOrControl+Shift+S', () => {
+    openSettingsModal();
+  });
+
   ipcMain.on('set-ignore-mouse-events', (_event, ignore: boolean, options = { forward: true }) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setIgnoreMouseEvents(ignore, options);
     }
+  });
+
+  ipcMain.on('set-pomodoro-duration', (_e, durationMs: number, startImmediately = true) => {
+    pomodoroState = createPomodoroTimer(durationMs);
+    if (startImmediately) {
+      pomodoroState = startPomodoro(pomodoroState);
+    }
+    updateTrayMenu();
+    broadcastPomodoroState();
+  });
+
+  ipcMain.on('update-volume-config', (_e, nextConfig: VolumeConfig) => {
+    volumeConfig = { ...nextConfig };
+    broadcastVolumeConfig();
+    updateTrayMenu();
   });
 
   ipcMain.on('snack-consumed', () => {

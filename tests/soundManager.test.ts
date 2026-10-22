@@ -179,4 +179,23 @@ describe('soundManager', () => {
     // Global mute mutes both
     expect(calculatePlaybackVolume(config, 'timer-complete', 'wuuulaaaa.mp3', true)).toBe(0);
   });
+
+  it('smoothly scales both buddy and alarm volumes via master volume slider', () => {
+    const fullConfig = { master: 1.0, buddy: 0.8, alarm: 0.7, equalizeLoudness: false };
+    const halfConfig = { master: 0.5, buddy: 0.8, alarm: 0.7, equalizeLoudness: false };
+    const zeroConfig = { master: 0.0, buddy: 0.8, alarm: 0.7, equalizeLoudness: false };
+
+    const fullBuddy = calculatePlaybackVolume(fullConfig, 'click-normal', 'una.mp3', false);
+    const halfBuddy = calculatePlaybackVolume(halfConfig, 'click-normal', 'una.mp3', false);
+    const zeroBuddy = calculatePlaybackVolume(zeroConfig, 'click-normal', 'una.mp3', false);
+
+    const fullAlarm = calculatePlaybackVolume(fullConfig, 'timer-complete', 'wuuulaaaa.mp3', false);
+    const halfAlarm = calculatePlaybackVolume(halfConfig, 'timer-complete', 'wuuulaaaa.mp3', false);
+    const zeroAlarm = calculatePlaybackVolume(zeroConfig, 'timer-complete', 'wuuulaaaa.mp3', false);
+
+    expect(halfBuddy).toBeCloseTo(fullBuddy * 0.5, 3);
+    expect(halfAlarm).toBeCloseTo(fullAlarm * 0.5, 3);
+    expect(zeroBuddy).toBe(0);
+    expect(zeroAlarm).toBe(0);
+  });
 });

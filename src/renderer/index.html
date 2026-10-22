@@ -18,6 +18,7 @@
         height: 100vh;
         overflow: hidden;
         background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Nunito", sans-serif;
       }
       #stage {
         position: absolute;
@@ -28,10 +29,330 @@
         display: block;
         pointer-events: auto;
       }
+
+      /* Settings Modal Overlay */
+      #settings-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(10, 8, 16, 0.45);
+        backdrop-filter: blur(4px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      .settings-card {
+        width: 440px;
+        max-width: 92vw;
+        background: rgba(26, 20, 36, 0.94);
+        border: 2px solid rgba(255, 234, 167, 0.4);
+        border-radius: 24px;
+        padding: 24px 26px;
+        box-shadow: 0 16px 45px rgba(0, 0, 0, 0.55), 0 0 30px rgba(255, 200, 80, 0.15);
+        color: #ffffff;
+      }
+
+      .settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .settings-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #ffeaa7;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .close-btn {
+        background: rgba(255, 255, 255, 0.12);
+        border: none;
+        color: #ffffff;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s, transform 0.1s;
+      }
+      .close-btn:hover {
+        background: #ff7675;
+        transform: scale(1.08);
+      }
+
+      .settings-section {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 18px;
+      }
+
+      .section-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: #fab1a0;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .volume-badge {
+        background: rgba(255, 234, 167, 0.2);
+        color: #ffeaa7;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      /* Pull Left & Right Custom Slider */
+      .slider-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .volume-slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #ff7675, #ffeaa7);
+        outline: none;
+        cursor: pointer;
+      }
+
+      .volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 3px solid #ff7675;
+        cursor: grab;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        transition: transform 0.1s, box-shadow 0.1s;
+      }
+      .volume-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.18);
+        box-shadow: 0 0 10px rgba(255, 118, 117, 0.7);
+      }
+      .volume-slider::-webkit-slider-thumb:active {
+        cursor: grabbing;
+        transform: scale(1.25);
+      }
+
+      .slider-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .action-pill-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .action-pill-btn:hover {
+        background: rgba(255, 234, 167, 0.25);
+        border-color: #ffeaa7;
+      }
+      .action-pill-btn:active {
+        transform: scale(0.96);
+      }
+
+      /* Pomodoro Custom Input & Presets */
+      .preset-chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+
+      .chip-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: #ffeaa7;
+        padding: 5px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.12s ease;
+      }
+      .chip-btn:hover {
+        background: #ff7675;
+        color: #ffffff;
+        border-color: #ff7675;
+        transform: translateY(-1px);
+      }
+      .chip-btn:active {
+        transform: scale(0.95);
+      }
+
+      .manual-input-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .number-input {
+        flex: 1;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1.5px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: bold;
+        padding: 8px 12px;
+        outline: none;
+        transition: border 0.15s;
+        -webkit-user-select: text;
+        user-select: text;
+      }
+      .number-input:focus {
+        border-color: #ffeaa7;
+      }
+
+      .unit-select {
+        background: rgba(0, 0, 0, 0.45);
+        border: 1.5px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 8px 10px;
+        outline: none;
+        cursor: pointer;
+      }
+
+      .primary-start-btn {
+        background: linear-gradient(135deg, #ff7675, #d63031);
+        border: none;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 800;
+        padding: 9px 18px;
+        border-radius: 12px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(214, 48, 49, 0.35);
+        transition: all 0.15s ease;
+      }
+      .primary-start-btn:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+      }
+      .primary-start-btn:active {
+        transform: scale(0.96);
+      }
+
+      .settings-footer {
+        text-align: center;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 4px;
+      }
     </style>
   </head>
   <body>
     <canvas id="stage"></canvas>
+
+    <!-- Interactive Settings & Custom Timer Modal -->
+    <div id="settings-overlay">
+      <div class="settings-card" id="settings-card">
+        <div class="settings-header">
+          <div class="settings-title">🐰 Usagi Control Center</div>
+          <button class="close-btn" id="close-settings-btn" title="Close">✕</button>
+        </div>
+
+        <!-- Volume Slider Section -->
+        <div class="settings-section">
+          <div class="section-label">
+            <span>🔊 Master Volume</span>
+            <span class="volume-badge" id="volume-val-badge">80%</span>
+          </div>
+          <div class="slider-container">
+            <span style="font-size: 14px">🔈</span>
+            <input
+              type="range"
+              class="volume-slider"
+              id="volume-range"
+              min="0"
+              max="100"
+              value="80"
+              step="1"
+            />
+            <span style="font-size: 14px">🔊</span>
+          </div>
+          <div class="slider-actions">
+            <button class="action-pill-btn" id="test-sound-btn">🎵 Test Sound</button>
+            <button class="action-pill-btn" id="mute-toggle-btn">🔇 Mute</button>
+          </div>
+        </div>
+
+        <!-- Pomodoro Custom Timer Section -->
+        <div class="settings-section">
+          <div class="section-label">
+            <span>🍅 Focus Timer</span>
+            <span class="volume-badge" id="pomodoro-status-badge">25:00 IDLE</span>
+          </div>
+
+          <!-- Quick Preset Pills -->
+          <div class="preset-chips">
+            <button class="chip-btn" data-min="25">25m</button>
+            <button class="chip-btn" data-min="40">40m</button>
+            <button class="chip-btn" data-min="60">60m (1h)</button>
+            <button class="chip-btn" data-min="90">90m</button>
+            <button class="chip-btn" data-hours="2">2h</button>
+          </div>
+
+          <!-- Manual Input Row -->
+          <div class="manual-input-row">
+            <input
+              type="number"
+              class="number-input"
+              id="custom-time-input"
+              min="1"
+              max="720"
+              value="40"
+              placeholder="e.g. 40"
+            />
+            <select class="unit-select" id="custom-unit-select">
+              <option value="minutes">Minutes</option>
+              <option value="hours">Hours</option>
+            </select>
+            <button class="primary-start-btn" id="start-custom-timer-btn">▶ Start</button>
+          </div>
+        </div>
+
+        <div class="settings-footer">[ Press ESC or click outside to close ]</div>
+      </div>
+    </div>
+
     <script type="module" src="./app.js"></script>
   </body>
 </html>

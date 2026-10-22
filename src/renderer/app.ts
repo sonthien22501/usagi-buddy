@@ -22,6 +22,7 @@ import {
   SoundEvent,
   SoundState,
 } from '../core/soundManager';
+import { formatPomodoroTime, parseCustomDuration, PomodoroState } from '../core/pomodoroTimer';
 import {
   createGiantAlarmState,
   dismissGiantAlarm,
@@ -94,6 +95,47 @@ function playSound(event: SoundEvent, customVolume?: number): string | null {
   return result.text;
 }
 
+let isSettingsModalOpen = false;
+let currentPomodoroState: PomodoroState | null = null;
+
+const settingsOverlay = document.getElementById('settings-overlay') as HTMLDivElement | null;
+const closeSettingsBtn = document.getElementById('close-settings-btn') as HTMLButtonElement | null;
+const volumeRange = document.getElementById('volume-range') as HTMLInputElement | null;
+const volumeValBadge = document.getElementById('volume-val-badge') as HTMLSpanElement | null;
+const testSoundBtn = document.getElementById('test-sound-btn') as HTMLButtonElement | null;
+const muteToggleBtn = document.getElementById('mute-toggle-btn') as HTMLButtonElement | null;
+const pomodoroStatusBadge = document.getElementById(
+  'pomodoro-status-badge'
+) as HTMLSpanElement | null;
+const customTimeInput = document.getElementById('custom-time-input') as HTMLInputElement | null;
+const customUnitSelect = document.getElementById('custom-unit-select') as HTMLSelectElement | null;
+const startCustomTimerBtn = document.getElementById(
+  'start-custom-timer-btn'
+) as HTMLButtonElement | null;
+
+function openSettingsModal(): void {
+  isSettingsModalOpen = true;
+  if (settingsOverlay) {
+    settingsOverlay.style.display = 'flex';
+  }
+  if (volumeRange && volumeValBadge) {
+    volumeRange.value = String(Math.round(soundState.volumeConfig.master * 100));
+    volumeValBadge.textContent = `${volumeRange.value}%`;
+  }
+  if (muteToggleBtn) {
+    muteToggleBtn.textContent = soundState.muted ? '🔊 Unmute' : '🔇 Mute';
+  }
+  updateMouseIgnoreState();
+}
+
+function closeSettingsModal(): void {
+  isSettingsModalOpen = false;
+  if (settingsOverlay) {
+    settingsOverlay.style.display = 'none';
+  }
+  updateMouseIgnoreState();
+}
+
 function handleGiantAlarmDismiss(): void {
   if (!isGiantAlarmInteractive(giantAlarmState)) return;
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
@@ -102,7 +144,7 @@ function handleGiantAlarmDismiss(): void {
 }
 
 function updateMouseIgnoreState(): void {
-  if (isGiantAlarmInteractive(giantAlarmState)) {
+  if (isSettingsModalOpen || isGiantAlarmInteractive(giantAlarmState)) {
     if (ghostState.currentlyIgnoringMouse) {
       ghostState.currentlyIgnoringMouse = false;
       window.usagiAPI?.setIgnoreMouseEvents(false);
@@ -145,6 +187,10 @@ window.addEventListener('mouseleave', () => {
 });
 
 window.addEventListener('pointerdown', (e: MouseEvent) => {
+  if (isSettingsModalOpen) {
+    return;
+  }
+
   if (isGiantAlarmInteractive(giantAlarmState)) {
     handleGiantAlarmDismiss();
     return;
@@ -164,6 +210,14 @@ window.addEventListener('pointerdown', (e: MouseEvent) => {
 });
 
 window.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (isSettingsModalOpen) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeSettingsModal();
+      return;
+    }
+  }
+
   if (isGiantAlarmInteractive(giantAlarmState)) {
     if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
@@ -171,6 +225,84 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     }
   }
 });
+
+// Modal UI Event Listeners
+if (closeSettingsBtn) {
+  closeSettingsBtn.addEventListener('click', closeSettingsModal);
+}
+
+if (settingsOverlay) {
+  settingsOverlay.addEventListener('click', (e) => {
+    if (e.target === settingsOverlay) {
+      closeSettingsModal();
+    }
+  });
+}
+
+if (volumeRange) {
+  volumeRange.addEventListener('input', () => {
+    const nextMaster = Number(volumeRange.value) / 100;
+    if (volumeValBadge) {
+      volumeValBadge.textContent = `${volumeRange.value}%`;
+    }
+    const updatedConfig = { ...soundState.volumeConfig, master: nextMaster };
+    soundState = { ...soundState, volumeConfig: updatedConfig };
+    window.usagiAPI?.updateVolumeConfig(updatedConfig);
+  });
+}
+
+if (testSoundBtn) {
+  testSoundBtn.addEventListener('click', () => {
+    playSound('click-normal');
+  });
+}
+
+if (muteToggleBtn) {
+  muteToggleBtn.addEventListener('click', () => {
+    const nextMuted = !soundState.muted;
+    soundState = { ...soundState, muted: nextMuted };
+    muteToggleBtn.textContent = nextMuted ? '🔊 Unmute' : '🔇 Mute';
+    if (!nextMuted && soundState.volumeConfig.master <= 0) {
+      const updatedConfig = { ...soundState.volumeConfig, master: 0.7 };
+      soundState = { ...soundState, volumeConfig: updatedConfig };
+      if (volumeRange && volumeValBadge) {
+        volumeRange.value = '70';
+        volumeValBadge.textContent = '70%';
+      }
+      window.usagiAPI?.updateVolumeConfig(updatedConfig);
+    }
+  });
+}
+
+const chipButtons = document.querySelectorAll<HTMLButtonElement>('.chip-btn');
+chipButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const minAttr = btn.getAttribute('data-min');
+    const hoursAttr = btn.getAttribute('data-hours');
+    let durationMs = 1_500_000;
+    if (minAttr) {
+      durationMs = parseCustomDuration(Number(minAttr), 'minutes');
+    } else if (hoursAttr) {
+      durationMs = parseCustomDuration(Number(hoursAttr), 'hours');
+    }
+    window.usagiAPI?.setPomodoroDuration(durationMs, true);
+    if (pomodoroStatusBadge) {
+      pomodoroStatusBadge.textContent = `${formatPomodoroTime(durationMs)} RUNNING`;
+    }
+  });
+});
+
+if (startCustomTimerBtn && customTimeInput && customUnitSelect) {
+  startCustomTimerBtn.addEventListener('click', () => {
+    const val = Number(customTimeInput.value);
+    const unit = customUnitSelect.value as 'minutes' | 'hours';
+    const durationMs = parseCustomDuration(val, unit);
+    window.usagiAPI?.setPomodoroDuration(durationMs, true);
+    if (pomodoroStatusBadge) {
+      pomodoroStatusBadge.textContent = `${formatPomodoroTime(durationMs)} RUNNING`;
+    }
+  });
+}
 
 if (window.usagiAPI) {
   window.usagiAPI.onGhostModeChanged((locked) => {
@@ -184,10 +316,29 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onSoundMutedChanged((muted) => {
     soundState = { ...soundState, muted };
+    if (muteToggleBtn) {
+      muteToggleBtn.textContent = muted ? '🔊 Unmute' : '🔇 Mute';
+    }
   });
 
   window.usagiAPI.onVolumeConfigChanged((config) => {
     soundState = { ...soundState, volumeConfig: config };
+    if (volumeRange && volumeValBadge) {
+      volumeRange.value = String(Math.round(config.master * 100));
+      volumeValBadge.textContent = `${volumeRange.value}%`;
+    }
+  });
+
+  window.usagiAPI.onOpenSettingsModal(() => {
+    openSettingsModal();
+  });
+
+  window.usagiAPI.onPomodoroStateChanged((pState) => {
+    currentPomodoroState = pState;
+    if (pomodoroStatusBadge) {
+      const timeStr = formatPomodoroTime(pState.remainingMs);
+      pomodoroStatusBadge.textContent = `${timeStr} ${pState.phase.toUpperCase()}`;
+    }
   });
 
   window.usagiAPI.onWellnessUpdate((payload) => {

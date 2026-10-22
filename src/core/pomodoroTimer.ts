@@ -51,13 +51,29 @@ export function resetPomodoro(state: PomodoroState): PomodoroState {
   };
 }
 
+export function parseCustomDuration(value: number, unit: 'minutes' | 'hours'): number {
+  if (!Number.isFinite(value) || value <= 0) {
+    return DEFAULT_POMODORO_MS;
+  }
+  const factor = unit === 'hours' ? 3_600_000 : 60_000;
+  // Safety limits: min 1 minute (60,000ms), max 12 hours (43,200,000ms)
+  const calculatedMs = Math.round(value * factor);
+  return Math.min(43_200_000, Math.max(60_000, calculatedMs));
+}
+
 export function formatPomodoroTime(remainingMs: number): string {
   if (remainingMs <= 0 || Number.isNaN(remainingMs)) {
     return '00:00';
   }
   const totalSeconds = Math.ceil(remainingMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 

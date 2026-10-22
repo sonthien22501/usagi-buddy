@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { SnackTarget } from '../core/physicsEngine';
+import { PomodoroState } from '../core/pomodoroTimer';
 import { VolumeConfig } from '../core/soundManager';
 
 export interface WellnessUpdatePayload {
@@ -20,6 +21,10 @@ export interface UsagiAPI {
   onWellnessUpdate: (callback: (payload: WellnessUpdatePayload) => void) => () => void;
   onGiantAlarmTriggered: (callback: () => void) => () => void;
   notifyGiantAlarmDismissed: () => void;
+  onOpenSettingsModal: (callback: () => void) => () => void;
+  setPomodoroDuration: (durationMs: number, startImmediately?: boolean) => void;
+  updateVolumeConfig: (config: VolumeConfig) => void;
+  onPomodoroStateChanged: (callback: (state: PomodoroState) => void) => () => void;
 }
 
 const api: UsagiAPI = {
@@ -72,6 +77,22 @@ const api: UsagiAPI = {
   },
   notifyGiantAlarmDismissed: () => {
     ipcRenderer.send('giant-alarm-dismissed');
+  },
+  onOpenSettingsModal: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('open-settings-modal', handler);
+    return () => ipcRenderer.removeListener('open-settings-modal', handler);
+  },
+  setPomodoroDuration: (durationMs: number, startImmediately: boolean = true) => {
+    ipcRenderer.send('set-pomodoro-duration', durationMs, startImmediately);
+  },
+  updateVolumeConfig: (config: VolumeConfig) => {
+    ipcRenderer.send('update-volume-config', config);
+  },
+  onPomodoroStateChanged: (callback: (state: PomodoroState) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, state: PomodoroState) => callback(state);
+    ipcRenderer.on('pomodoro-state-changed', handler);
+    return () => ipcRenderer.removeListener('pomodoro-state-changed', handler);
   },
 };
 

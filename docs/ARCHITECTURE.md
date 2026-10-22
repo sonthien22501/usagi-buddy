@@ -62,3 +62,4 @@ usagi-buddy/
 - [x] M4: Cross-platform CI/CD release workflow (`.github/workflows/release.yml`, matrix macOS + Windows build, atomic release publishing via `softprops/action-gh-release@v2`)
 - [x] M5: Full Chaos Giant Usagi Takeover Alarm with radial speed lines, screen shake, anywhere escape/click dismiss, asset fallback & tray test action (`giantAlarmController.ts`, `renderer/app.ts`, `main/index.ts`)
 - [x] M6: Usagi_Big.png integration, dual-channel volume control (Buddy vs Giant Alarm), and per-clip loudness normalization (`soundManager.ts`, `assets/Usagi_Big.png`, `main/index.ts`, `renderer/app.ts`)
+- [x] M7: Interactive pull-slider volume control, floating Usagi Control Center modal, custom Pomodoro duration input (minutes/hours) & presets (`pomodoroTimer.ts`, `renderer/index.html`, `renderer/app.ts`, `main/index.ts`)
