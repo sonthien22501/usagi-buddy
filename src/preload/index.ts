@@ -16,6 +16,8 @@ export interface UsagiAPI {
   onTriggerInteraction: (callback: () => void) => () => void;
   notifySnackConsumed: () => void;
   onPlayModeChanged: (callback: (enabled: boolean) => void) => () => void;
+  onStationaryModeChanged: (callback: (stationary: boolean) => void) => () => void;
+  toggleStationaryMode: () => void;
   onSoundMutedChanged: (callback: (muted: boolean) => void) => () => void;
   onVolumeConfigChanged: (callback: (config: VolumeConfig) => void) => () => void;
   onWellnessUpdate: (callback: (payload: WellnessUpdatePayload) => void) => () => void;
@@ -53,6 +55,15 @@ const api: UsagiAPI = {
     const handler = (_event: Electron.IpcRendererEvent, enabled: boolean) => callback(enabled);
     ipcRenderer.on('play-mode-toggle', handler);
     return () => ipcRenderer.removeListener('play-mode-toggle', handler);
+  },
+  onStationaryModeChanged: (callback: (stationary: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, stationary: boolean) =>
+      callback(stationary);
+    ipcRenderer.on('stationary-mode-toggle', handler);
+    return () => ipcRenderer.removeListener('stationary-mode-toggle', handler);
+  },
+  toggleStationaryMode: () => {
+    ipcRenderer.send('toggle-stationary-mode');
   },
   onSoundMutedChanged: (callback: (muted: boolean) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, muted: boolean) => callback(muted);

@@ -97,6 +97,10 @@ function playSound(event: SoundEvent, customVolume?: number): string | null {
 
 let isSettingsModalOpen = false;
 let currentPomodoroState: PomodoroState | null = null;
+let isDraggingUsagi = false;
+let dragStartPos: Vector2D | null = null;
+let dragOffset: Vector2D = { x: 0, y: 0 };
+let dragMovedBeyondThreshold = false;
 
 const settingsOverlay = document.getElementById('settings-overlay') as HTMLDivElement | null;
 const closeSettingsBtn = document.getElementById('close-settings-btn') as HTMLButtonElement | null;
@@ -112,6 +116,23 @@ const customUnitSelect = document.getElementById('custom-unit-select') as HTMLSe
 const startCustomTimerBtn = document.getElementById(
   'start-custom-timer-btn'
 ) as HTMLButtonElement | null;
+const stationaryValBadge = document.getElementById(
+  'stationary-val-badge'
+) as HTMLSpanElement | null;
+const stationaryToggleBtn = document.getElementById(
+  'stationary-toggle-btn'
+) as HTMLButtonElement | null;
+
+function updateStationaryBadge(): void {
+  const isStill = !!state.stationary;
+  if (stationaryValBadge) {
+    stationaryValBadge.textContent = isStill ? 'STILL' : 'SWIMMING';
+    stationaryValBadge.style.color = isStill ? '#55efc4' : '#ffeaa7';
+  }
+  if (stationaryToggleBtn) {
+    stationaryToggleBtn.textContent = isStill ? '🌊 Resume Swim' : '📌 Pin Still';
+  }
+}
 
 function openSettingsModal(): void {
   isSettingsModalOpen = true;
@@ -125,6 +146,7 @@ function openSettingsModal(): void {
   if (muteToggleBtn) {
     muteToggleBtn.textContent = soundState.muted ? '🔊 Unmute' : '🔇 Mute';
   }
+  updateStationaryBadge();
   updateMouseIgnoreState();
 }
 
@@ -144,7 +166,7 @@ function handleGiantAlarmDismiss(): void {
 }
 
 function updateMouseIgnoreState(): void {
-  if (isSettingsModalOpen || isGiantAlarmInteractive(giantAlarmState)) {
+  if (isDraggingUsagi || isSettingsModalOpen || isGiantAlarmInteractive(giantAlarmState)) {
     if (ghostState.currentlyIgnoringMouse) {
       ghostState.currentlyIgnoringMouse = false;
       window.usagiAPI?.setIgnoreMouseEvents(false);
@@ -178,6 +200,20 @@ function updateMouseIgnoreState(): void {
 
 window.addEventListener('pointermove', (e: MouseEvent) => {
   cursorPos = { x: e.clientX, y: e.clientY };
+
+  if (isDraggingUsagi && dragStartPos) {
+    const dist = Math.hypot(e.clientX - dragStartPos.x, e.clientY - dragStartPos.y);
+    if (dist >= 5) {
+      dragMovedBeyondThreshold = true;
+      const r = DEFAULT_PHYSICS_CONFIG.spriteRadius;
+      state.x = Math.max(r, Math.min(screenBounds.width - r, e.clientX + dragOffset.x));
+      state.y = Math.max(r, Math.min(screenBounds.height - r, e.clientY + dragOffset.y));
+      state.vx = 0;
+      state.vy = 0;
+    }
+    return;
+  }
+
   updateMouseIgnoreState();
 });
 
@@ -200,14 +236,39 @@ window.addEventListener('pointerdown', (e: MouseEvent) => {
 
   const distToUsagi = Math.hypot(e.clientX - state.x, e.clientY - state.y);
   if (distToUsagi <= DEFAULT_PHYSICS_CONFIG.spriteRadius * 1.25) {
-    const prev = state.speechBubble;
-    state = triggerUsagiInteraction(state);
-    const soundEvent: SoundEvent = state.comboClicks >= 3 ? 'click-combo' : 'click-normal';
-    const text = playSound(soundEvent);
-    state.speechBubble = text ?? prev ?? state.speechBubble;
+    isDraggingUsagi = true;
+    dragStartPos = { x: e.clientX, y: e.clientY };
+    dragOffset = { x: state.x - e.clientX, y: state.y - e.clientY };
+    dragMovedBeyondThreshold = false;
     updateMouseIgnoreState();
   }
 });
+
+function handlePointerUp(): void {
+  if (isDraggingUsagi) {
+    const wasDragged = dragMovedBeyondThreshold;
+    isDraggingUsagi = false;
+    dragStartPos = null;
+
+    if (!wasDragged) {
+      const prev = state.speechBubble;
+      state = triggerUsagiInteraction(state);
+      const soundEvent: SoundEvent = state.comboClicks >= 3 ? 'click-combo' : 'click-normal';
+      const text = playSound(soundEvent);
+      state.speechBubble = text ?? prev ?? state.speechBubble;
+    } else {
+      if (!state.stationary) {
+        state.vx = 25 * state.scaleFlipX;
+        state.vy = 15;
+      }
+    }
+
+    updateMouseIgnoreState();
+  }
+}
+
+window.addEventListener('pointerup', handlePointerUp);
+window.addEventListener('pointercancel', handlePointerUp);
 
 window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (isSettingsModalOpen) {
@@ -304,6 +365,12 @@ if (startCustomTimerBtn && customTimeInput && customUnitSelect) {
   });
 }
 
+if (stationaryToggleBtn) {
+  stationaryToggleBtn.addEventListener('click', () => {
+    window.usagiAPI?.toggleStationaryMode();
+  });
+}
+
 if (window.usagiAPI) {
   window.usagiAPI.onGhostModeChanged((locked) => {
     ghostState.ghostModeLocked = locked;
@@ -312,6 +379,16 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onPlayModeChanged((enabled) => {
     playModeEnabled = enabled;
+  });
+
+  window.usagiAPI.onStationaryModeChanged((stationary) => {
+    state = {
+      ...state,
+      stationary,
+      vx: stationary ? 0 : state.vx,
+      vy: stationary ? 0 : state.vy,
+    };
+    updateStationaryBadge();
   });
 
   window.usagiAPI.onSoundMutedChanged((muted) => {

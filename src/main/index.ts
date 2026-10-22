@@ -39,6 +39,7 @@ let tray: Tray | null = null;
 let ghostLocked = false;
 let playModeEnabled = false;
 let soundMuted = false;
+let stationaryMode = false;
 let volumeConfig: VolumeConfig = { ...DEFAULT_VOLUME_CONFIG };
 
 let pomodoroState: PomodoroState = createPomodoroTimer();
@@ -96,6 +97,13 @@ function updateTrayMenu(): void {
       checked: playModeEnabled,
       accelerator: 'CommandOrControl+Shift+P',
       click: () => togglePlayMode(),
+    },
+    {
+      label: stationaryMode ? '📌 Resume Swimming (Moving)' : '📌 Stay Still (Anchor Mode)',
+      type: 'checkbox',
+      checked: stationaryMode,
+      accelerator: 'CommandOrControl+Shift+A',
+      click: () => toggleStationaryMode(),
     },
     {
       label: '🔊 Sound & Volume',
@@ -225,12 +233,6 @@ function updateTrayMenu(): void {
         dropSnackNow();
       },
     },
-    {
-      label: '💧 Water Reminder',
-      click: () => {
-        triggerPreviewWellnessReminder();
-      },
-    },
     { type: 'separator' },
     {
       label: '☕ Buy Usagi a Coffee...',
@@ -262,6 +264,14 @@ function togglePlayMode(): void {
   playModeEnabled = !playModeEnabled;
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('play-mode-toggle', playModeEnabled);
+  }
+  updateTrayMenu();
+}
+
+function toggleStationaryMode(): void {
+  stationaryMode = !stationaryMode;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('stationary-mode-toggle', stationaryMode);
   }
   updateTrayMenu();
 }
@@ -336,6 +346,7 @@ function createMainWindow(): void {
 
   mainWindow.webContents.on('did-finish-load', () => {
     broadcastVolumeConfig();
+    mainWindow?.webContents.send('stationary-mode-toggle', stationaryMode);
   });
 
   mainWindow.on('closed', () => {
@@ -436,6 +447,10 @@ app.whenReady().then(() => {
     openSettingsModal();
   });
 
+  globalShortcut.register('CommandOrControl+Shift+A', () => {
+    toggleStationaryMode();
+  });
+
   ipcMain.on('set-ignore-mouse-events', (_event, ignore: boolean, options = { forward: true }) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setIgnoreMouseEvents(ignore, options);
@@ -455,6 +470,10 @@ app.whenReady().then(() => {
     volumeConfig = { ...nextConfig };
     broadcastVolumeConfig();
     updateTrayMenu();
+  });
+
+  ipcMain.on('toggle-stationary-mode', () => {
+    toggleStationaryMode();
   });
 
   ipcMain.on('snack-consumed', () => {

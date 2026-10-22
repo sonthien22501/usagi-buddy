@@ -46,7 +46,7 @@ usagi-buddy/
 ```
 
 ## 4. Core Data Contracts
-- `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping }`
+- `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
 - `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', nextReminderAtMs, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
 - `SoundEvent`: `'click-normal' | 'click-combo' | 'snack-eaten' | 'wellness-reminder' | 'welcome-back' | 'timer-complete'`
 - `VolumeConfig`: `{ master, buddy, alarm, equalizeLoudness }`
@@ -63,3 +63,4 @@ usagi-buddy/
 - [x] M5: Full Chaos Giant Usagi Takeover Alarm with radial speed lines, screen shake, anywhere escape/click dismiss, asset fallback & tray test action (`giantAlarmController.ts`, `renderer/app.ts`, `main/index.ts`)
 - [x] M6: Usagi_Big.png integration, dual-channel volume control (Buddy vs Giant Alarm), and per-clip loudness normalization (`soundManager.ts`, `assets/Usagi_Big.png`, `main/index.ts`, `renderer/app.ts`)
 - [x] M7: Interactive pull-slider volume control, floating Usagi Control Center modal, custom Pomodoro duration input (minutes/hours) & presets (`pomodoroTimer.ts`, `renderer/index.html`, `renderer/app.ts`, `main/index.ts`)
+- [x] M8: Drag & drop Usagi positioning, Stay Still (Anchor Mode) for deep focus, and fixed 20-40 min ambient water reminder with AFK time preservation (`physicsEngine.ts`, `wellnessCoach.ts`, `main/index.ts`, `renderer/app.ts`)

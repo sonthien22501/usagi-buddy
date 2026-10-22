@@ -25,7 +25,7 @@ export interface WellnessTickResult {
 }
 
 export const DEFAULT_WELLNESS_CONFIG: WellnessConfig = {
-  reminderMinMs: 1_800_000, // 30 minutes
+  reminderMinMs: 1_200_000, // 20 minutes
   reminderMaxMs: 2_400_000, // 40 minutes
   afkThresholdSeconds: 120, // 2 minutes
 };
@@ -139,8 +139,8 @@ export function tickWellnessCoach(
       state: {
         ...state,
         mood: 'active',
-        activeScreenMs: 0,
-        nextReminderAtMs: drawReminderIntervalMs(rand, cfg),
+        // Preserve activeScreenMs so brief pauses/reading do not wipe water reminder countdown
+        activeScreenMs: state.activeScreenMs,
         stats: {
           ...state.stats,
           breaksTaken: state.stats.breaksTaken + 1,
