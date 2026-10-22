@@ -19,6 +19,7 @@ export interface UsagiAPI {
   onStationaryModeChanged: (callback: (stationary: boolean) => void) => () => void;
   toggleStationaryMode: () => void;
   onSoundMutedChanged: (callback: (muted: boolean) => void) => () => void;
+  toggleSoundMute: () => void;
   onVolumeConfigChanged: (callback: (config: VolumeConfig) => void) => () => void;
   onWellnessUpdate: (callback: (payload: WellnessUpdatePayload) => void) => () => void;
   onGiantAlarmTriggered: (callback: () => void) => () => void;
@@ -27,6 +28,11 @@ export interface UsagiAPI {
   setPomodoroDuration: (durationMs: number, startImmediately?: boolean) => void;
   updateVolumeConfig: (config: VolumeConfig) => void;
   onPomodoroStateChanged: (callback: (state: PomodoroState) => void) => () => void;
+  pausePomodoroTimer: () => void;
+  resetPomodoroTimer: () => void;
+  triggerGiantAlarmNow: () => void;
+  triggerTestSound: () => void;
+  onTestSound: (callback: () => void) => () => void;
 }
 
 const api: UsagiAPI = {
@@ -70,6 +76,9 @@ const api: UsagiAPI = {
     ipcRenderer.on('sound-mute-toggle', handler);
     return () => ipcRenderer.removeListener('sound-mute-toggle', handler);
   },
+  toggleSoundMute: () => {
+    ipcRenderer.send('toggle-sound-mute');
+  },
   onVolumeConfigChanged: (callback: (config: VolumeConfig) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, config: VolumeConfig) => callback(config);
     ipcRenderer.on('volume-config-changed', handler);
@@ -104,6 +113,23 @@ const api: UsagiAPI = {
     const handler = (_event: Electron.IpcRendererEvent, state: PomodoroState) => callback(state);
     ipcRenderer.on('pomodoro-state-changed', handler);
     return () => ipcRenderer.removeListener('pomodoro-state-changed', handler);
+  },
+  pausePomodoroTimer: () => {
+    ipcRenderer.send('pause-pomodoro-timer');
+  },
+  resetPomodoroTimer: () => {
+    ipcRenderer.send('reset-pomodoro-timer');
+  },
+  triggerGiantAlarmNow: () => {
+    ipcRenderer.send('trigger-giant-alarm');
+  },
+  triggerTestSound: () => {
+    ipcRenderer.send('test-sound');
+  },
+  onTestSound: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('test-sound', handler);
+    return () => ipcRenderer.removeListener('test-sound', handler);
   },
 };
 

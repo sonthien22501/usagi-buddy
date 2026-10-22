@@ -11,12 +11,19 @@ async function build() {
   fs.mkdirSync(path.join(rootDir, 'dist/main'), { recursive: true });
   fs.mkdirSync(path.join(rootDir, 'dist/preload'), { recursive: true });
   fs.mkdirSync(path.join(rootDir, 'dist/renderer'), { recursive: true });
+  fs.mkdirSync(path.join(rootDir, 'dist/dashboard'), { recursive: true });
   fs.mkdirSync(path.join(rootDir, 'dist/assets'), { recursive: true });
 
   // Copy renderer index.html
   fs.copyFileSync(
     path.join(rootDir, 'src/renderer/index.html'),
     path.join(rootDir, 'dist/renderer/index.html')
+  );
+
+  // Copy dashboard index.html
+  fs.copyFileSync(
+    path.join(rootDir, 'src/dashboard/index.html'),
+    path.join(rootDir, 'dist/dashboard/index.html')
   );
 
   // Copy PNG and MP3 assets
@@ -58,6 +65,17 @@ async function build() {
   await esbuild.build({
     entryPoints: [path.join(rootDir, 'src/renderer/app.ts')],
     outfile: path.join(rootDir, 'dist/renderer/app.js'),
+    bundle: true,
+    platform: 'browser',
+    target: 'es2022',
+    format: 'esm',
+    sourcemap: true,
+  });
+
+  // Bundle dashboard app
+  await esbuild.build({
+    entryPoints: [path.join(rootDir, 'src/dashboard/dashboard.ts')],
+    outfile: path.join(rootDir, 'dist/dashboard/dashboard.js'),
     bundle: true,
     platform: 'browser',
     target: 'es2022',

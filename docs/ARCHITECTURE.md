@@ -29,9 +29,12 @@ usagi-buddy/
 │   │   ├── soundManager.ts        # Event-to-MP3 mapper, URL-safe encoder (huhhhh%3F.mp3), mute & cooldown
 │   │   └── wellnessCoach.ts       # Random 30–40m water reminder, 2m AFK sleep mode, & daily tray stats
 │   ├── main/
-│   │   └── index.ts               # Electron Main: overlay window, Tray stats/toggles, powerMonitor idle poll
+│   │   └── index.ts               # Electron Main: overlay window, dashboard window, Tray stats/toggles, powerMonitor idle poll
 │   ├── preload/
 │   │   └── index.ts               # Electron contextBridge (`window.usagiAPI`)
+│   ├── dashboard/
+│   │   ├── index.html             # Dedicated Usagi Buddy Dashboard GUI window
+│   │   └── dashboard.ts           # Dashboard controller (unified volume slider, timer presets/inputs, pin still toggle)
 │   └── renderer/
 │       ├── index.html             # Transparent full-screen overlay canvas
 │       └── app.ts                 # Upright sprite renderer, 60fps swim transforms, Audio player, IPC handlers
@@ -64,3 +67,4 @@ usagi-buddy/
 - [x] M6: Usagi_Big.png integration, dual-channel volume control (Buddy vs Giant Alarm), and per-clip loudness normalization (`soundManager.ts`, `assets/Usagi_Big.png`, `main/index.ts`, `renderer/app.ts`)
 - [x] M7: Interactive pull-slider volume control, floating Usagi Control Center modal, custom Pomodoro duration input (minutes/hours) & presets (`pomodoroTimer.ts`, `renderer/index.html`, `renderer/app.ts`, `main/index.ts`)
 - [x] M8: Drag & drop Usagi positioning, Stay Still (Anchor Mode) for deep focus, and fixed 20-40 min ambient water reminder with AFK time preservation (`physicsEngine.ts`, `wellnessCoach.ts`, `main/index.ts`, `renderer/app.ts`)
+- [x] M9: Standalone Usagi Buddy Dashboard desktop application with unified volume slider, custom Pomodoro duration, Stay Still toggle, and background persistence on window close (`src/dashboard/`, `src/main/index.ts`, `src/preload/index.ts`, `scripts/build.mjs`)

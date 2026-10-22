@@ -198,4 +198,21 @@ describe('soundManager', () => {
     expect(zeroBuddy).toBe(0);
     expect(zeroAlarm).toBe(0);
   });
+
+  it('provides a unified single-slider configuration combining buddy and alarm sounds', () => {
+    // When buddy and alarm are unified (1.0), master slider controls the entire app volume cleanly
+    const unified75 = { master: 0.75, buddy: 1.0, alarm: 1.0, equalizeLoudness: true };
+    const unified25 = { master: 0.25, buddy: 1.0, alarm: 1.0, equalizeLoudness: true };
+
+    const buddy75 = calculatePlaybackVolume(unified75, 'click-normal', 'una.mp3', false);
+    const alarm75 = calculatePlaybackVolume(unified75, 'timer-complete', 'wuuulaaaa.mp3', false);
+    const buddy25 = calculatePlaybackVolume(unified25, 'click-normal', 'una.mp3', false);
+    const alarm25 = calculatePlaybackVolume(unified25, 'timer-complete', 'wuuulaaaa.mp3', false);
+
+    expect(buddy75).toBeCloseTo(0.75, 2);
+    // wuuulaaaa is balanced by loudness factor (0.80) to avoid ear-piercing scream
+    expect(alarm75).toBeCloseTo(0.75 * 0.8, 2);
+    expect(buddy25).toBeCloseTo(0.25, 2);
+    expect(alarm25).toBeCloseTo(0.25 * 0.8, 2);
+  });
 });

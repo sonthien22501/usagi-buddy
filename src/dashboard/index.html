@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Usagi Buddy Dashboard</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      body {
+        width: 100vw;
+        min-height: 100vh;
+        background: #140f1d;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Nunito", sans-serif;
+        padding: 22px 24px;
+        overflow-y: auto;
+      }
+
+      .app-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 20px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid rgba(255, 234, 167, 0.18);
+      }
+
+      .app-logo {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: rgba(255, 234, 167, 0.15);
+        border: 1.5px solid rgba(255, 234, 167, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .app-logo img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+      }
+
+      .app-header-text h1 {
+        font-size: 20px;
+        font-weight: 800;
+        color: #ffeaa7;
+        letter-spacing: 0.3px;
+      }
+
+      .app-header-text p {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 2px;
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 18px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+
+      .card-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #fab1a0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .badge {
+        background: rgba(255, 234, 167, 0.18);
+        color: #ffeaa7;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      /* Unified Left & Right Slider */
+      .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .volume-slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #ff7675, #ffeaa7);
+        outline: none;
+        cursor: pointer;
+      }
+
+      .volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 3px solid #ff7675;
+        cursor: grab;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        transition: transform 0.1s, box-shadow 0.1s;
+      }
+
+      .volume-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.18);
+        box-shadow: 0 0 10px rgba(255, 118, 117, 0.7);
+      }
+
+      .volume-slider::-webkit-slider-thumb:active {
+        cursor: grabbing;
+        transform: scale(1.25);
+      }
+
+      .card-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        padding: 7px 14px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .btn:hover {
+        background: rgba(255, 234, 167, 0.22);
+        border-color: #ffeaa7;
+      }
+
+      .btn:active {
+        transform: scale(0.96);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #ff7675, #d63031);
+        border: none;
+        font-weight: 800;
+        box-shadow: 0 3px 10px rgba(214, 48, 49, 0.35);
+      }
+
+      .btn-primary:hover {
+        filter: brightness(1.1);
+        border: none;
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #55efc4, #00b894);
+        color: #0f1c16;
+        border: none;
+        font-weight: 800;
+      }
+
+      /* Pomodoro Timer Display */
+      .clock-display {
+        text-align: center;
+        padding: 10px 0 16px;
+      }
+
+      .clock-time {
+        font-size: 42px;
+        font-weight: 900;
+        color: #ffeaa7;
+        letter-spacing: 1px;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 20px rgba(255, 234, 167, 0.3);
+      }
+
+      .clock-status {
+        font-size: 12px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        margin-top: 4px;
+      }
+
+      .preset-chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+        justify-content: center;
+      }
+
+      .chip-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: #ffeaa7;
+        padding: 6px 13px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.12s ease;
+      }
+
+      .chip-btn:hover {
+        background: #ff7675;
+        color: #ffffff;
+        border-color: #ff7675;
+        transform: translateY(-1px);
+      }
+
+      .input-group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .number-input {
+        flex: 1;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1.5px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: bold;
+        padding: 8px 12px;
+        outline: none;
+        -webkit-user-select: text;
+        user-select: text;
+      }
+
+      .number-input:focus {
+        border-color: #ffeaa7;
+      }
+
+      .unit-select {
+        background: rgba(0, 0, 0, 0.45);
+        border: 1.5px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 8px 10px;
+        outline: none;
+        cursor: pointer;
+      }
+
+      /* Switch Row */
+      .switch-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .switch-desc {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.75);
+      }
+
+      .app-footer {
+        text-align: center;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.45);
+        margin-top: 14px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- App Header -->
+    <div class="app-header">
+      <div class="app-logo">
+        <img src="../assets/Usagi1.png" alt="Usagi Logo" />
+      </div>
+      <div class="app-header-text">
+        <h1>🐰 Usagi Buddy Dashboard</h1>
+        <p>Unified Controls & Focus Companion</p>
+      </div>
+    </div>
+
+    <!-- 1. Unified Volume Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔊 Sound Volume</div>
+        <span class="badge" id="volume-val-badge">80%</span>
+      </div>
+      <div class="slider-row">
+        <span style="font-size: 15px">🔈</span>
+        <input
+          type="range"
+          class="volume-slider"
+          id="volume-slider"
+          min="0"
+          max="100"
+          value="80"
+          step="1"
+        />
+        <span style="font-size: 15px">🔊</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn" id="test-sound-btn">🎵 Test Sound</button>
+        <button class="btn" id="mute-toggle-btn">🔇 Mute</button>
+      </div>
+    </div>
+
+    <!-- 2. Stay Still / Focus Anchor Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📌 Focus Anchor Mode</div>
+        <span class="badge" id="stationary-badge">SWIMMING</span>
+      </div>
+      <div class="switch-row">
+        <div class="switch-desc">
+          Pin Usagi still in one spot so he doesn't float around while focusing.
+        </div>
+        <button class="btn btn-success" id="stationary-toggle-btn">📌 Pin Usagi Still</button>
+      </div>
+    </div>
+
+    <!-- 3. Pomodoro Focus Timer Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🍅 Custom Focus Timer</div>
+        <span class="badge" id="timer-badge">25:00 IDLE</span>
+      </div>
+
+      <div class="clock-display">
+        <div class="clock-time" id="clock-time">25:00</div>
+        <div class="clock-status" id="clock-status">READY TO FOCUS</div>
+      </div>
+
+      <!-- Quick Preset Chips -->
+      <div class="preset-chips">
+        <button class="chip-btn" data-min="25">25m Standard</button>
+        <button class="chip-btn" data-min="40">40m Extended</button>
+        <button class="chip-btn" data-min="60">60m (1h)</button>
+        <button class="chip-btn" data-min="90">90m</button>
+        <button class="chip-btn" data-hours="2">2h</button>
+      </div>
+
+      <!-- Manual Input Row -->
+      <div class="input-group">
+        <input
+          type="number"
+          class="number-input"
+          id="manual-time-input"
+          min="1"
+          max="720"
+          value="40"
+          placeholder="e.g. 40"
+        />
+        <select class="unit-select" id="manual-unit-select">
+          <option value="minutes">Minutes</option>
+          <option value="hours">Hours</option>
+        </select>
+        <button class="btn btn-primary" id="start-timer-btn">▶ Start</button>
+      </div>
+
+      <div class="card-actions" style="margin-top: 10px">
+        <button class="btn" id="pause-timer-btn">⏸ Pause</button>
+        <button class="btn" id="reset-timer-btn">🔄 Reset</button>
+      </div>
+    </div>
+
+    <!-- 4. Giant Usagi Jumpscare Alarm Test -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🚨 Giant Usagi Alarm</div>
+        <span class="badge">Chaos Mode</span>
+      </div>
+      <div class="switch-row">
+        <div class="switch-desc">
+          When timer reaches 0, <strong>Usagi_Big.png</strong> covers your screen with anime speed lines!
+        </div>
+        <button class="btn btn-primary" id="test-giant-alarm-btn">🚨 Test Alarm</button>
+      </div>
+    </div>
+
+    <!-- App Footer -->
+    <div class="app-footer">
+      💡 Close this window anytime (✕) — Usagi stays happily floating in the background!
+    </div>
+
+    <script type="module" src="./dashboard.js"></script>
+  </body>
+</html>

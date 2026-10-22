@@ -35,11 +35,13 @@ import {
 import { DEFAULT_VOLUME_CONFIG, VolumeConfig } from '../core/soundManager';
 
 let mainWindow: BrowserWindow | null = null;
+let dashboardWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let ghostLocked = false;
 let playModeEnabled = false;
 let soundMuted = false;
 let stationaryMode = false;
+let isQuitting = false;
 let volumeConfig: VolumeConfig = { ...DEFAULT_VOLUME_CONFIG };
 
 let pomodoroState: PomodoroState = createPomodoroTimer();
@@ -56,22 +58,67 @@ function getScreenBounds(): ScreenBounds {
   };
 }
 
-function broadcastVolumeConfig(): void {
+function broadcastToAllWindows(channel: string, ...args: any[]): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('volume-config-changed', volumeConfig);
+    mainWindow.webContents.send(channel, ...args);
   }
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+    dashboardWindow.webContents.send(channel, ...args);
+  }
+}
+
+function broadcastVolumeConfig(): void {
+  broadcastToAllWindows('volume-config-changed', volumeConfig);
 }
 
 function broadcastPomodoroState(): void {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('pomodoro-state-changed', pomodoroState);
-  }
+  broadcastToAllWindows('pomodoro-state-changed', pomodoroState);
 }
 
 function openSettingsModal(): void {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('open-settings-modal');
+  createDashboardWindow();
+}
+
+function createDashboardWindow(): void {
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+    dashboardWindow.show();
+    dashboardWindow.focus();
+    return;
   }
+
+  dashboardWindow = new BrowserWindow({
+    width: 480,
+    height: 700,
+    minWidth: 420,
+    minHeight: 600,
+    title: 'Usagi Buddy Dashboard',
+    resizable: true,
+    backgroundColor: '#140f1d',
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  const htmlPath = path.join(__dirname, '../dashboard/index.html');
+  dashboardWindow.loadFile(htmlPath);
+
+  dashboardWindow.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault();
+      dashboardWindow?.hide();
+    }
+  });
+
+  dashboardWindow.webContents.on('did-finish-load', () => {
+    broadcastVolumeConfig();
+    broadcastPomodoroState();
+    if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+      dashboardWindow.webContents.send('stationary-mode-toggle', stationaryMode);
+      dashboardWindow.webContents.send('sound-mute-toggle', soundMuted);
+    }
+  });
 }
 
 function updateTrayMenu(): void {
@@ -86,6 +133,11 @@ function updateTrayMenu(): void {
   const statsLabel = formatStatsTrayLabel(wellnessState.stats);
 
   const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '🎛️ Open Usagi Dashboard',
+      click: () => createDashboardWindow(),
+    },
+    { type: 'separator' },
     {
       label: statsLabel,
       enabled: false,
@@ -254,33 +306,25 @@ function updateTrayMenu(): void {
 
 function toggleGhostMode(): void {
   ghostLocked = !ghostLocked;
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('ghost-mode-toggle', ghostLocked);
-  }
+  broadcastToAllWindows('ghost-mode-toggle', ghostLocked);
   updateTrayMenu();
 }
 
 function togglePlayMode(): void {
   playModeEnabled = !playModeEnabled;
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('play-mode-toggle', playModeEnabled);
-  }
+  broadcastToAllWindows('play-mode-toggle', playModeEnabled);
   updateTrayMenu();
 }
 
 function toggleStationaryMode(): void {
   stationaryMode = !stationaryMode;
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('stationary-mode-toggle', stationaryMode);
-  }
+  broadcastToAllWindows('stationary-mode-toggle', stationaryMode);
   updateTrayMenu();
 }
 
 function toggleSoundMute(): void {
   soundMuted = !soundMuted;
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('sound-mute-toggle', soundMuted);
-  }
+  broadcastToAllWindows('sound-mute-toggle', soundMuted);
   updateTrayMenu();
 }
 
@@ -369,6 +413,14 @@ function createSystemTray(): void {
 
   tray = new Tray(trayIcon);
   updateTrayMenu();
+
+  tray.on('click', () => {
+    if (dashboardWindow && !dashboardWindow.isDestroyed() && dashboardWindow.isVisible()) {
+      dashboardWindow.hide();
+    } else {
+      createDashboardWindow();
+    }
+  });
 }
 
 function setupPomodoroTicker(): void {
@@ -431,6 +483,7 @@ function setupWellnessCoachTicker(): void {
 
 app.whenReady().then(() => {
   createMainWindow();
+  createDashboardWindow();
   createSystemTray();
   setupPomodoroTicker();
   setupWellnessCoachTicker();
@@ -466,10 +519,36 @@ app.whenReady().then(() => {
     broadcastPomodoroState();
   });
 
+  ipcMain.on('pause-pomodoro-timer', () => {
+    if (pomodoroState.phase === 'running') {
+      pomodoroState = pausePomodoro(pomodoroState);
+    } else {
+      pomodoroState = startPomodoro(pomodoroState);
+    }
+    updateTrayMenu();
+    broadcastPomodoroState();
+  });
+
+  ipcMain.on('reset-pomodoro-timer', () => {
+    pomodoroState = resetPomodoro(pomodoroState);
+    updateTrayMenu();
+    broadcastPomodoroState();
+  });
+
   ipcMain.on('update-volume-config', (_e, nextConfig: VolumeConfig) => {
     volumeConfig = { ...nextConfig };
     broadcastVolumeConfig();
     updateTrayMenu();
+  });
+
+  ipcMain.on('test-sound', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('test-sound');
+    }
+  });
+
+  ipcMain.on('toggle-sound-mute', () => {
+    toggleSoundMute();
   });
 
   ipcMain.on('toggle-stationary-mode', () => {
@@ -479,6 +558,10 @@ app.whenReady().then(() => {
   ipcMain.on('snack-consumed', () => {
     wellnessState = recordSnackFed(wellnessState);
     updateTrayMenu();
+  });
+
+  ipcMain.on('trigger-giant-alarm', () => {
+    triggerGiantAlarmNow();
   });
 
   ipcMain.on('giant-alarm-dismissed', () => {
@@ -491,6 +574,14 @@ app.whenReady().then(() => {
       mainWindow.setBounds(primaryDisplay.bounds);
     }
   });
+});
+
+app.on('before-quit', () => {
+  isQuitting = true;
+});
+
+app.on('activate', () => {
+  createDashboardWindow();
 });
 
 app.on('will-quit', () => {

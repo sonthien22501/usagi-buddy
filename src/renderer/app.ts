@@ -454,6 +454,14 @@ if (window.usagiAPI) {
     playSound('timer-complete');
     updateMouseIgnoreState();
   });
+
+  window.usagiAPI.onTestSound(() => {
+    const text = playSound('click-normal');
+    if (text) {
+      state.speechBubble = text;
+      state.speechTimerMs = DEFAULT_PHYSICS_CONFIG.speechDurationMs;
+    }
+  });
 }
 
 function processImageToFrame(name: string, img: HTMLImageElement): ProcessedFrame {
