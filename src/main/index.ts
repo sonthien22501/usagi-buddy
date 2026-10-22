@@ -32,12 +32,14 @@ import {
   WellnessState,
   WATER_REMINDER_MESSAGE,
 } from '../core/wellnessCoach';
+import { DEFAULT_VOLUME_CONFIG, VolumeConfig } from '../core/soundManager';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let ghostLocked = false;
 let playModeEnabled = false;
 let soundMuted = false;
+let volumeConfig: VolumeConfig = { ...DEFAULT_VOLUME_CONFIG };
 
 let pomodoroState: PomodoroState = createPomodoroTimer();
 let wellnessState: WellnessState = createWellnessState();
@@ -51,6 +53,12 @@ function getScreenBounds(): ScreenBounds {
     width: primaryDisplay.bounds.width,
     height: primaryDisplay.bounds.height,
   };
+}
+
+function broadcastVolumeConfig(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('volume-config-changed', volumeConfig);
+  }
 }
 
 function updateTrayMenu(): void {
@@ -78,10 +86,64 @@ function updateTrayMenu(): void {
       click: () => togglePlayMode(),
     },
     {
-      label: '🔊 Sound Effects',
-      type: 'checkbox',
-      checked: !soundMuted,
-      click: () => toggleSoundMute(),
+      label: '🔊 Sound & Volume',
+      submenu: [
+        {
+          label: 'Mute All Audio',
+          type: 'checkbox',
+          checked: soundMuted,
+          click: () => toggleSoundMute(),
+        },
+        {
+          label: '⚖️ Equalize Clip Loudness (Normalizer)',
+          type: 'checkbox',
+          checked: volumeConfig.equalizeLoudness,
+          click: () => {
+            volumeConfig = { ...volumeConfig, equalizeLoudness: !volumeConfig.equalizeLoudness };
+            broadcastVolumeConfig();
+            updateTrayMenu();
+          },
+        },
+        { type: 'separator' },
+        {
+          label: `🐰 Buddy Voice Volume (${Math.round(volumeConfig.buddy * 100)}%)`,
+          submenu: [
+            { label: '100% (Full)', value: 1.0 },
+            { label: '80% (Default)', value: 0.8 },
+            { label: '50% (Medium)', value: 0.5 },
+            { label: '25% (Quiet)', value: 0.25 },
+            { label: '0% (Mute Buddy)', value: 0.0 },
+          ].map((item) => ({
+            label: item.label,
+            type: 'radio',
+            checked: Math.abs(volumeConfig.buddy - item.value) < 0.05,
+            click: () => {
+              volumeConfig = { ...volumeConfig, buddy: item.value };
+              broadcastVolumeConfig();
+              updateTrayMenu();
+            },
+          })),
+        },
+        {
+          label: `🚨 Giant Alarm Volume (${Math.round(volumeConfig.alarm * 100)}%)`,
+          submenu: [
+            { label: '100% (Full)', value: 1.0 },
+            { label: '70% (Default - Balanced)', value: 0.7 },
+            { label: '50% (Medium)', value: 0.5 },
+            { label: '25% (Quiet)', value: 0.25 },
+            { label: '0% (Mute Alarm)', value: 0.0 },
+          ].map((item) => ({
+            label: item.label,
+            type: 'radio',
+            checked: Math.abs(volumeConfig.alarm - item.value) < 0.05,
+            click: () => {
+              volumeConfig = { ...volumeConfig, alarm: item.value };
+              broadcastVolumeConfig();
+              updateTrayMenu();
+            },
+          })),
+        },
+      ],
     },
     {
       label: ghostLocked ? '👻 Disable Ghost Mode' : '👻 Enable Ghost Mode',
@@ -243,6 +305,10 @@ function createMainWindow(): void {
 
   const htmlPath = path.join(__dirname, '../renderer/index.html');
   mainWindow.loadFile(htmlPath);
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    broadcastVolumeConfig();
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;

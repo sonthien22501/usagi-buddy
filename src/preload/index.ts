@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { SnackTarget } from '../core/physicsEngine';
+import { VolumeConfig } from '../core/soundManager';
 
 export interface WellnessUpdatePayload {
   mood: 'active' | 'sleeping';
@@ -15,6 +16,7 @@ export interface UsagiAPI {
   notifySnackConsumed: () => void;
   onPlayModeChanged: (callback: (enabled: boolean) => void) => () => void;
   onSoundMutedChanged: (callback: (muted: boolean) => void) => () => void;
+  onVolumeConfigChanged: (callback: (config: VolumeConfig) => void) => () => void;
   onWellnessUpdate: (callback: (payload: WellnessUpdatePayload) => void) => () => void;
   onGiantAlarmTriggered: (callback: () => void) => () => void;
   notifyGiantAlarmDismissed: () => void;
@@ -51,6 +53,11 @@ const api: UsagiAPI = {
     const handler = (_event: Electron.IpcRendererEvent, muted: boolean) => callback(muted);
     ipcRenderer.on('sound-mute-toggle', handler);
     return () => ipcRenderer.removeListener('sound-mute-toggle', handler);
+  },
+  onVolumeConfigChanged: (callback: (config: VolumeConfig) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, config: VolumeConfig) => callback(config);
+    ipcRenderer.on('volume-config-changed', handler);
+    return () => ipcRenderer.removeListener('volume-config-changed', handler);
   },
   onWellnessUpdate: (callback: (payload: WellnessUpdatePayload) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, payload: WellnessUpdatePayload) =>

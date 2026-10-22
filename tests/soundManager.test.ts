@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  calculatePlaybackVolume,
   createSoundState,
   resolveSoundAssetUrl,
   selectSoundForEvent,
@@ -123,5 +124,59 @@ describe('soundManager', () => {
       'unayahayahauna.mp3',
       'wuuulaaaa.mp3',
     ]);
+  });
+
+  it('separates buddy sound volume from giant alarm volume', () => {
+    const config = {
+      master: 1.0,
+      buddy: 0.5,
+      alarm: 0.9,
+      equalizeLoudness: false,
+    };
+
+    const buddyVol = calculatePlaybackVolume(config, 'click-normal', 'una.mp3', false);
+    const alarmVol = calculatePlaybackVolume(config, 'timer-complete', 'wuuulaaaa.mp3', false);
+
+    expect(buddyVol).toBeCloseTo(0.5, 2);
+    expect(alarmVol).toBeCloseTo(0.9, 2);
+  });
+
+  it('equalizes clip loudness so loud screams and speech have normalized load levels', () => {
+    const config = {
+      master: 1.0,
+      buddy: 1.0,
+      alarm: 1.0,
+      equalizeLoudness: true,
+    };
+
+    const unaVol = calculatePlaybackVolume(config, 'click-normal', 'una.mp3', false);
+    const wuuulaaaaVol = calculatePlaybackVolume(config, 'timer-complete', 'wuuulaaaa.mp3', false);
+    const huhhhhVol = calculatePlaybackVolume(config, 'wellness-reminder', 'huhhhh.mp3', false);
+    const unayahaVol = calculatePlaybackVolume(config, 'snack-eaten', 'unayahayahauna.mp3', false);
+
+    expect(unaVol).toBe(1.0);
+    // Heavy scream clips and dense speech get attenuated so they match perceived loudness of softer clips
+    expect(wuuulaaaaVol).toBeLessThan(unaVol);
+    expect(huhhhhVol).toBeLessThan(unaVol);
+    expect(unayahaVol).toBeLessThan(unaVol);
+    expect(wuuulaaaaVol).toBeGreaterThan(0.7);
+  });
+
+  it('returns 0 volume when muted or channel volume is zero', () => {
+    const config = {
+      master: 1.0,
+      buddy: 0.0,
+      alarm: 0.8,
+      equalizeLoudness: true,
+    };
+
+    // Buddy volume muted via channel
+    expect(calculatePlaybackVolume(config, 'click-normal', 'una.mp3', false)).toBe(0);
+    // Alarm volume still plays
+    expect(
+      calculatePlaybackVolume(config, 'timer-complete', 'wuuulaaaa.mp3', false)
+    ).toBeGreaterThan(0);
+    // Global mute mutes both
+    expect(calculatePlaybackVolume(config, 'timer-complete', 'wuuulaaaa.mp3', true)).toBe(0);
   });
 });

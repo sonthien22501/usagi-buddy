@@ -73,16 +73,16 @@ function playSound(event: SoundEvent, customVolume?: number): string | null {
   const result = selectSoundForEvent(soundState, event, now, '../../assets');
   soundState = result.state;
 
-  if (result.url) {
+  if (result.url && result.volume > 0) {
     try {
       const audio = new Audio(result.url);
-      const defaultVol = event === 'timer-complete' ? 0.58 : 0.85;
-      audio.volume = customVolume ?? defaultVol;
+      const targetVol = customVolume !== undefined ? customVolume : result.volume;
+      audio.volume = Math.min(1.0, Math.max(0.0, targetVol));
       audio.play().catch(() => {
         if (result.file) {
           const fallbackUrl = resolveSoundAssetUrl(result.file, '../assets');
           const fallbackAudio = new Audio(fallbackUrl);
-          fallbackAudio.volume = customVolume ?? defaultVol;
+          fallbackAudio.volume = Math.min(1.0, Math.max(0.0, targetVol));
           fallbackAudio.play().catch(() => {});
         }
       });
@@ -97,7 +97,7 @@ function playSound(event: SoundEvent, customVolume?: number): string | null {
 function handleGiantAlarmDismiss(): void {
   if (!isGiantAlarmInteractive(giantAlarmState)) return;
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
-  playSound('click-normal', 0.6);
+  playSound('click-normal');
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
 
@@ -186,6 +186,10 @@ if (window.usagiAPI) {
     soundState = { ...soundState, muted };
   });
 
+  window.usagiAPI.onVolumeConfigChanged((config) => {
+    soundState = { ...soundState, volumeConfig: config };
+  });
+
   window.usagiAPI.onWellnessUpdate((payload) => {
     state = {
       ...state,
@@ -268,20 +272,34 @@ function loadSingleSprite(index: number): Promise<ProcessedFrame> {
 }
 
 function loadCustomGiantSprite(): Promise<ProcessedFrame | null> {
+  const candidateNames = ['Usagi_Big.png', 'GiantUsagi.png', 'giant-usagi.png'];
+
   return new Promise((resolve) => {
-    const img = new Image();
-    img.src = '../../assets/GiantUsagi.png';
+    let index = 0;
 
-    img.onerror = () => {
-      const imgAlt = new Image();
-      imgAlt.src = '../assets/GiantUsagi.png';
-      imgAlt.onload = () => resolve(processImageToFrame('GiantUsagi', imgAlt));
-      imgAlt.onerror = () => resolve(null);
+    const tryCandidate = () => {
+      if (index >= candidateNames.length) {
+        resolve(null);
+        return;
+      }
+
+      const filename = candidateNames[index++];
+      const img = new Image();
+      img.src = `../../assets/${filename}`;
+
+      img.onerror = () => {
+        const imgAlt = new Image();
+        imgAlt.src = `../assets/${filename}`;
+        imgAlt.onload = () => resolve(processImageToFrame(filename, imgAlt));
+        imgAlt.onerror = () => tryCandidate();
+      };
+
+      img.onload = () => {
+        resolve(processImageToFrame(filename, img));
+      };
     };
 
-    img.onload = () => {
-      resolve(processImageToFrame('GiantUsagi', img));
-    };
+    tryCandidate();
   });
 }
 
