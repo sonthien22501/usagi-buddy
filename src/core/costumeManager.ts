@@ -1,4 +1,4 @@
-export type CostumeId = 'classic' | 'study' | 'vest' | 'ngau' | 'star';
+export type CostumeId = 'classic' | 'study' | 'vest' | 'sigma' | 'star';
 
 export type OutfitSelection = CostumeId | 'random';
 
@@ -33,11 +33,11 @@ export const COSTUME_DEFINITIONS: readonly CostumeDefinition[] = [
     description: 'Corporate professionalism & deep work',
   },
   {
-    id: 'ngau',
-    label: 'Ngầu / Cool',
+    id: 'sigma',
+    label: 'Sigma',
     icon: '🕶️',
     filename: 'Usagi_Ngau.png',
-    description: 'Cool shades and chill swagger',
+    description: 'Sigma grindset with cool shades',
   },
   {
     id: 'star',
@@ -54,7 +54,7 @@ export const ALL_COSTUME_IDS: readonly CostumeId[] = [
   'classic',
   'study',
   'vest',
-  'ngau',
+  'sigma',
   'star',
 ] as const;
 
@@ -63,11 +63,18 @@ export function isKnownCostumeId(id: string): id is CostumeId {
 }
 
 export function isKnownOutfitSelection(val: string): val is OutfitSelection {
-  return val === 'random' || isKnownCostumeId(val);
+  return val === 'random' || isKnownCostumeId(val) || val === 'ngau';
+}
+
+export function normalizeCostumeId(val: string): CostumeId {
+  if (val === 'ngau' || val === 'sigma') return 'sigma';
+  if (isKnownCostumeId(val)) return val;
+  return 'classic';
 }
 
 export function getCostumeDefinition(id: CostumeId): CostumeDefinition {
-  const found = COSTUME_DEFINITIONS.find((def) => def.id === id);
+  const normalized = normalizeCostumeId(id);
+  const found = COSTUME_DEFINITIONS.find((def) => def.id === normalized);
   if (!found) {
     return COSTUME_DEFINITIONS[0];
   }
@@ -75,7 +82,8 @@ export function getCostumeDefinition(id: CostumeId): CostumeDefinition {
 }
 
 export function getNextCostume(current: CostumeId): CostumeId {
-  const idx = ALL_COSTUME_IDS.indexOf(current);
+  const normalized = normalizeCostumeId(current);
+  const idx = ALL_COSTUME_IDS.indexOf(normalized);
   if (idx === -1) {
     return ALL_COSTUME_IDS[0];
   }
@@ -87,7 +95,10 @@ export function pickRandomCostume(
   exclude?: CostumeId,
   randomFn: () => number = Math.random
 ): CostumeId {
-  const candidates = exclude ? ALL_COSTUME_IDS.filter((id) => id !== exclude) : ALL_COSTUME_IDS;
+  const normalizedExclude = exclude ? normalizeCostumeId(exclude) : undefined;
+  const candidates = normalizedExclude
+    ? ALL_COSTUME_IDS.filter((id) => id !== normalizedExclude)
+    : ALL_COSTUME_IDS;
   const safeCandidates = candidates.length > 0 ? candidates : ALL_COSTUME_IDS;
   const pickedIndex = Math.floor(randomFn() * safeCandidates.length);
   return safeCandidates[pickedIndex];

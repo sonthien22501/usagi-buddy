@@ -36,7 +36,6 @@ import { DEFAULT_VOLUME_CONFIG, VolumeConfig } from '../core/soundManager';
 import {
   CostumeId,
   OutfitSelection,
-  COSTUME_DEFINITIONS,
   pickRandomCostume,
   isKnownOutfitSelection,
 } from '../core/costumeManager';
@@ -229,24 +228,6 @@ function updateTrayMenu(): void {
         {
           label: '✏️ Custom Duration... (Open Dashboard)',
           click: () => createDashboardWindow(),
-        },
-      ],
-    },
-    {
-      label: `👗 Outfits (${costumeSelection === 'random' ? '🎲 Random' : activeCostume})`,
-      submenu: [
-        ...COSTUME_DEFINITIONS.map((def) => ({
-          label: `${def.icon} ${def.label}`,
-          type: 'radio' as const,
-          checked: costumeSelection === def.id,
-          click: () => setCostume(def.id),
-        })),
-        { type: 'separator' as const },
-        {
-          label: '🎲 Shuffle / Random on Click',
-          type: 'radio' as const,
-          checked: costumeSelection === 'random',
-          click: () => setCostume('random'),
         },
       ],
     },

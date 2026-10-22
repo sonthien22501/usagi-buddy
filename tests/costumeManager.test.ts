@@ -7,38 +7,50 @@ import {
   getNextCostume,
   isKnownCostumeId,
   isKnownOutfitSelection,
+  normalizeCostumeId,
   pickRandomCostume,
   pickRandomGiantAlarmSprite,
 } from '../src/core/costumeManager';
 
 describe('costumeManager', () => {
-  it('defines 5 distinct costumes including classic, study, vest, ngau, star', () => {
-    expect(ALL_COSTUME_IDS).toEqual(['classic', 'study', 'vest', 'ngau', 'star']);
+  it('defines 5 distinct costumes including classic, study, vest, sigma, star', () => {
+    expect(ALL_COSTUME_IDS).toEqual(['classic', 'study', 'vest', 'sigma', 'star']);
     expect(COSTUME_DEFINITIONS.length).toBe(5);
     for (const def of COSTUME_DEFINITIONS) {
       expect(def.id).toBeTruthy();
       expect(def.label).toBeTruthy();
       expect(def.filename).toMatch(/\.png$/);
     }
+    const sigmaDef = COSTUME_DEFINITIONS.find((d) => d.id === 'sigma');
+    expect(sigmaDef?.label).toBe('Sigma');
+    expect(sigmaDef?.filename).toBe('Usagi_Ngau.png');
   });
 
-  it('validates known costume IDs and selections', () => {
+  it('validates known costume IDs and selections, including ngau alias', () => {
     expect(isKnownCostumeId('study')).toBe(true);
     expect(isKnownCostumeId('vest')).toBe(true);
-    expect(isKnownCostumeId('ngau')).toBe(true);
+    expect(isKnownCostumeId('sigma')).toBe(true);
     expect(isKnownCostumeId('star')).toBe(true);
     expect(isKnownCostumeId('classic')).toBe(true);
     expect(isKnownCostumeId('unknown')).toBe(false);
 
     expect(isKnownOutfitSelection('random')).toBe(true);
     expect(isKnownOutfitSelection('study')).toBe(true);
+    expect(isKnownOutfitSelection('sigma')).toBe(true);
+    expect(isKnownOutfitSelection('ngau')).toBe(true);
     expect(isKnownOutfitSelection('invalid')).toBe(false);
+
+    expect(normalizeCostumeId('ngau')).toBe('sigma');
+    expect(normalizeCostumeId('sigma')).toBe('sigma');
   });
 
   it('returns valid definition or falls back to classic for invalid id', () => {
     const study = getCostumeDefinition('study');
     expect(study.label).toBe('Study Mode');
     expect(study.filename).toBe('Usagi_Study.png');
+
+    const sigma = getCostumeDefinition('sigma');
+    expect(sigma.label).toBe('Sigma');
 
     // @ts-expect-error test fallback for unknown id
     const fallback = getCostumeDefinition('non-existent');
@@ -48,8 +60,8 @@ describe('costumeManager', () => {
   it('cycles through costumes sequentially with getNextCostume', () => {
     expect(getNextCostume('classic')).toBe('study');
     expect(getNextCostume('study')).toBe('vest');
-    expect(getNextCostume('vest')).toBe('ngau');
-    expect(getNextCostume('ngau')).toBe('star');
+    expect(getNextCostume('vest')).toBe('sigma');
+    expect(getNextCostume('sigma')).toBe('star');
     expect(getNextCostume('star')).toBe('classic');
   });
 
