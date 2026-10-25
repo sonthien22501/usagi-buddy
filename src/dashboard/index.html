@@ -5,6 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Usagi Buddy Dashboard</title>
     <style>
+      :root,
+      [data-theme='custard'] {
+        --bg-color: #fff8e7;
+        --card-bg: #ffffff;
+        --card-inner: #fff0c2;
+        --border-color: #5c3a21;
+        --text-color: #5c3a21;
+        --text-muted: #8b6247;
+        --accent-strawberry: #ff8fa3;
+        --accent-strawberry-hover: #ff758f;
+        --shadow-color: #e6c88a;
+        --badge-bg: #ffe699;
+        --badge-text: #5c3a21;
+        --input-bg: #fffdf5;
+        --slider-track: rgba(92, 58, 33, 0.15);
+      }
+
+      [data-theme='night'] {
+        --bg-color: #1e1a29;
+        --card-bg: #272138;
+        --card-inner: #332a4a;
+        --border-color: #e8b4b8;
+        --text-color: #fce8ee;
+        --text-muted: #bdaec6;
+        --accent-strawberry: #ff758f;
+        --accent-strawberry-hover: #ff8fa3;
+        --shadow-color: #120f1d;
+        --badge-bg: #3a2e52;
+        --badge-text: #fce8ee;
+        --input-bg: #201a2f;
+        --slider-track: rgba(232, 180, 184, 0.2);
+      }
+
       * {
         box-sizing: border-box;
         margin: 0;
@@ -24,12 +57,15 @@
 
       body {
         min-height: 100vh;
-        background: #140f1d;
-        color: #ffffff;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Nunito', sans-serif;
-        padding: 18px 20px 24px;
+        background-color: var(--bg-color);
+        background-image: radial-gradient(var(--border-color) 0.65px, transparent 0.65px);
+        background-size: 18px 18px;
+        color: var(--text-color);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Nunito', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+        padding: 16px 18px 24px;
         overflow-y: auto;
         overflow-x: hidden !important;
+        transition: background-color 0.2s ease, color 0.2s ease;
       }
 
       /* Completely eradicate horizontal scrollbar */
@@ -50,31 +86,36 @@
       }
 
       ::-webkit-scrollbar-thumb {
-        background: rgba(255, 234, 167, 0.22);
+        background: var(--border-color);
         border-radius: 4px;
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 234, 167, 0.45);
       }
 
       .app-header {
         display: flex;
         align-items: center;
-        gap: 14px;
+        justify-content: space-between;
         margin-bottom: 16px;
-        padding-bottom: 14px;
-        border-bottom: 1px solid rgba(255, 234, 167, 0.16);
+        padding-bottom: 12px;
+        border-bottom: 2.5px solid var(--border-color);
+      }
+
+      .app-header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
 
       .app-logo {
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
+        border: 2px solid var(--border-color);
+        box-shadow: 0 3px 0 var(--border-color);
+        background: var(--card-bg);
       }
 
       .app-logo img {
@@ -84,56 +125,79 @@
       }
 
       .app-header-text h1 {
-        font-size: 19px;
-        font-weight: 800;
-        color: #ffeaa7;
+        font-size: 18px;
+        font-weight: 900;
+        color: var(--text-color);
         letter-spacing: 0.3px;
       }
 
       .app-header-text p {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        margin-top: 1px;
+      }
+
+      .theme-btn {
+        background: var(--card-inner);
+        border: 2px solid var(--border-color);
+        color: var(--text-color);
+        padding: 5px 12px;
+        border-radius: 10px;
         font-size: 12px;
-        color: rgba(255, 255, 255, 0.6);
-        margin-top: 2px;
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 2.5px 0 var(--border-color);
+        transition: transform 0.1s ease, background 0.15s ease;
+      }
+
+      .theme-btn:hover {
+        filter: brightness(1.05);
+      }
+
+      .theme-btn:active {
+        transform: translateY(2px);
+        box-shadow: none;
       }
 
       .card {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.09);
+        background: var(--card-bg);
+        border: 2.5px solid var(--border-color);
         border-radius: 16px;
-        padding: 16px 18px;
+        padding: 14px 16px;
         margin-bottom: 14px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 0 var(--shadow-color), 0 8px 16px rgba(0, 0, 0, 0.08);
+        transition: background-color 0.2s ease, border-color 0.2s ease;
       }
 
       .card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
       }
 
       .card-title {
         font-size: 13.5px;
-        font-weight: 700;
-        color: #fab1a0;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        font-weight: 800;
+        color: var(--text-color);
+        letter-spacing: 0.3px;
         display: flex;
         align-items: center;
         gap: 8px;
       }
 
       .badge {
-        background: rgba(255, 234, 167, 0.16);
-        color: #ffeaa7;
-        padding: 3px 9px;
-        border-radius: 10px;
-        font-size: 11.5px;
+        background: var(--badge-bg);
+        color: var(--badge-text);
+        border: 1.5px solid var(--border-color);
+        padding: 2px 8px;
+        border-radius: 8px;
+        font-size: 11px;
         font-weight: 800;
         letter-spacing: 0.3px;
       }
 
-      /* Unified Left & Right Slider with Dynamic Track Fill & Grey Inactive */
+      /* Unified Left & Right Slider with Dynamic Track Fill */
       .slider-row {
         display: flex;
         align-items: center;
@@ -144,15 +208,10 @@
       .volume-slider {
         -webkit-appearance: none;
         width: 100%;
-        height: 8px;
-        border-radius: 4px;
-        background: linear-gradient(
-          to right,
-          #ff7675 0%,
-          #ffeaa7 80%,
-          rgba(255, 255, 255, 0.16) 80%,
-          rgba(255, 255, 255, 0.16) 100%
-        );
+        height: 9px;
+        border-radius: 6px;
+        border: 1.5px solid var(--border-color);
+        background: var(--slider-track);
         outline: none;
         cursor: pointer;
         transition: background 0.05s ease;
@@ -164,17 +223,14 @@
         height: 20px;
         border-radius: 50%;
         background: #ffffff;
-        border: 3px solid #ff7675;
+        border: 2.5px solid var(--border-color);
         cursor: grab;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-        transition:
-          transform 0.1s,
-          box-shadow 0.1s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+        transition: transform 0.1s;
       }
 
       .volume-slider::-webkit-slider-thumb:hover {
         transform: scale(1.15);
-        box-shadow: 0 0 10px rgba(255, 118, 117, 0.7);
       }
 
       .volume-slider::-webkit-slider-thumb:active {
@@ -184,71 +240,75 @@
 
       .card-actions {
         display: flex;
-        gap: 10px;
+        gap: 8px;
         justify-content: flex-end;
       }
 
       /* Equal, Identical Action Buttons */
       .btn {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        color: #ffffff;
-        padding: 7px 14px;
+        background: var(--card-inner);
+        border: 2px solid var(--border-color);
+        color: var(--text-color);
+        padding: 6px 12px;
         border-radius: 10px;
-        font-size: 13px;
-        font-weight: 700;
+        font-size: 12px;
+        font-weight: 800;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.15s ease;
+        box-shadow: 0 2.5px 0 var(--border-color);
+        transition: all 0.12s ease;
       }
 
       .btn:hover {
-        background: rgba(255, 234, 167, 0.22);
-        border-color: #ffeaa7;
-        color: #ffeaa7;
+        filter: brightness(1.05);
       }
 
       .btn:active {
-        transform: scale(0.96);
+        transform: translateY(2px);
+        box-shadow: none;
+      }
+
+      .btn.active {
+        background: var(--accent-strawberry);
+        color: #ffffff;
       }
 
       .btn-action-pair {
         width: 120px;
-        height: 36px;
+        height: 34px;
       }
 
       .feature-btn {
         width: 135px;
-        height: 36px;
+        height: 34px;
         border-radius: 10px;
-        font-size: 12.5px;
-        font-weight: 700;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        color: #ffffff;
+        font-size: 12px;
+        font-weight: 800;
+        background: var(--card-inner);
+        border: 2px solid var(--border-color);
+        color: var(--text-color);
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.15s ease;
+        box-shadow: 0 2.5px 0 var(--border-color);
+        transition: all 0.12s ease;
       }
 
       .feature-btn:hover {
-        background: rgba(255, 234, 167, 0.22);
-        border-color: #ffeaa7;
-        color: #ffeaa7;
+        filter: brightness(1.05);
       }
 
       .feature-btn:active {
-        transform: scale(0.96);
+        transform: translateY(2px);
+        box-shadow: none;
       }
 
       .feature-btn.active {
-        background: rgba(255, 118, 117, 0.22);
-        border-color: #ff7675;
-        color: #ff7675;
+        background: var(--accent-strawberry);
+        color: #ffffff;
       }
 
       /* Usagi Wardrobe Grid */
@@ -259,8 +319,8 @@
       }
 
       .costume-card-btn {
-        background: rgba(255, 255, 255, 0.07);
-        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: var(--card-inner);
+        border: 2px solid var(--border-color);
         border-radius: 12px;
         padding: 8px 6px;
         display: flex;
@@ -269,26 +329,24 @@
         justify-content: center;
         gap: 4px;
         cursor: pointer;
-        transition: all 0.15s ease;
-        color: #ffffff;
+        transition: all 0.12s ease;
+        color: var(--text-color);
+        box-shadow: 0 2.5px 0 var(--border-color);
       }
 
       .costume-card-btn:hover {
-        background: rgba(255, 234, 167, 0.2);
-        border-color: #ffeaa7;
-        color: #ffeaa7;
         transform: translateY(-1px);
+        filter: brightness(1.04);
       }
 
       .costume-card-btn:active {
-        transform: scale(0.97);
+        transform: translateY(2px);
+        box-shadow: none;
       }
 
       .costume-card-btn.active {
-        background: rgba(255, 118, 117, 0.26);
-        border-color: #ff7675;
-        color: #ffeaa7;
-        box-shadow: 0 0 10px rgba(255, 118, 117, 0.35);
+        background: var(--accent-strawberry);
+        color: #ffffff;
       }
 
       .costume-icon {
@@ -297,92 +355,93 @@
       }
 
       .costume-name {
-        font-size: 11.5px;
-        font-weight: 700;
+        font-size: 11px;
+        font-weight: 800;
         letter-spacing: 0.2px;
       }
 
       .btn-primary {
-        background: linear-gradient(135deg, #ff7675, #d63031);
-        border: none;
+        background: var(--accent-strawberry);
         color: #ffffff;
-        font-weight: 800;
-        box-shadow: 0 3px 10px rgba(214, 48, 49, 0.35);
+        font-weight: 900;
       }
 
       .btn-primary:hover {
-        filter: brightness(1.1);
-        border: none;
+        background: var(--accent-strawberry-hover);
         color: #ffffff;
       }
 
       /* Pomodoro Timer Display */
       .clock-display {
         text-align: center;
-        padding: 6px 0 12px;
+        padding: 4px 0 10px;
       }
 
       .clock-time {
-        font-size: 38px;
+        font-size: 36px;
         font-weight: 900;
-        color: #ffeaa7;
+        color: var(--text-color);
         letter-spacing: 1px;
         font-variant-numeric: tabular-nums;
-        text-shadow: 0 0 20px rgba(255, 234, 167, 0.3);
       }
 
       .clock-status {
-        font-size: 11.5px;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--text-muted);
         text-transform: uppercase;
-        margin-top: 3px;
+        margin-top: 2px;
       }
 
       .preset-chips {
         display: flex;
         gap: 6px;
         flex-wrap: wrap;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         justify-content: center;
       }
 
       .chip-btn {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        color: #ffeaa7;
-        padding: 6px 12px;
+        background: var(--card-inner);
+        border: 2px solid var(--border-color);
+        color: var(--text-color);
+        padding: 5px 10px;
         border-radius: 10px;
-        font-size: 12.5px;
-        font-weight: bold;
+        font-size: 12px;
+        font-weight: 800;
         cursor: pointer;
+        box-shadow: 0 2px 0 var(--border-color);
         transition: all 0.12s ease;
       }
 
       .chip-btn:hover {
-        background: #ff7675;
+        background: var(--accent-strawberry);
         color: #ffffff;
-        border-color: #ff7675;
         transform: translateY(-1px);
+      }
+
+      .chip-btn:active {
+        transform: translateY(2px);
+        box-shadow: none;
       }
 
       .input-group {
         display: flex;
-        gap: 8px;
+        gap: 6px;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
       }
 
       .number-input {
         flex: 1;
-        height: 36px;
-        background: rgba(0, 0, 0, 0.35);
-        border: 1.5px solid rgba(255, 255, 255, 0.2);
+        height: 34px;
+        background: var(--input-bg);
+        border: 2px solid var(--border-color);
         border-radius: 10px;
-        color: #ffffff;
-        font-size: 14px;
-        font-weight: bold;
-        padding: 0 12px;
+        color: var(--text-color);
+        font-size: 13px;
+        font-weight: 700;
+        padding: 0 10px;
         outline: none;
         -webkit-user-select: text;
         user-select: text;
@@ -397,54 +456,55 @@
       }
 
       .number-input:focus {
-        border-color: #ffeaa7;
+        border-color: var(--accent-strawberry);
       }
 
       .unit-tag {
-        font-size: 13px;
-        font-weight: 700;
-        color: rgba(255, 234, 167, 0.7);
-        padding: 0 4px;
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--text-muted);
+        padding: 0 2px;
         user-select: none;
       }
 
       .btn-step {
-        height: 36px;
-        padding: 0 12px;
-        font-size: 13px;
+        height: 34px;
+        padding: 0 10px;
+        font-size: 12px;
         font-weight: 800;
-        color: #ffeaa7;
-        background: rgba(255, 234, 167, 0.12);
-        border: 1px solid rgba(255, 234, 167, 0.35);
+        color: var(--text-color);
+        background: var(--card-inner);
+        border: 2px solid var(--border-color);
         border-radius: 10px;
         cursor: pointer;
-        transition: all 0.15s ease;
+        box-shadow: 0 2px 0 var(--border-color);
+        transition: all 0.12s ease;
         white-space: nowrap;
       }
 
       .btn-step:hover {
-        background: rgba(255, 234, 167, 0.25);
-        border-color: #ffeaa7;
+        filter: brightness(1.05);
         transform: translateY(-1px);
       }
 
       .btn-step:active {
-        transform: scale(0.95);
+        transform: translateY(2px);
+        box-shadow: none;
       }
 
-      /* Clean Mode Rows (No small descriptions) */
+      /* Clean Mode Rows */
       .mode-list {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
       }
 
       .mode-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding-bottom: 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding-bottom: 8px;
+        border-bottom: 1.5px dashed var(--border-color);
       }
 
       .mode-item:last-child {
@@ -453,37 +513,124 @@
       }
 
       .mode-title {
-        font-size: 13.5px;
-        font-weight: 700;
-        color: #ffffff;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--text-color);
         display: flex;
         align-items: center;
         gap: 8px;
       }
 
+      /* Sticky Reminders Card in Dashboard */
+      .quest-dashboard-list {
+        max-height: 160px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+
+      .quest-dashboard-item {
+        background: var(--card-inner);
+        border: 1.5px solid var(--border-color);
+        border-radius: 8px;
+        padding: 5px 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+      }
+
+      .quest-dashboard-item.completed span {
+        text-decoration: line-through;
+        opacity: 0.6;
+      }
+
+      .quest-dashboard-item input[type='checkbox'] {
+        width: 15px;
+        height: 15px;
+        cursor: pointer;
+        accent-color: var(--accent-strawberry);
+      }
+
+      .quest-dashboard-item .text {
+        flex: 1;
+        word-break: break-word;
+      }
+
+      .quest-dashboard-item .delete-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 12px;
+      }
+
+      .quest-dashboard-item .delete-btn:hover {
+        color: #e63946;
+      }
+
       .app-footer {
         text-align: center;
-        font-size: 11.5px;
-        color: rgba(255, 255, 255, 0.45);
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
         margin-top: 14px;
-        padding-top: 10px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 8px;
+        border-top: 1.5px dashed var(--border-color);
       }
     </style>
   </head>
-  <body>
+  <body data-theme="custard">
     <!-- App Header -->
     <div class="app-header">
-      <div class="app-logo">
-        <img src="../assets/Usagi_logo.png" alt="Usagi Logo" />
+      <div class="app-header-left">
+        <div class="app-logo">
+          <img src="../assets/Usagi_logo.png" alt="Usagi Logo" />
+        </div>
+        <div class="app-header-text">
+          <h1>Usagi Buddy Dashboard</h1>
+          <p>Custard Anime Companion & Quests</p>
+        </div>
       </div>
-      <div class="app-header-text">
-        <h1>Usagi Buddy Dashboard</h1>
-        <p>Unified Controls & Focus Companion</p>
+      <button id="theme-toggle-btn" class="theme-btn">🌙 Night</button>
+    </div>
+
+    <!-- 1. Desktop Sticky Reminders Card -->
+    <div class="card" id="sticky-reminders-card">
+      <div class="card-header">
+        <div class="card-title">📝 Desktop Sticky Reminders</div>
+        <button class="btn" id="toggle-sticky-window-btn">📝 Hide Note</button>
+      </div>
+
+      <div class="input-group">
+        <input
+          type="text"
+          class="number-input"
+          id="dashboard-quest-input"
+          placeholder="Add task / reminder..."
+          maxlength="120"
+        />
+        <button class="btn btn-primary" id="dashboard-add-quest-btn" style="width: 38px; height: 34px">
+          +
+        </button>
+      </div>
+
+      <div id="dashboard-quest-list" class="quest-dashboard-list">
+        <!-- Rendered items -->
+      </div>
+
+      <div class="card-actions" style="justify-content: space-between; align-items: center">
+        <span id="dashboard-quest-counter" style="font-size: 11px; font-weight: 700; color: var(--text-muted)">
+          0/0 completed
+        </span>
+        <button class="btn" id="dashboard-clear-done-btn">Clear Done</button>
       </div>
     </div>
 
-    <!-- 1. Unified Volume Card -->
+    <!-- 2. Unified Volume Card -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">🔊 Sound Volume</div>
@@ -508,7 +655,7 @@
       </div>
     </div>
 
-    <!-- 2. Pomodoro Focus Timer Card -->
+    <!-- 3. Pomodoro Focus Timer Card -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">🍅 Custom Focus Timer</div>
@@ -560,18 +707,18 @@
         <button class="btn-step" id="add-10-btn" type="button" title="Add 10 minutes to timer">
           +10m
         </button>
-        <button class="btn btn-primary" id="start-timer-btn" style="width: 85px; height: 36px">
+        <button class="btn btn-primary" id="start-timer-btn" style="width: 85px; height: 34px">
           ▶ Start
         </button>
       </div>
 
-      <div class="card-actions" style="margin-top: 8px">
+      <div class="card-actions" style="margin-top: 6px">
         <button class="btn btn-action-pair" id="pause-timer-btn">⏸ Pause</button>
         <button class="btn btn-action-pair" id="reset-timer-btn">🔄 Reset</button>
       </div>
     </div>
 
-    <!-- 3. Usagi Wardrobe & Outfits Card -->
+    <!-- 4. Usagi Wardrobe & Outfits Card -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">👗 Wardrobe & Outfits</div>
@@ -613,12 +760,21 @@
       </div>
     </div>
 
-    <!-- 4. Companion Modes & Actions Card (Clean & Equal Buttons) -->
+    <!-- 5. Companion Modes & Actions Card (Clean & Equal Buttons) -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">🎮 Companion Modes & Actions</div>
       </div>
       <div class="mode-list">
+        <!-- Cursor Keychain Hug -->
+        <div class="mode-item">
+          <div class="mode-title">🐾 Cursor Keychain Hug</div>
+          <div style="display: flex; gap: 6px">
+            <button class="feature-btn" id="cursor-hug-toggle-btn">🐾 Hug: ON</button>
+            <button class="feature-btn" id="pounce-cursor-btn" style="width: 100px">Pounce!</button>
+          </div>
+        </div>
+
         <!-- Stay Still -->
         <div class="mode-item">
           <div class="mode-title">📌 Stay Still</div>
@@ -647,7 +803,7 @@
 
     <!-- App Footer -->
     <div class="app-footer">
-      💡 Close this window anytime (✕) — Usagi stays happily floating in the background!
+      💡 Close this window anytime (✕) — Usagi stays happily floating on your desktop!
     </div>
 
     <script type="module" src="./dashboard.js"></script>

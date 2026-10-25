@@ -1,11 +1,11 @@
-# Usagi Float — Architecture Cache (v0.3)
+# Usagi Float — Architecture Cache (v0.5)
 
 ## 1. System Overview & Tech Stack
 
-- **Product**: Cross-platform (macOS + Windows) frameless, transparent, always-on-top desktop companion ("Usagi Float").
-- **Runtime & UI**: Electron + TypeScript + HTML5 2D Canvas (60 FPS continuous kick-and-glide swimming transforms, Web Audio MP3 playback, per-pixel `setIgnoreMouseEvents(true, { forward: true })` hit-testing).
-- **Bundler & Compiler**: `typescript` (`tsc --noEmit`) + `esbuild` (bundles main, preload, renderer, and copies `.png` + `.mp3` assets).
-- **Test & Format**: `vitest` (unit + asset integration tests) + `prettier`.
+- **Product**: Cross-platform (macOS + Windows) frameless, transparent, desktop companion ("Usagi Float") featuring multi-window architecture: overlay buddy window, full-control dashboard window, and desktop-pinned sticky checklist window.
+- **Runtime & UI**: Electron + TypeScript + HTML5 2D Canvas (60 FPS kick-and-glide swimming, cursor keychain hug physics, per-pixel `setIgnoreMouseEvents(true, { forward: true })` hit-testing, Web Audio MP3 playback, Usagi Custard & Caramel Anime Theme with day/night modes).
+- **Bundler & Compiler**: `typescript` (`tsc --noEmit`) + `esbuild` (bundles main, preload, renderer, dashboard, sticky, and copies `.png` + `.mp3` assets).
+- **Test & Format**: `vitest` (11 test suites covering core physics, reminders, cursor hugs, alarm, and asset integrity) + `prettier`.
 
 ## 2. Exact Commands (Law 1 & Law 2 Quiet Flags)
 
@@ -21,40 +21,55 @@ usagi-buddy/
 ├── assets/
 │   ├── Usagi1.png .. Usagi6.png   # 1170x1560 RGBA sprites (Usagi3.png upright primary sprite)
 │   ├── Usagi_Big.png              # 736x736 RGBA big fat Usagi for pomodoro takeover alarm
+│   ├── Usagi_Big2.png             # 735x734 RGBA alternate chaos giant sprite
 │   ├── Usagi_logo.png             # 755x755 RGBA official app logo & tray icon
+│   ├── Usagi_{Study,Vest,Ngau,Star}.png # Costume PNG sprites
 │   └── *.mp3                      # una, bryy, huhhhh?, urararusk, unayahayahauna, wuuulaaaa
 ├── src/
 │   ├── core/
 │   │   ├── alphaCropper.ts        # Alpha bounding-box scanner & auto-trimmer
 │   │   ├── physicsEngine.ts       # 60fps kick-and-glide swimming, squash/stretch, cursor follow, combo spin
+│   │   ├── cursorHugController.ts # Playful keychain hug physics, butt-wiggle pounce, pendulum inertia & shake-to-drop
+│   │   ├── reminderStore.ts       # Desktop sticky reminders state machine, JSON disk persistence & task celebration detection
+│   │   ├── costumeManager.ts      # Multi-costume wardrobe selector & shuffle system
 │   │   ├── ghostModeController.ts # Smart click-through & interactive hit-box forwarding logic
 │   │   ├── pomodoroTimer.ts       # 25-min study countdown & snack drop generator
 │   │   ├── giantAlarmController.ts # Chaos giant Usagi break alarm, speed lines, & click/key dismiss
 │   │   ├── soundManager.ts        # Event-to-MP3 mapper, URL-safe encoder (huhhhh%3F.mp3), mute & cooldown
 │   │   └── wellnessCoach.ts       # Random 30–40m water reminder, 2m AFK sleep mode, & daily tray stats
 │   ├── main/
-│   │   └── index.ts               # Electron Main: overlay window, dashboard window, Tray stats/toggles, powerMonitor idle poll
+│   │   └── index.ts               # Electron Main: overlay window, dashboard window, sticky window, tray menu, reminders IPC
 │   ├── preload/
 │   │   └── index.ts               # Electron contextBridge (`window.usagiAPI`)
+│   ├── sticky/
+│   │   ├── index.html             # Desktop-pinned frameless sticky note quest board
+│   │   └── sticky.ts              # Sticky note controller with theme toggle & task CRUD
 │   ├── dashboard/
-│   │   ├── index.html             # Dedicated Usagi Buddy Dashboard GUI window
-│   │   └── dashboard.ts           # Dashboard controller (unified volume slider, timer presets/inputs, pin still toggle)
+│   │   ├── index.html             # Dedicated Usagi Buddy Dashboard GUI window (Custard & Caramel anime theme)
+│   │   └── dashboard.ts           # Dashboard controller (reminders sync, cursor hug toggles, wardrobe grid, volume & timer)
 │   └── renderer/
-│       ├── index.html             # Transparent full-screen overlay canvas
-│       └── app.ts                 # Upright sprite renderer, 60fps swim transforms, Audio player, IPC handlers
+│       ├── index.html             # Transparent full-screen overlay canvas & quick floating controls
+│       └── app.ts                 # 60fps swim transforms, cursor keychain hug physics, anime notes & task celebration spins
 └── tests/
     ├── alphaCropper.test.ts
     ├── physicsEngine.test.ts
+    ├── cursorHugController.test.ts
+    ├── reminderStore.test.ts
+    ├── costumeManager.test.ts
     ├── ghostModeController.test.ts
     ├── pomodoroTimer.test.ts
     ├── soundManager.test.ts
     ├── wellnessCoach.test.ts
+    ├── giantAlarmController.test.ts
     └── assetsIntegration.test.ts
 ```
 
 ## 4. Core Data Contracts
 
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
+- `CursorHugState`: `{ enabled, phase, phaseTimerMs, pendulumAngleRad, pendulumAngularVel, shakeReversals, lastMoveDirX, lastReversalAtMs, lastCursorPos }`
+- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard' | 'night' }`
+- `ReminderItem`: `{ id: string, text: string, completed: boolean, createdAtMs: number }`
 - `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', nextReminderAtMs, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
 - `SoundEvent`: `'click-normal' | 'click-combo' | 'snack-eaten' | 'wellness-reminder' | 'welcome-back' | 'timer-complete'`
 - `VolumeConfig`: `{ master, buddy, alarm, equalizeLoudness }`
@@ -78,3 +93,4 @@ usagi-buddy/
 - [x] M11: Scientific study method presets (Pomodoro 25/5, 52/17 Method, Ultradian Rhythm 90/20), dynamic alarm break matching, minute-only manual input starting at 0, and +10m rapid increment button (`src/dashboard/`, `src/renderer/`, `src/main/index.ts`, `src/core/`)
 - [x] M12: Low-spec device performance & startup optimizations (lazy Dashboard window creation on startup, fast 4-sided alpha bounds scan, 320px high-DPI texture downscaling, audio element pooling, desynchronized canvas rendering) (`src/core/alphaCropper.ts`, `src/renderer/app.ts`, `src/main/index.ts`)
 - [x] M13: Usagi Wardrobe & Multi-Costume System (Classic, Study, Work/Vest, Sigma, Star, and Shuffle/Random on Click), combo-click rapid spin outfit morphing, dedicated Dashboard wardrobe grid, minimal background tray menu, and randomized Giant Usagi Chaos Alarms (`Usagi_Big.png` + `Usagi_Big2.png`) (`src/core/costumeManager.ts`, `src/dashboard/`, `src/main/index.ts`, `src/renderer/app.ts`)
+- [x] M14: Usagi Custard & Caramel Anime Theme (Day Custard default + Night cozy toggle), Desktop-Pinned Sticky Reminders Note (`src/sticky/`) with task celebration broadcast, Playful Cursor Keychain Hug mode (`src/core/cursorHugController.ts`) with pendulum swing, floating anime canvas notes, and shake-to-drop physics

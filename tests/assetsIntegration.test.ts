@@ -101,4 +101,41 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(height).toBe(755);
     expect(buf[25]).toBe(6);
   });
+
+  it('verifies desktop sticky reminder note assets exist', () => {
+    const htmlPath = path.resolve(__dirname, '../src/sticky/index.html');
+    const tsPath = path.resolve(__dirname, '../src/sticky/sticky.ts');
+    expect(fs.existsSync(htmlPath)).toBe(true);
+    expect(fs.existsSync(tsPath)).toBe(true);
+
+    const htmlContent = fs.readFileSync(htmlPath, 'utf-8');
+    expect(htmlContent).toContain('Usagi Quests');
+    expect(htmlContent).toContain('questInput');
+    expect(htmlContent).toContain('addQuestBtn');
+    expect(htmlContent).toContain('questList');
+  });
+
+  it('verifies dashboard contains Usagi Custard anime theme, reminder checklist, and cursor hug controls', () => {
+    const dashboardHtmlPath = path.resolve(__dirname, '../src/dashboard/index.html');
+    expect(fs.existsSync(dashboardHtmlPath)).toBe(true);
+    const html = fs.readFileSync(dashboardHtmlPath, 'utf-8');
+
+    // Usagi Custard & Caramel Anime Theme variables & toggle
+    expect(html).toContain('data-theme');
+    expect(html).toContain('theme-toggle-btn');
+    expect(html).toContain('--bg-color');
+    expect(html).toContain('--border-color');
+
+    // Desktop Sticky Reminders Card & controls
+    expect(html).toContain('sticky-reminders-card');
+    expect(html).toContain('toggle-sticky-window-btn');
+    expect(html).toContain('dashboard-quest-input');
+    expect(html).toContain('dashboard-add-quest-btn');
+    expect(html).toContain('dashboard-quest-list');
+    expect(html).toContain('dashboard-clear-done-btn');
+
+    // Playful Cursor Hug controls
+    expect(html).toContain('cursor-hug-toggle-btn');
+    expect(html).toContain('pounce-cursor-btn');
+  });
 });

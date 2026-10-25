@@ -48,81 +48,86 @@
       .settings-card {
         width: 440px;
         max-width: 92vw;
-        background: rgba(26, 20, 36, 0.94);
-        border: 2px solid rgba(255, 234, 167, 0.4);
-        border-radius: 24px;
-        padding: 24px 26px;
+        background: #fffdf5;
+        border: 2.5px solid #5c3a21;
+        border-radius: 20px;
+        padding: 22px 24px;
         box-shadow:
-          0 16px 45px rgba(0, 0, 0, 0.55),
-          0 0 30px rgba(255, 200, 80, 0.15);
-        color: #ffffff;
+          0 6px 0 #e6c88a,
+          0 16px 40px rgba(92, 58, 33, 0.25);
+        color: #5c3a21;
       }
 
       .settings-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #5c3a21;
       }
 
       .settings-title {
-        font-size: 20px;
-        font-weight: 800;
-        color: #ffeaa7;
+        font-size: 19px;
+        font-weight: 900;
+        color: #5c3a21;
         display: flex;
         align-items: center;
         gap: 8px;
       }
 
       .close-btn {
-        background: rgba(255, 255, 255, 0.12);
-        border: none;
-        color: #ffffff;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        font-size: 16px;
-        font-weight: bold;
+        background: #ffe699;
+        border: 2px solid #5c3a21;
+        color: #5c3a21;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 900;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 2px 0 #5c3a21;
         transition:
           background 0.15s,
           transform 0.1s;
       }
       .close-btn:hover {
-        background: #ff7675;
-        transform: scale(1.08);
+        background: #ff8fa3;
+        color: #ffffff;
+        transform: scale(1.05);
       }
 
       .settings-section {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 16px;
-        margin-bottom: 18px;
+        background: #fff0c2;
+        border: 2px solid #5c3a21;
+        border-radius: 14px;
+        padding: 14px;
+        margin-bottom: 16px;
       }
 
       .section-label {
         font-size: 13px;
-        font-weight: 700;
-        color: #fab1a0;
+        font-weight: 800;
+        color: #5c3a21;
         text-transform: uppercase;
-        letter-spacing: 0.6px;
-        margin-bottom: 12px;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
         display: flex;
         justify-content: space-between;
         align-items: center;
       }
 
       .volume-badge {
-        background: rgba(255, 234, 167, 0.2);
-        color: #ffeaa7;
+        background: #ffe699;
+        border: 1.5px solid #5c3a21;
+        color: #5c3a21;
         padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 12px;
-        font-weight: bold;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 800;
       }
 
       /* Pull Left & Right Custom Slider */
@@ -138,7 +143,8 @@
         width: 100%;
         height: 8px;
         border-radius: 4px;
-        background: linear-gradient(90deg, #ff7675, #ffeaa7);
+        border: 1.5px solid #5c3a21;
+        background: rgba(92, 58, 33, 0.18);
         outline: none;
         cursor: pointer;
       }
@@ -146,20 +152,19 @@
       .volume-slider::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
         background: #ffffff;
-        border: 3px solid #ff7675;
+        border: 2.5px solid #5c3a21;
         cursor: grab;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
         transition:
           transform 0.1s,
           box-shadow 0.1s;
       }
       .volume-slider::-webkit-slider-thumb:hover {
         transform: scale(1.18);
-        box-shadow: 0 0 10px rgba(255, 118, 117, 0.7);
       }
       .volume-slider::-webkit-slider-thumb:active {
         cursor: grabbing;
@@ -173,22 +178,23 @@
       }
 
       .action-pill-btn {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        color: #ffffff;
-        padding: 6px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
+        background: #fffdf5;
+        border: 1.5px solid #5c3a21;
+        color: #5c3a21;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 11.5px;
+        font-weight: 700;
         cursor: pointer;
-        transition: all 0.15s ease;
+        box-shadow: 0 2px 0 #5c3a21;
+        transition: all 0.12s ease;
       }
       .action-pill-btn:hover {
-        background: rgba(255, 234, 167, 0.25);
-        border-color: #ffeaa7;
+        background: #ffe699;
       }
       .action-pill-btn:active {
-        transform: scale(0.96);
+        transform: translateY(2px);
+        box-shadow: none;
       }
 
       /* Pomodoro Custom Input & Presets */

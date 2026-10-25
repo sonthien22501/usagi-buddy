@@ -47,6 +47,13 @@ import {
   tickGiantAlarm,
   triggerGiantAlarm,
 } from '../core/giantAlarmController';
+import {
+  CursorHugState,
+  createCursorHugState,
+  stepCursorHug,
+  triggerCursorPounce,
+  shouldIgnoreMouseDuringHug,
+} from '../core/cursorHugController';
 
 interface ProcessedFrame {
   readonly canvas: HTMLCanvasElement;
@@ -93,6 +100,7 @@ let state: UsagiState = createInitialUsagiState(screenBounds);
 let ghostState = createGhostModeState(false);
 let soundState: SoundState = createSoundState(false, 250);
 let giantAlarmState: GiantAlarmState = createGiantAlarmState();
+let cursorHugState: CursorHugState = createCursorHugState(true);
 let playModeEnabled = false;
 let activeSnack: SnackTarget | null = null;
 let cursorPos: Vector2D | null = null;
@@ -274,6 +282,14 @@ function handleGiantAlarmDismiss(): void {
 }
 
 function updateMouseIgnoreState(): void {
+  if (shouldIgnoreMouseDuringHug(cursorHugState)) {
+    if (!ghostState.currentlyIgnoringMouse) {
+      ghostState.currentlyIgnoringMouse = true;
+      window.usagiAPI?.setIgnoreMouseEvents(true, { forward: true });
+    }
+    return;
+  }
+
   if (isDraggingUsagi || isSettingsModalOpen || isGiantAlarmInteractive(giantAlarmState)) {
     if (ghostState.currentlyIgnoringMouse) {
       ghostState.currentlyIgnoringMouse = false;
@@ -662,6 +678,21 @@ if (window.usagiAPI) {
       state.speechBubble = text;
       state.speechTimerMs = DEFAULT_PHYSICS_CONFIG.speechDurationMs;
     }
+  });
+
+  window.usagiAPI.onCursorHugChanged((enabled) => {
+    cursorHugState.enabled = enabled;
+  });
+
+  window.usagiAPI.onTriggerCursorHugNow(() => {
+    cursorHugState = triggerCursorPounce(cursorHugState);
+  });
+
+  window.usagiAPI.onTaskCelebration((taskText) => {
+    state.spinBoostTimerMs = 1500;
+    state.speechBubble = `Yaha!! ✓ ${taskText}`;
+    state.speechTimerMs = 3000;
+    playSound('timer-complete');
   });
 }
 
@@ -1088,6 +1119,32 @@ function drawGiantAlarmOverlay(
   context.restore();
 }
 
+function drawClingingNotes(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  timeMs: number
+): void {
+  context.save();
+  context.font = 'bold 16px sans-serif';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+
+  // Floating note 1: ♪ (strawberry pink)
+  context.fillStyle = '#ff758f';
+  context.fillText('♪', x - 32, y - 24 + Math.sin(timeMs * 0.005) * 6);
+
+  // Floating note 2: ★ (custard gold)
+  context.fillStyle = '#ffeaa7';
+  context.fillText('★', x + 32, y - 28 + Math.cos(timeMs * 0.006) * 6);
+
+  // Floating note 3: ♥ (soft strawberry)
+  context.fillStyle = '#ff8fa3';
+  context.fillText('♥', x, y - 44 + Math.sin(timeMs * 0.007 + 1) * 5);
+
+  context.restore();
+}
+
 let lastTime = performance.now();
 
 function animationLoop(now: number): void {
@@ -1106,6 +1163,39 @@ function animationLoop(now: number): void {
   const cursorTarget = playModeEnabled && !ghostState.ghostModeLocked ? cursorPos : null;
   const result = stepUsagiPhysics(state, dt, screenBounds, activeSnack, undefined, cursorTarget);
   state = result.state;
+
+  // Step Cursor Hug Controller
+  const hugResult = stepCursorHug(
+    cursorHugState,
+    { x: state.x, y: state.y },
+    cursorPos,
+    dt,
+    now,
+    state.stationary || state.sleeping
+  );
+  cursorHugState = hugResult.hugState;
+
+  if (hugResult.soundTrigger === 'hug-attach') {
+    playSound('click-combo');
+  } else if (hugResult.soundTrigger === 'dizzy-drop') {
+    playSound('click-normal');
+  }
+
+  if (hugResult.speechBubbleOverride) {
+    state.speechBubble = hugResult.speechBubbleOverride;
+    state.speechTimerMs = 1500;
+  }
+
+  if (hugResult.targetPos) {
+    state.x = hugResult.targetPos.x;
+    state.y = hugResult.targetPos.y;
+    state.vx = 0;
+    state.vy = 0;
+  }
+
+  if (hugResult.rotationOverride !== null) {
+    state.rotation = hugResult.rotationOverride;
+  }
 
   if (result.snackConsumed && activeSnack) {
     activeSnack = null;
@@ -1132,6 +1222,10 @@ function animationLoop(now: number): void {
       : costumeFrames.get(currentCostumeId) || uprightFrame;
   if (activeFrame) {
     drawUsagi(ctx, state, activeFrame);
+  }
+
+  if (cursorHugState.phase === 'clinging') {
+    drawClingingNotes(ctx, state.x, state.y, now);
   }
 
   if (state.speechBubble) {
