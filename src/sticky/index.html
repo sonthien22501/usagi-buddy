@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Usagi Sticky Quests</title>
+    <style>
+      :root,
+      [data-theme='custard'] {
+        --bg-sticky: #fffdf5;
+        --bg-header: #ffe699;
+        --border-color: #5c3a21;
+        --text-color: #5c3a21;
+        --text-muted: #8b6247;
+        --accent-color: #ff8fa3;
+        --accent-hover: #ff758f;
+        --card-bg: #ffffff;
+        --item-hover: #fff3d6;
+        --shadow-color: #e6c88a;
+        --done-color: #b0a390;
+      }
+
+      [data-theme='night'] {
+        --bg-sticky: #1e1a29;
+        --bg-header: #2d2442;
+        --border-color: #e8b4b8;
+        --text-color: #fce8ee;
+        --text-muted: #bdaec6;
+        --accent-color: #ff758f;
+        --accent-hover: #ff8fa3;
+        --card-bg: #272138;
+        --item-hover: #332a4a;
+        --shadow-color: #120f1d;
+        --done-color: #6a607d;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        user-select: none;
+      }
+
+      body {
+        width: 300px;
+        height: 360px;
+        overflow: hidden;
+        background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+        padding: 6px;
+      }
+
+      .sticky-card {
+        width: 100%;
+        height: 100%;
+        background: var(--bg-sticky);
+        border: 2.5px solid var(--border-color);
+        border-radius: 16px;
+        box-shadow: 0 4px 0 var(--shadow-color), 0 8px 16px rgba(0, 0, 0, 0.12);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+      }
+
+      .sticky-header {
+        -webkit-app-region: drag;
+        background: var(--bg-header);
+        border-bottom: 2px solid var(--border-color);
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: grab;
+      }
+
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--text-color);
+        letter-spacing: 0.3px;
+      }
+
+      .header-title .icon {
+        font-size: 15px;
+      }
+
+      .header-actions {
+        -webkit-app-region: no-drag;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn-icon {
+        background: transparent;
+        border: none;
+        color: var(--text-color);
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        transition: background 0.15s ease, transform 0.1s ease;
+      }
+
+      .btn-icon:hover {
+        background: rgba(0, 0, 0, 0.08);
+        transform: scale(1.05);
+      }
+
+      .btn-icon:active {
+        transform: scale(0.95);
+      }
+
+      .input-bar {
+        padding: 8px 10px;
+        display: flex;
+        gap: 6px;
+        background: var(--bg-sticky);
+        border-bottom: 1.5px dashed var(--border-color);
+      }
+
+      .input-text {
+        flex: 1;
+        padding: 6px 10px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 12px;
+        background: var(--card-bg);
+        color: var(--text-color);
+        outline: none;
+        transition: border-color 0.15s ease;
+      }
+
+      .input-text:focus {
+        border-color: var(--accent-color);
+      }
+
+      .btn-add {
+        background: var(--accent-color);
+        color: #ffffff;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0 12px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 2px 0 var(--border-color);
+        transition: background 0.15s ease, transform 0.08s ease;
+      }
+
+      .btn-add:hover {
+        background: var(--accent-hover);
+      }
+
+      .btn-add:active {
+        transform: translateY(2px);
+        box-shadow: none;
+      }
+
+      .quest-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .quest-list::-webkit-scrollbar {
+        width: 5px;
+      }
+      .quest-list::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+
+      .quest-item {
+        background: var(--card-bg);
+        border: 1.5px solid var(--border-color);
+        border-radius: 8px;
+        padding: 6px 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.15s ease;
+      }
+
+      .quest-item:hover {
+        background: var(--item-hover);
+      }
+
+      .quest-checkbox {
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--card-bg);
+        cursor: pointer;
+        position: relative;
+        flex-shrink: 0;
+        transition: background 0.15s ease, border-color 0.15s ease;
+      }
+
+      .quest-checkbox:checked {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+      }
+
+      .quest-checkbox:checked::after {
+        content: '✓';
+        position: absolute;
+        top: -2px;
+        left: 2px;
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .quest-text {
+        flex: 1;
+        font-size: 12px;
+        color: var(--text-color);
+        word-break: break-word;
+        transition: color 0.15s ease, text-decoration 0.15s ease;
+        line-height: 1.3;
+      }
+
+      .quest-item.completed .quest-text {
+        text-decoration: line-through;
+        color: var(--done-color);
+      }
+
+      .quest-delete {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 12px;
+        opacity: 0.6;
+        padding: 2px 4px;
+        border-radius: 4px;
+        transition: opacity 0.15s ease, color 0.15s ease;
+      }
+
+      .quest-delete:hover {
+        opacity: 1;
+        color: #e63946;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 30px 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      .empty-state .emoji {
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+
+      .sticky-footer {
+        padding: 6px 10px;
+        background: var(--bg-sticky);
+        border-top: 1.5px dashed var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      .btn-clear {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-color);
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.08s ease;
+      }
+
+      .btn-clear:hover {
+        background: var(--item-hover);
+      }
+
+      .btn-clear:active {
+        transform: scale(0.96);
+      }
+    </style>
+  </head>
+  <body data-theme="custard">
+    <div class="sticky-card">
+      <div class="sticky-header">
+        <div class="header-title">
+          <span class="icon">🍮</span>
+          <span>Usagi Quests</span>
+        </div>
+        <div class="header-actions">
+          <button id="themeToggleBtn" class="btn-icon" title="Toggle Theme">🌙</button>
+          <button id="minimizeBtn" class="btn-icon" title="Hide Note">✕</button>
+        </div>
+      </div>
+
+      <div class="input-bar">
+        <input
+          id="questInput"
+          type="text"
+          class="input-text"
+          placeholder="Add quick quest..."
+          maxlength="120"
+        />
+        <button id="addQuestBtn" class="btn-add">+</button>
+      </div>
+
+      <div id="questList" class="quest-list">
+        <!-- Rendered items -->
+      </div>
+
+      <div class="sticky-footer">
+        <span id="questCounter">0/0 completed</span>
+        <button id="clearDoneBtn" class="btn-clear">Clear Done</button>
+      </div>
+    </div>
+
+    <script type="module" src="./sticky.js"></script>
+  </body>
+</html>

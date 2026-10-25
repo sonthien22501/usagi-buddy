@@ -39,14 +39,26 @@ import {
   pickRandomCostume,
   isKnownOutfitSelection,
 } from '../core/costumeManager';
+import {
+  ReminderState,
+  createInitialReminderState,
+  addReminderItem,
+  toggleReminderItem,
+  deleteReminderItem,
+  clearCompletedReminders,
+  parseRemindersJson,
+  serializeRemindersJson,
+} from '../core/reminderStore';
 
 let mainWindow: BrowserWindow | null = null;
 let dashboardWindow: BrowserWindow | null = null;
+let stickyWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let ghostLocked = false;
 let playModeEnabled = false;
 let soundMuted = false;
 let stationaryMode = false;
+let cursorHugEnabled = true;
 let isQuitting = false;
 let volumeConfig: VolumeConfig = { ...DEFAULT_VOLUME_CONFIG };
 let costumeSelection: OutfitSelection = 'classic';
@@ -54,9 +66,40 @@ let activeCostume: CostumeId = 'classic';
 
 let pomodoroState: PomodoroState = createPomodoroTimer();
 let wellnessState: WellnessState = createWellnessState();
+let reminderState: ReminderState = createInitialReminderState();
 
 let pomodoroInterval: NodeJS.Timeout | null = null;
 let wellnessInterval: NodeJS.Timeout | null = null;
+
+function getRemindersFilePath(): string {
+  try {
+    return path.join(app.getPath('userData'), 'usagi-reminders.json');
+  } catch {
+    return path.resolve(__dirname, '../../usagi-reminders.json');
+  }
+}
+
+function loadRemindersFromDisk(): void {
+  try {
+    const p = getRemindersFilePath();
+    if (fs.existsSync(p)) {
+      const raw = fs.readFileSync(p, 'utf-8');
+      reminderState = parseRemindersJson(raw);
+    }
+  } catch (err) {
+    console.warn('Failed to load reminders from disk:', err);
+    reminderState = createInitialReminderState();
+  }
+}
+
+function saveRemindersToDisk(): void {
+  try {
+    const p = getRemindersFilePath();
+    fs.writeFileSync(p, serializeRemindersJson(reminderState), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to save reminders to disk:', err);
+  }
+}
 
 function getScreenBounds(): ScreenBounds {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -73,6 +116,13 @@ function broadcastToAllWindows(channel: string, ...args: any[]): void {
   if (dashboardWindow && !dashboardWindow.isDestroyed()) {
     dashboardWindow.webContents.send(channel, ...args);
   }
+  if (stickyWindow && !stickyWindow.isDestroyed()) {
+    stickyWindow.webContents.send(channel, ...args);
+  }
+}
+
+function broadcastReminderState(): void {
+  broadcastToAllWindows('reminder-state-changed', reminderState);
 }
 
 function broadcastVolumeConfig(): void {
@@ -142,8 +192,88 @@ function createDashboardWindow(): void {
       dashboardWindow.webContents.send('ghost-mode-toggle', ghostLocked);
       dashboardWindow.webContents.send('play-mode-toggle', playModeEnabled);
       dashboardWindow.webContents.send('costume-changed', activeCostume, costumeSelection);
+      dashboardWindow.webContents.send('reminder-state-changed', reminderState);
+      dashboardWindow.webContents.send('cursor-hug-toggle', cursorHugEnabled);
     }
   });
+}
+
+function createStickyWindow(): void {
+  if (stickyWindow && !stickyWindow.isDestroyed()) {
+    if (reminderState.stickyVisible) {
+      stickyWindow.show();
+    } else {
+      stickyWindow.hide();
+    }
+    return;
+  }
+
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { workArea } = primaryDisplay;
+  const width = 300;
+  const height = 360;
+  const x = Math.max(0, workArea.x + workArea.width - width - 24);
+  const y = Math.max(0, workArea.y + 48);
+
+  stickyWindow = new BrowserWindow({
+    x,
+    y,
+    width,
+    height,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    alwaysOnTop: false,
+    skipTaskbar: true,
+    fullscreenable: false,
+    hasShadow: false,
+    type: process.platform === 'darwin' ? 'desktop' : undefined,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  const htmlPath = path.join(__dirname, '../sticky/index.html');
+  stickyWindow.loadFile(htmlPath);
+
+  stickyWindow.webContents.on('did-finish-load', () => {
+    if (stickyWindow && !stickyWindow.isDestroyed()) {
+      stickyWindow.webContents.send('reminder-state-changed', reminderState);
+    }
+  });
+
+  stickyWindow.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault();
+      reminderState.stickyVisible = false;
+      saveRemindersToDisk();
+      broadcastReminderState();
+      updateTrayMenu();
+      stickyWindow?.hide();
+    }
+  });
+
+  if (!reminderState.stickyVisible) {
+    stickyWindow.hide();
+  }
+}
+
+function toggleStickyWindow(): void {
+  reminderState.stickyVisible = !reminderState.stickyVisible;
+  saveRemindersToDisk();
+  broadcastReminderState();
+  updateTrayMenu();
+  if (stickyWindow && !stickyWindow.isDestroyed()) {
+    if (reminderState.stickyVisible) {
+      stickyWindow.show();
+    } else {
+      stickyWindow.hide();
+    }
+  } else if (reminderState.stickyVisible) {
+    createStickyWindow();
+  }
 }
 
 function setCostume(selection: OutfitSelection): void {
@@ -235,6 +365,10 @@ function updateTrayMenu(): void {
     {
       label: '🎛️ Open Usagi Dashboard...',
       click: () => createDashboardWindow(),
+    },
+    {
+      label: reminderState.stickyVisible ? '📝 Hide Sticky Quests' : '📝 Show Sticky Quests',
+      click: () => toggleStickyWindow(),
     },
     { type: 'separator' },
     {
@@ -335,6 +469,7 @@ function createMainWindow(): void {
   mainWindow.webContents.on('did-finish-load', () => {
     broadcastVolumeConfig();
     mainWindow?.webContents.send('stationary-mode-toggle', stationaryMode);
+    mainWindow?.webContents.send('cursor-hug-toggle', cursorHugEnabled);
   });
 
   mainWindow.on('closed', () => {
@@ -414,7 +549,9 @@ function setupWellnessCoachTicker(): void {
 }
 
 app.whenReady().then(() => {
+  loadRemindersFromDisk();
   createMainWindow();
+  createStickyWindow();
   createSystemTray();
   setupPomodoroTicker();
   setupWellnessCoachTicker();
@@ -515,6 +652,55 @@ app.whenReady().then(() => {
     if (isKnownOutfitSelection(selection)) {
       setCostume(selection);
     }
+  });
+
+  ipcMain.handle('get-reminder-state', () => reminderState);
+
+  ipcMain.on('add-reminder', (_e, text: string) => {
+    reminderState = addReminderItem(reminderState, text);
+    saveRemindersToDisk();
+    broadcastReminderState();
+  });
+
+  ipcMain.on('toggle-reminder', (_e, id: string) => {
+    const result = toggleReminderItem(reminderState, id);
+    reminderState = result.state;
+    saveRemindersToDisk();
+    broadcastReminderState();
+    if (result.newlyCompleted) {
+      broadcastToAllWindows('task-celebration', result.newlyCompleted.text);
+    }
+  });
+
+  ipcMain.on('delete-reminder', (_e, id: string) => {
+    reminderState = deleteReminderItem(reminderState, id);
+    saveRemindersToDisk();
+    broadcastReminderState();
+  });
+
+  ipcMain.on('clear-completed-reminders', () => {
+    reminderState = clearCompletedReminders(reminderState);
+    saveRemindersToDisk();
+    broadcastReminderState();
+  });
+
+  ipcMain.on('toggle-sticky-window', () => {
+    toggleStickyWindow();
+  });
+
+  ipcMain.on('set-theme', (_e, theme: 'custard' | 'night') => {
+    reminderState = { ...reminderState, theme };
+    saveRemindersToDisk();
+    broadcastReminderState();
+  });
+
+  ipcMain.on('toggle-cursor-hug', () => {
+    cursorHugEnabled = !cursorHugEnabled;
+    broadcastToAllWindows('cursor-hug-toggle', cursorHugEnabled);
+  });
+
+  ipcMain.on('trigger-cursor-hug-now', () => {
+    broadcastToAllWindows('trigger-cursor-hug-now');
   });
 
   screen.on('display-metrics-changed', () => {
