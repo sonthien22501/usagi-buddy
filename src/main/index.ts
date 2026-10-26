@@ -453,7 +453,7 @@ function setPomodoroDuration(durationMs: number): void {
 function triggerPreviewWellnessReminder(): void {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   mainWindow.webContents.send('wellness-update', {
-    mood: wellnessState.mood,
+    mood: 'active',
     message: WATER_REMINDER_MESSAGE,
     soundEvent: 'wellness-reminder',
   });
@@ -525,7 +525,6 @@ function setupPomodoroTicker(): void {
 
       if (spawnedSnack && mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('trigger-giant-alarm');
-        mainWindow.webContents.send('spawn-snack', spawnedSnack);
         wellnessState = recordPomodoroCompleted(wellnessState);
       }
     }
@@ -534,8 +533,15 @@ function setupPomodoroTicker(): void {
   }, 1000);
 }
 
+let lastWellnessTickMs = Date.now();
+
 function setupWellnessCoachTicker(): void {
+  lastWellnessTickMs = Date.now();
   wellnessInterval = setInterval(() => {
+    const now = Date.now();
+    const elapsedMs = Math.max(1000, Math.min(60_000, now - lastWellnessTickMs));
+    lastWellnessTickMs = now;
+
     let idleSeconds = 0;
     try {
       idleSeconds = powerMonitor.getSystemIdleTime();
@@ -543,11 +549,13 @@ function setupWellnessCoachTicker(): void {
       idleSeconds = 0;
     }
 
-    const result = tickWellnessCoach(wellnessState, 5000, idleSeconds);
+    const result = tickWellnessCoach(wellnessState, elapsedMs, idleSeconds, {
+      afkThresholdSeconds: 600,
+    });
     wellnessState = result.state;
 
     // 30-Minute Wardrobe Auto-Rotate
-    const wardrobeResult = tickWardrobeRotation(wardrobeRotation, activeCostume, 5000);
+    const wardrobeResult = tickWardrobeRotation(wardrobeRotation, activeCostume, elapsedMs);
     wardrobeRotation = wardrobeResult.state;
     if (wardrobeResult.nextCostume) {
       activeCostume = wardrobeResult.nextCostume;
@@ -568,14 +576,11 @@ function setupWellnessCoachTicker(): void {
           mood: 'sleeping',
           message: 'Zzz...',
         });
-      }
-      if (result.welcomeBack) {
+      } else if (result.welcomeBack) {
         mainWindow.webContents.send('wellness-update', {
           mood: 'active',
           message: 'Yaha! Welcome back~',
-          soundEvent: 'welcome-back',
         });
-        dropSnackNow();
       }
     }
 

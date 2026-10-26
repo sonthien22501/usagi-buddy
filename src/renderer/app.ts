@@ -202,7 +202,6 @@ function handleRepeatSession(): void {
       : DEFAULT_POMODORO_MS;
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
   hideAlarmActionsOverlay();
-  playSound('click-normal');
   window.usagiAPI?.setPomodoroDuration(duration, true);
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
@@ -212,7 +211,6 @@ function handleSnoozeWrapUp(minutes: number = 5): void {
   const duration = calculateSnoozeDurationMs(minutes);
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
   hideAlarmActionsOverlay();
-  playSound('click-normal');
   window.usagiAPI?.setPomodoroDuration(duration, true);
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
@@ -227,7 +225,6 @@ function handleTakeBreak(minutes?: number): void {
   const duration = calculateSnoozeDurationMs(breakMins);
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
   hideAlarmActionsOverlay();
-  playSound('click-normal');
   window.usagiAPI?.setPomodoroDuration(duration, true);
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
@@ -271,7 +268,6 @@ function handleGiantAlarmDismiss(): void {
   if (!isGiantAlarmInteractive(giantAlarmState)) return;
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
   hideAlarmActionsOverlay();
-  playSound('click-normal');
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
 
@@ -611,13 +607,14 @@ if (window.usagiAPI) {
   });
 
   window.usagiAPI.onWellnessUpdate((payload) => {
+    const isWaterReminder = payload.soundEvent === 'wellness-reminder';
     state = {
       ...state,
-      sleeping: payload.mood === 'sleeping',
+      sleeping: isWaterReminder ? false : payload.mood === 'sleeping',
     };
     if (payload.message) {
       state.speechBubble = payload.message;
-      state.speechTimerMs = DEFAULT_PHYSICS_CONFIG.speechDurationMs * 2.2;
+      state.speechTimerMs = isWaterReminder ? 8000 : DEFAULT_PHYSICS_CONFIG.speechDurationMs * 2.2;
     }
     if (payload.soundEvent) {
       const text = playSound(payload.soundEvent);
@@ -625,6 +622,10 @@ if (window.usagiAPI) {
         // Reminder keeps the full payload message (already contains the voice word); other events use the returned voice text
         state.speechBubble =
           payload.soundEvent === 'wellness-reminder' && payload.message ? payload.message : text;
+        if (payload.soundEvent === 'wellness-reminder') {
+          state.speechTimerMs = 8000;
+          state.sleeping = false;
+        }
       }
     }
   });
@@ -1144,9 +1145,8 @@ function animationLoop(now: number): void {
   if (result.snackConsumed && activeSnack) {
     activeSnack = null;
     const text = playSound('snack-eaten');
-    if (text) {
-      state.speechBubble = text;
-    }
+    state.speechBubble = text ?? 'Unayahayahauna!';
+    state.speechTimerMs = DEFAULT_PHYSICS_CONFIG.speechDurationMs * 1.5;
     window.usagiAPI?.notifySnackConsumed();
   }
 

@@ -135,18 +135,22 @@ export function tickWellnessCoach(
   // Currently sleeping (mood === 'sleeping')
   if (!isIdle) {
     // User has returned from break!
+    const candidateActiveMs = state.activeScreenMs + Math.max(0, elapsedMs);
+    const shouldRemind = candidateActiveMs >= state.nextReminderAtMs;
+
     return {
       state: {
         ...state,
         mood: 'active',
-        // Preserve activeScreenMs so brief pauses/reading do not wipe water reminder countdown
-        activeScreenMs: state.activeScreenMs,
+        // Preserve activeScreenMs if not reminded, or reset to 0 if reminder triggered
+        activeScreenMs: shouldRemind ? 0 : state.activeScreenMs,
+        nextReminderAtMs: shouldRemind ? drawReminderIntervalMs(rand, cfg) : state.nextReminderAtMs,
         stats: {
           ...state.stats,
           breaksTaken: state.stats.breaksTaken + 1,
         },
       },
-      reminderMessage: null,
+      reminderMessage: shouldRemind ? WATER_REMINDER_MESSAGE : null,
       enteredSleep: false,
       welcomeBack: true,
     };

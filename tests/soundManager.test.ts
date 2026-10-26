@@ -126,6 +126,30 @@ describe('soundManager', () => {
     expect(rMuted.text).toBe('Una!');
   });
 
+  it('bypasses cooldown throttle for snack-eaten, wellness-reminder, and timer-complete events', () => {
+    let state = createSoundState(false, 300);
+    // Click sound plays at t=1000
+    const rClick = selectSoundForEvent(state, 'click-normal', 1000);
+    expect(rClick.file).not.toBeNull();
+    state = rClick.state;
+
+    // Only 50ms later (within 300ms cooldown)
+    const rSnack = selectSoundForEvent(state, 'snack-eaten', 1050);
+    expect(rSnack.file).toBe('unayahayahauna.mp3');
+    expect(rSnack.url).toContain('unayahayahauna.mp3');
+    expect(rSnack.text).toBe('Unayahayahauna!');
+
+    // Another 50ms later, wellness-reminder also bypasses cooldown
+    const rWater = selectSoundForEvent(rSnack.state, 'wellness-reminder', 1100);
+    expect(rWater.file).toBe('huhhhh.mp3');
+    expect(rWater.url).toContain('huhhhh.mp3');
+    expect(rWater.text).toBe('Huhhhh?');
+
+    // Normal click within cooldown is still throttled
+    const rClickThrottled = selectSoundForEvent(rWater.state, 'click-normal', 1150);
+    expect(rClickThrottled.file).toBeNull();
+  });
+
   it('verifies SOUND_ASSET_FILES lists all 6 expected voice assets', () => {
     expect(SOUND_ASSET_FILES).toEqual([
       'una.mp3',

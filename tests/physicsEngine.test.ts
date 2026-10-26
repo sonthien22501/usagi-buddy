@@ -129,6 +129,23 @@ describe('physicsEngine', () => {
     expect(afterStep.speechBubble).toBe('Zzz...');
   });
 
+  it('wakes Usagi up and steers toward snack when snack is active while sleeping is true', () => {
+    const sleepingState = {
+      ...createInitialUsagiState(screen),
+      sleeping: true,
+      x: 200,
+      y: 200,
+      vx: 0,
+      vy: 0,
+    };
+    const snack = { x: 350, y: 200, active: true, radius: 28 };
+
+    const { state: afterStep } = stepUsagiPhysics(sleepingState, 50, screen, snack);
+    expect(afterStep.sleeping).toBe(false);
+    expect(afterStep.vx).toBeGreaterThan(0);
+    expect(afterStep.speechBubble).not.toBe('Zzz...');
+  });
+
   it('clamps extreme dtMs spikes and shrinking screen bounds safely (Review Focus #2 & #3)', () => {
     const initial = createInitialUsagiState(screen);
     // 60-second OS sleep spike should be clamped to 100ms
