@@ -101,4 +101,88 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(height).toBe(755);
     expect(buf[25]).toBe(6);
   });
+
+  it('verifies desktop sticky reminder note assets exist', () => {
+    const htmlPath = path.resolve(__dirname, '../src/sticky/index.html');
+    const tsPath = path.resolve(__dirname, '../src/sticky/sticky.ts');
+    expect(fs.existsSync(htmlPath)).toBe(true);
+    expect(fs.existsSync(tsPath)).toBe(true);
+
+    const htmlContent = fs.readFileSync(htmlPath, 'utf-8');
+    expect(htmlContent).toContain('Usagi Quests');
+    expect(htmlContent).toContain('questInput');
+    expect(htmlContent).toContain('addQuestBtn');
+    expect(htmlContent).toContain('questList');
+  });
+
+  it('verifies dashboard contains Usagi Custard anime theme, reminder checklist, and clean wardrobe controls', () => {
+    const dashboardHtmlPath = path.resolve(__dirname, '../src/dashboard/index.html');
+    expect(fs.existsSync(dashboardHtmlPath)).toBe(true);
+    const html = fs.readFileSync(dashboardHtmlPath, 'utf-8');
+
+    // Usagi Custard & Caramel Anime Theme variables & toggle
+    expect(html).toContain('data-theme');
+    expect(html).toContain('theme-toggle-btn');
+    expect(html).toContain('--bg-color');
+    expect(html).toContain('--border-color');
+
+    // Desktop Sticky Reminders Card & controls
+    expect(html).toContain('sticky-reminders-card');
+    expect(html).toContain('toggle-sticky-window-btn');
+    expect(html).toContain('dashboard-quest-input');
+    expect(html).toContain('dashboard-add-quest-btn');
+    expect(html).toContain('dashboard-quest-list');
+    expect(html).toContain('dashboard-clear-done-btn');
+
+    // Clean Wardrobe Auto-Change button
+    expect(html).toContain('fix-appearance-toggle-btn');
+    expect(html).toContain('🔄 Auto-Change');
+    expect(html).not.toContain('🔄 Auto-Change (30m)');
+
+    // Cursor Keychain Hug removed
+    expect(html).not.toContain('cursor-hug-toggle-btn');
+    expect(html).not.toContain('pounce-cursor-btn');
+  });
+
+  it('verifies macOS sticky window accepts first mouse and quests use comfy strikethrough line', () => {
+    const mainTs = fs.readFileSync(path.resolve(__dirname, '../src/main/index.ts'), 'utf-8');
+    expect(mainTs).toContain('acceptFirstMouse: true');
+    expect(mainTs).not.toContain("type: process.platform === 'darwin' ? 'desktop' : undefined");
+
+    const stickyHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/sticky/index.html'),
+      'utf-8'
+    );
+    const dashboardHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/dashboard/index.html'),
+      'utf-8'
+    );
+    expect(stickyHtml).toContain('.comfy-line');
+    expect(dashboardHtml).toContain('.comfy-line');
+
+    const stickyTs = fs.readFileSync(path.resolve(__dirname, '../src/sticky/sticky.ts'), 'utf-8');
+    const dashboardTs = fs.readFileSync(
+      path.resolve(__dirname, '../src/dashboard/dashboard.ts'),
+      'utf-8'
+    );
+    expect(stickyTs).toContain('comfy-line');
+    expect(stickyTs).not.toContain("checkbox.type = 'checkbox'");
+    expect(dashboardTs).toContain('comfy-line');
+    expect(dashboardTs).not.toContain("cb.type = 'checkbox'");
+  });
+
+  it('verifies fixed appearance and hide usagi controls in dashboard and preload API', () => {
+    const dashboardHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/dashboard/index.html'),
+      'utf-8'
+    );
+    expect(dashboardHtml).toContain('fix-appearance-toggle-btn');
+    expect(dashboardHtml).toContain('hide-usagi-toggle-btn');
+
+    const preloadTs = fs.readFileSync(path.resolve(__dirname, '../src/preload/index.ts'), 'utf-8');
+    expect(preloadTs).toContain('toggleFixedAppearance');
+    expect(preloadTs).toContain('onFixedAppearanceChanged');
+    expect(preloadTs).toContain('toggleUsagiHidden');
+    expect(preloadTs).toContain('onUsagiHiddenChanged');
+  });
 });

@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALL_COSTUME_IDS,
+  COSTUME_AUTO_ROTATE_INTERVAL_MS,
   COSTUME_DEFINITIONS,
   GIANT_ALARM_SPRITES,
+  WardrobeRotationState,
+  createWardrobeRotationState,
   getCostumeDefinition,
   getNextCostume,
   isKnownCostumeId,
@@ -10,6 +13,7 @@ import {
   normalizeCostumeId,
   pickRandomCostume,
   pickRandomGiantAlarmSprite,
+  tickWardrobeRotation,
 } from '../src/core/costumeManager';
 
 describe('costumeManager', () => {
@@ -86,5 +90,59 @@ describe('costumeManager', () => {
 
     const afterBig2 = pickRandomGiantAlarmSprite('Usagi_Big2.png', () => 0);
     expect(afterBig2).toBe('Usagi_Big.png');
+  });
+
+  it('defines 30-minute auto-rotate interval constant as 1,800,000 ms', () => {
+    expect(COSTUME_AUTO_ROTATE_INTERVAL_MS).toBe(30 * 60 * 1000);
+    expect(COSTUME_AUTO_ROTATE_INTERVAL_MS).toBe(1_800_000);
+  });
+
+  it('creates wardrobe rotation state with default fixedAppearance = false and 0 elapsed', () => {
+    const sDefault = createWardrobeRotationState();
+    expect(sDefault.fixedAppearance).toBe(false);
+    expect(sDefault.elapsedMs).toBe(0);
+
+    const sFixed = createWardrobeRotationState(true);
+    expect(sFixed.fixedAppearance).toBe(true);
+    expect(sFixed.elapsedMs).toBe(0);
+  });
+
+  it('rotates costume automatically every 30 minutes when fixedAppearance is false', () => {
+    let state = createWardrobeRotationState(false);
+    let currentCostume = 'classic' as const;
+
+    // Accumulating 15 minutes (900,000 ms) -> no rotation
+    const r1 = tickWardrobeRotation(state, currentCostume, 15 * 60 * 1000);
+    state = r1.state;
+    expect(r1.nextCostume).toBeNull();
+    expect(state.elapsedMs).toBe(15 * 60 * 1000);
+
+    // Another 14 minutes (840,000 ms) -> 29m total, still no rotation
+    const r2 = tickWardrobeRotation(state, currentCostume, 14 * 60 * 1000);
+    state = r2.state;
+    expect(r2.nextCostume).toBeNull();
+    expect(state.elapsedMs).toBe(29 * 60 * 1000);
+
+    // Final 1 minute (60,000 ms) -> 30m reached, picks new costume
+    const r3 = tickWardrobeRotation(state, currentCostume, 60 * 1000, () => 0);
+    state = r3.state;
+    expect(r3.nextCostume).not.toBeNull();
+    expect(r3.nextCostume).not.toBe('classic');
+    expect(state.elapsedMs).toBe(0);
+
+    // Another tick immediately with small dtMs doesn't rotate again
+    const r4 = tickWardrobeRotation(state, r3.nextCostume!, 5000);
+    expect(r4.nextCostume).toBeNull();
+    expect(r4.state.elapsedMs).toBe(5000);
+  });
+
+  it('locks appearance and never rotates when fixedAppearance is true', () => {
+    let state = createWardrobeRotationState(true);
+
+    // Advance 60 minutes
+    const r1 = tickWardrobeRotation(state, 'study', 60 * 60 * 1000);
+    expect(r1.nextCostume).toBeNull();
+    expect(r1.state.elapsedMs).toBe(0);
+    expect(r1.state.fixedAppearance).toBe(true);
   });
 });

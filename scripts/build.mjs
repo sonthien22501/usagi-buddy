@@ -12,6 +12,7 @@ async function build() {
   fs.mkdirSync(path.join(rootDir, 'dist/preload'), { recursive: true });
   fs.mkdirSync(path.join(rootDir, 'dist/renderer'), { recursive: true });
   fs.mkdirSync(path.join(rootDir, 'dist/dashboard'), { recursive: true });
+  fs.mkdirSync(path.join(rootDir, 'dist/sticky'), { recursive: true });
   fs.mkdirSync(path.join(rootDir, 'dist/assets'), { recursive: true });
 
   // Copy renderer index.html
@@ -26,14 +27,17 @@ async function build() {
     path.join(rootDir, 'dist/dashboard/index.html')
   );
 
+  // Copy sticky index.html
+  fs.copyFileSync(
+    path.join(rootDir, 'src/sticky/index.html'),
+    path.join(rootDir, 'dist/sticky/index.html')
+  );
+
   // Copy PNG and MP3 assets
   const assetFiles = fs.readdirSync(path.join(rootDir, 'assets'));
   for (const file of assetFiles) {
     if (file.endsWith('.png') || file.endsWith('.mp3')) {
-      fs.copyFileSync(
-        path.join(rootDir, 'assets', file),
-        path.join(rootDir, 'dist/assets', file)
-      );
+      fs.copyFileSync(path.join(rootDir, 'assets', file), path.join(rootDir, 'dist/assets', file));
     }
   }
 
@@ -76,6 +80,17 @@ async function build() {
   await esbuild.build({
     entryPoints: [path.join(rootDir, 'src/dashboard/dashboard.ts')],
     outfile: path.join(rootDir, 'dist/dashboard/dashboard.js'),
+    bundle: true,
+    platform: 'browser',
+    target: 'es2022',
+    format: 'esm',
+    sourcemap: true,
+  });
+
+  // Bundle sticky note app
+  await esbuild.build({
+    entryPoints: [path.join(rootDir, 'src/sticky/sticky.ts')],
+    outfile: path.join(rootDir, 'dist/sticky/sticky.js'),
     bundle: true,
     platform: 'browser',
     target: 'es2022',

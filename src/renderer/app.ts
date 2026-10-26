@@ -133,6 +133,8 @@ function playSound(event: SoundEvent, customVolume?: number): string | null {
 }
 
 let isSettingsModalOpen = false;
+let isFixedAppearance = false;
+let isUsagiHidden = false;
 let currentPomodoroState: PomodoroState | null = null;
 let isDraggingUsagi = false;
 let dragStartPos: Vector2D | null = null;
@@ -200,7 +202,6 @@ function handleRepeatSession(): void {
       : DEFAULT_POMODORO_MS;
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
   hideAlarmActionsOverlay();
-  playSound('click-normal');
   window.usagiAPI?.setPomodoroDuration(duration, true);
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
@@ -210,7 +211,6 @@ function handleSnoozeWrapUp(minutes: number = 5): void {
   const duration = calculateSnoozeDurationMs(minutes);
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
   hideAlarmActionsOverlay();
-  playSound('click-normal');
   window.usagiAPI?.setPomodoroDuration(duration, true);
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
@@ -225,7 +225,6 @@ function handleTakeBreak(minutes?: number): void {
   const duration = calculateSnoozeDurationMs(breakMins);
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
   hideAlarmActionsOverlay();
-  playSound('click-normal');
   window.usagiAPI?.setPomodoroDuration(duration, true);
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
@@ -269,11 +268,18 @@ function handleGiantAlarmDismiss(): void {
   if (!isGiantAlarmInteractive(giantAlarmState)) return;
   giantAlarmState = dismissGiantAlarm(giantAlarmState);
   hideAlarmActionsOverlay();
-  playSound('click-normal');
   window.usagiAPI?.notifyGiantAlarmDismissed();
 }
 
 function updateMouseIgnoreState(): void {
+  if (isUsagiHidden && !giantAlarmState.active) {
+    if (!ghostState.currentlyIgnoringMouse) {
+      ghostState.currentlyIgnoringMouse = true;
+      window.usagiAPI?.setIgnoreMouseEvents(true, { forward: true });
+    }
+    return;
+  }
+
   if (isDraggingUsagi || isSettingsModalOpen || isGiantAlarmInteractive(giantAlarmState)) {
     if (ghostState.currentlyIgnoringMouse) {
       ghostState.currentlyIgnoringMouse = false;
@@ -331,6 +337,10 @@ window.addEventListener('mouseleave', () => {
 });
 
 window.addEventListener('pointerdown', (e: MouseEvent) => {
+  if (isUsagiHidden && !giantAlarmState.active) {
+    return;
+  }
+
   if (isSettingsModalOpen) {
     return;
   }
@@ -371,13 +381,15 @@ function handlePointerUp(): void {
       }
 
       if (state.comboClicks >= 3) {
-        currentCostumeId = pickRandomCostume(currentCostumeId);
+        if (!isFixedAppearance || currentCostumeSelection === 'random') {
+          currentCostumeId = pickRandomCostume(currentCostumeId);
+          window.usagiAPI?.setCostume(
+            currentCostumeSelection === 'random' ? 'random' : currentCostumeId
+          );
+        }
         const soundEvent: SoundEvent = 'click-combo';
         const text = playSound(soundEvent);
         state.speechBubble = text ?? prev ?? state.speechBubble;
-        window.usagiAPI?.setCostume(
-          currentCostumeSelection === 'random' ? 'random' : currentCostumeId
-        );
       } else {
         const soundEvent: SoundEvent = 'click-normal';
         const text = playSound(soundEvent);
@@ -595,13 +607,14 @@ if (window.usagiAPI) {
   });
 
   window.usagiAPI.onWellnessUpdate((payload) => {
+    const isWaterReminder = payload.soundEvent === 'wellness-reminder';
     state = {
       ...state,
-      sleeping: payload.mood === 'sleeping',
+      sleeping: isWaterReminder ? false : payload.mood === 'sleeping',
     };
     if (payload.message) {
       state.speechBubble = payload.message;
-      state.speechTimerMs = DEFAULT_PHYSICS_CONFIG.speechDurationMs * 2.2;
+      state.speechTimerMs = isWaterReminder ? 8000 : DEFAULT_PHYSICS_CONFIG.speechDurationMs * 2.2;
     }
     if (payload.soundEvent) {
       const text = playSound(payload.soundEvent);
@@ -609,6 +622,10 @@ if (window.usagiAPI) {
         // Reminder keeps the full payload message (already contains the voice word); other events use the returned voice text
         state.speechBubble =
           payload.soundEvent === 'wellness-reminder' && payload.message ? payload.message : text;
+        if (payload.soundEvent === 'wellness-reminder') {
+          state.speechTimerMs = 8000;
+          state.sleeping = false;
+        }
       }
     }
   });
@@ -626,13 +643,15 @@ if (window.usagiAPI) {
     }
 
     if (state.comboClicks >= 3) {
-      currentCostumeId = pickRandomCostume(currentCostumeId);
+      if (!isFixedAppearance || currentCostumeSelection === 'random') {
+        currentCostumeId = pickRandomCostume(currentCostumeId);
+        window.usagiAPI?.setCostume(
+          currentCostumeSelection === 'random' ? 'random' : currentCostumeId
+        );
+      }
       const soundEvent: SoundEvent = 'click-combo';
       const text = playSound(soundEvent);
       state.speechBubble = text ?? prev ?? state.speechBubble;
-      window.usagiAPI?.setCostume(
-        currentCostumeSelection === 'random' ? 'random' : currentCostumeId
-      );
     } else {
       const soundEvent: SoundEvent = 'click-normal';
       const text = playSound(soundEvent);
@@ -662,6 +681,22 @@ if (window.usagiAPI) {
       state.speechBubble = text;
       state.speechTimerMs = DEFAULT_PHYSICS_CONFIG.speechDurationMs;
     }
+  });
+
+  window.usagiAPI.onTaskCelebration((taskText) => {
+    state.spinBoostTimerMs = 1500;
+    state.speechBubble = `Yaha!! ✓ ${taskText}`;
+    state.speechTimerMs = 3000;
+    playSound('timer-complete');
+  });
+
+  window.usagiAPI.onFixedAppearanceChanged((fixed) => {
+    isFixedAppearance = fixed;
+  });
+
+  window.usagiAPI.onUsagiHiddenChanged((hidden) => {
+    isUsagiHidden = hidden;
+    updateMouseIgnoreState();
   });
 }
 
@@ -1110,15 +1145,19 @@ function animationLoop(now: number): void {
   if (result.snackConsumed && activeSnack) {
     activeSnack = null;
     const text = playSound('snack-eaten');
-    if (text) {
-      state.speechBubble = text;
-    }
+    state.speechBubble = text ?? 'Unayahayahauna!';
+    state.speechTimerMs = DEFAULT_PHYSICS_CONFIG.speechDurationMs * 1.5;
     window.usagiAPI?.notifySnackConsumed();
   }
 
   updateMouseIgnoreState();
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (isUsagiHidden && !giantAlarmState.active) {
+    requestAnimationFrame(animationLoop);
+    return;
+  }
 
   if (activeSnack && activeSnack.active) {
     drawSnack(ctx, activeSnack.x, activeSnack.y, activeSnack.radius);

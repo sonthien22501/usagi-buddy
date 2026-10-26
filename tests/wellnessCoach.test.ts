@@ -100,6 +100,24 @@ describe('wellnessCoach', () => {
     expect(res.state.nextReminderAtMs).toBe(1_800_000);
   });
 
+  it('emits water reminder and resets activeScreenMs when waking up from sleep if interval is reached', () => {
+    let state = {
+      ...createWellnessState(),
+      mood: 'sleeping' as const,
+      activeScreenMs: 1_195_000,
+      nextReminderAtMs: 1_200_000,
+    };
+
+    // User moves mouse: idle is 2s (< 120s), elapsed 5000ms pushes total >= 1_200_000
+    const res = tickWellnessCoach(state, 5000, 2, undefined, () => 0.5);
+    expect(res.welcomeBack).toBe(true);
+    expect(res.state.mood).toBe('active');
+    expect(res.reminderMessage).toBe(WATER_REMINDER_MESSAGE);
+    expect(res.state.activeScreenMs).toBe(0);
+    expect(res.state.nextReminderAtMs).toBe(1_800_000);
+    expect(res.state.stats.breaksTaken).toBe(1);
+  });
+
   it('accurately records snacks, pomodoros, and formats daily stats for tray label', () => {
     let state = createWellnessState();
     state = recordSnackFed(state);

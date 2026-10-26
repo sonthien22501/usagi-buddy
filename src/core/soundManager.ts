@@ -206,8 +206,14 @@ export function selectSoundForEvent(
     };
   }
 
-  // Cooldown throttle: prevent overlapping sound spam
-  if (state.lastPlayedAtMs >= 0 && nowMs - state.lastPlayedAtMs < state.cooldownMs) {
+  // Cooldown throttle: prevent overlapping sound spam (bypassed for critical events)
+  const bypassCooldown =
+    event === 'snack-eaten' || event === 'wellness-reminder' || event === 'timer-complete';
+  if (
+    !bypassCooldown &&
+    state.lastPlayedAtMs >= 0 &&
+    nowMs - state.lastPlayedAtMs < state.cooldownMs
+  ) {
     return { state, file: null, url: null, text: null, volume: 0 };
   }
 

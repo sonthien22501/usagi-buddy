@@ -152,7 +152,8 @@ export function stepUsagiPhysics(
   const maxY = Math.max(r, screen.height - r);
 
   // 60 FPS continuous swim-stroke phase
-  const swimSpeed = state.sleeping ? 1.5 : 4.2;
+  const isSleeping = state.sleeping && !(snack && snack.active);
+  const swimSpeed = isSleeping ? 1.5 : 4.2;
   const swimPhaseRad = (state.swimPhaseRad + dtSec * swimSpeed) % (Math.PI * 2);
 
   // Organic jellyfish/otter squash-and-stretch
@@ -166,10 +167,6 @@ export function stepUsagiPhysics(
   if (state.stationary) {
     vx = 0;
     vy = 0;
-  } else if (state.sleeping) {
-    // Drifts lazily when sleeping
-    vx = vx * 0.95;
-    vy = Math.sin(swimPhaseRad) * 15;
   } else if (snack && snack.active) {
     // Steering toward active Pomodoro snack
     const toSnackX = snack.x - state.x;
@@ -182,6 +179,10 @@ export function stepUsagiPhysics(
       vx = vx + (dirX * cfg.maxSpeed - vx) * steerFactor;
       vy = vy + (dirY * cfg.maxSpeed - vy) * steerFactor;
     }
+  } else if (isSleeping) {
+    // Drifts lazily when sleeping
+    vx = vx * 0.95;
+    vy = Math.sin(swimPhaseRad) * 15;
   } else if (cursorTarget) {
     // Play Mode: steer toward cursor
     const toCursorX = cursorTarget.x - state.x;
@@ -274,7 +275,7 @@ export function stepUsagiPhysics(
   let speechBubble = state.speechBubble;
   let speechTimerMs = state.speechTimerMs;
 
-  if (state.sleeping) {
+  if (isSleeping) {
     speechBubble = 'Zzz...';
   } else if (speechTimerMs > 0) {
     speechTimerMs = Math.max(0, speechTimerMs - dt);
@@ -317,7 +318,7 @@ export function stepUsagiPhysics(
       speechTimerMs,
       scaleFlipX,
       snacksEaten,
-      sleeping: state.sleeping,
+      sleeping: isSleeping,
       stationary: state.stationary,
     },
     snackConsumed,

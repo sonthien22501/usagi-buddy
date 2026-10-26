@@ -3,6 +3,7 @@ import { CostumeId, OutfitSelection } from '../core/costumeManager';
 import { SnackTarget } from '../core/physicsEngine';
 import { PomodoroState } from '../core/pomodoroTimer';
 import { VolumeConfig } from '../core/soundManager';
+import { ReminderState } from '../core/reminderStore';
 
 export interface WellnessUpdatePayload {
   mood: 'active' | 'sleeping';
@@ -41,6 +42,19 @@ export interface UsagiAPI {
   onCostumeChanged: (
     callback: (costume: CostumeId, selection: OutfitSelection) => void
   ) => () => void;
+  getReminderState: () => Promise<ReminderState>;
+  onReminderStateChanged: (callback: (state: ReminderState) => void) => () => void;
+  addReminder: (text: string) => void;
+  toggleReminder: (id: string) => void;
+  deleteReminder: (id: string) => void;
+  clearCompletedReminders: () => void;
+  toggleStickyWindow: () => void;
+  setTheme: (theme: 'custard' | 'night') => void;
+  onTaskCelebration: (callback: (taskText: string) => void) => () => void;
+  toggleFixedAppearance: () => void;
+  onFixedAppearanceChanged: (callback: (fixed: boolean) => void) => () => void;
+  toggleUsagiHidden: () => void;
+  onUsagiHiddenChanged: (callback: (hidden: boolean) => void) => () => void;
 }
 
 const api: UsagiAPI = {
@@ -159,6 +173,51 @@ const api: UsagiAPI = {
     ) => callback(costume, selection);
     ipcRenderer.on('costume-changed', handler);
     return () => ipcRenderer.removeListener('costume-changed', handler);
+  },
+  getReminderState: () => ipcRenderer.invoke('get-reminder-state'),
+  onReminderStateChanged: (callback: (state: ReminderState) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, state: ReminderState) => callback(state);
+    ipcRenderer.on('reminder-state-changed', handler);
+    return () => ipcRenderer.removeListener('reminder-state-changed', handler);
+  },
+  addReminder: (text: string) => {
+    ipcRenderer.send('add-reminder', text);
+  },
+  toggleReminder: (id: string) => {
+    ipcRenderer.send('toggle-reminder', id);
+  },
+  deleteReminder: (id: string) => {
+    ipcRenderer.send('delete-reminder', id);
+  },
+  clearCompletedReminders: () => {
+    ipcRenderer.send('clear-completed-reminders');
+  },
+  toggleStickyWindow: () => {
+    ipcRenderer.send('toggle-sticky-window');
+  },
+  setTheme: (theme: 'custard' | 'night') => {
+    ipcRenderer.send('set-theme', theme);
+  },
+  onTaskCelebration: (callback: (taskText: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, taskText: string) => callback(taskText);
+    ipcRenderer.on('task-celebration', handler);
+    return () => ipcRenderer.removeListener('task-celebration', handler);
+  },
+  toggleFixedAppearance: () => {
+    ipcRenderer.send('toggle-fixed-appearance');
+  },
+  onFixedAppearanceChanged: (callback: (fixed: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, fixed: boolean) => callback(fixed);
+    ipcRenderer.on('fixed-appearance-toggle', handler);
+    return () => ipcRenderer.removeListener('fixed-appearance-toggle', handler);
+  },
+  toggleUsagiHidden: () => {
+    ipcRenderer.send('toggle-usagi-hidden');
+  },
+  onUsagiHiddenChanged: (callback: (hidden: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, hidden: boolean) => callback(hidden);
+    ipcRenderer.on('usagi-hidden-toggle', handler);
+    return () => ipcRenderer.removeListener('usagi-hidden-toggle', handler);
   },
 };
 
