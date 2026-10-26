@@ -50,6 +50,57 @@ export const COSTUME_DEFINITIONS: readonly CostumeDefinition[] = [
 
 export const GIANT_ALARM_SPRITES: readonly string[] = ['Usagi_Big.png', 'Usagi_Big2.png'] as const;
 
+export const COSTUME_AUTO_ROTATE_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+
+export interface WardrobeRotationState {
+  fixedAppearance: boolean;
+  elapsedMs: number;
+}
+
+export function createWardrobeRotationState(fixedAppearance = false): WardrobeRotationState {
+  return {
+    fixedAppearance,
+    elapsedMs: 0,
+  };
+}
+
+export function tickWardrobeRotation(
+  state: WardrobeRotationState,
+  currentCostume: CostumeId,
+  dtMs: number,
+  randomFn: () => number = Math.random
+): { state: WardrobeRotationState; nextCostume: CostumeId | null } {
+  if (state.fixedAppearance) {
+    return {
+      state: {
+        ...state,
+        elapsedMs: 0,
+      },
+      nextCostume: null,
+    };
+  }
+
+  const nextElapsed = state.elapsedMs + dtMs;
+  if (nextElapsed >= COSTUME_AUTO_ROTATE_INTERVAL_MS) {
+    const nextCostume = pickRandomCostume(currentCostume, randomFn);
+    return {
+      state: {
+        ...state,
+        elapsedMs: nextElapsed % COSTUME_AUTO_ROTATE_INTERVAL_MS,
+      },
+      nextCostume,
+    };
+  }
+
+  return {
+    state: {
+      ...state,
+      elapsedMs: nextElapsed,
+    },
+    nextCostume: null,
+  };
+}
+
 export const ALL_COSTUME_IDS: readonly CostumeId[] = [
   'classic',
   'study',

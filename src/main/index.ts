@@ -38,6 +38,9 @@ import {
   OutfitSelection,
   pickRandomCostume,
   isKnownOutfitSelection,
+  createWardrobeRotationState,
+  tickWardrobeRotation,
+  WardrobeRotationState,
 } from '../core/costumeManager';
 import {
   ReminderState,
@@ -63,6 +66,8 @@ let isQuitting = false;
 let volumeConfig: VolumeConfig = { ...DEFAULT_VOLUME_CONFIG };
 let costumeSelection: OutfitSelection = 'classic';
 let activeCostume: CostumeId = 'classic';
+let wardrobeRotation: WardrobeRotationState = createWardrobeRotationState(false);
+let usagiHidden = false;
 
 let pomodoroState: PomodoroState = createPomodoroTimer();
 let wellnessState: WellnessState = createWellnessState();
@@ -194,6 +199,8 @@ function createDashboardWindow(): void {
       dashboardWindow.webContents.send('costume-changed', activeCostume, costumeSelection);
       dashboardWindow.webContents.send('reminder-state-changed', reminderState);
       dashboardWindow.webContents.send('cursor-hug-toggle', cursorHugEnabled);
+      dashboardWindow.webContents.send('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
+      dashboardWindow.webContents.send('usagi-hidden-toggle', usagiHidden);
     }
   });
 }
@@ -371,6 +378,10 @@ function updateTrayMenu(): void {
       label: reminderState.stickyVisible ? '📝 Hide Sticky Quests' : '📝 Show Sticky Quests',
       click: () => toggleStickyWindow(),
     },
+    {
+      label: usagiHidden ? '🐰 Show Usagi Buddy' : '🙈 Hide Usagi Buddy',
+      click: () => toggleUsagiHidden(),
+    },
     { type: 'separator' },
     {
       label: '🚪 Quit Usagi Float',
@@ -404,6 +415,21 @@ function toggleStationaryMode(): void {
 function toggleSoundMute(): void {
   soundMuted = !soundMuted;
   broadcastToAllWindows('sound-mute-toggle', soundMuted);
+  updateTrayMenu();
+}
+
+function toggleFixedAppearance(): void {
+  wardrobeRotation = {
+    ...wardrobeRotation,
+    fixedAppearance: !wardrobeRotation.fixedAppearance,
+    elapsedMs: 0,
+  };
+  broadcastToAllWindows('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
+}
+
+function toggleUsagiHidden(): void {
+  usagiHidden = !usagiHidden;
+  broadcastToAllWindows('usagi-hidden-toggle', usagiHidden);
   updateTrayMenu();
 }
 
@@ -471,6 +497,8 @@ function createMainWindow(): void {
     broadcastVolumeConfig();
     mainWindow?.webContents.send('stationary-mode-toggle', stationaryMode);
     mainWindow?.webContents.send('cursor-hug-toggle', cursorHugEnabled);
+    mainWindow?.webContents.send('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
+    mainWindow?.webContents.send('usagi-hidden-toggle', usagiHidden);
   });
 
   mainWindow.on('closed', () => {
@@ -520,6 +548,15 @@ function setupWellnessCoachTicker(): void {
 
     const result = tickWellnessCoach(wellnessState, 5000, idleSeconds);
     wellnessState = result.state;
+
+    // 30-Minute Wardrobe Auto-Rotate
+    const wardrobeResult = tickWardrobeRotation(wardrobeRotation, activeCostume, 5000);
+    wardrobeRotation = wardrobeResult.state;
+    if (wardrobeResult.nextCostume) {
+      activeCostume = wardrobeResult.nextCostume;
+      broadcastToAllWindows('costume-changed', activeCostume, costumeSelection);
+      updateTrayMenu();
+    }
 
     if (mainWindow && !mainWindow.isDestroyed()) {
       if (result.reminderMessage) {
@@ -702,6 +739,14 @@ app.whenReady().then(() => {
 
   ipcMain.on('trigger-cursor-hug-now', () => {
     broadcastToAllWindows('trigger-cursor-hug-now');
+  });
+
+  ipcMain.on('toggle-fixed-appearance', () => {
+    toggleFixedAppearance();
+  });
+
+  ipcMain.on('toggle-usagi-hidden', () => {
+    toggleUsagiHidden();
   });
 
   screen.on('display-metrics-changed', () => {

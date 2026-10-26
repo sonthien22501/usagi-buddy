@@ -165,4 +165,19 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(dashboardTs).toContain('comfy-line');
     expect(dashboardTs).not.toContain("cb.type = 'checkbox'");
   });
+
+  it('verifies fixed appearance and hide usagi controls in dashboard and preload API', () => {
+    const dashboardHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/dashboard/index.html'),
+      'utf-8'
+    );
+    expect(dashboardHtml).toContain('fix-appearance-toggle-btn');
+    expect(dashboardHtml).toContain('hide-usagi-toggle-btn');
+
+    const preloadTs = fs.readFileSync(path.resolve(__dirname, '../src/preload/index.ts'), 'utf-8');
+    expect(preloadTs).toContain('toggleFixedAppearance');
+    expect(preloadTs).toContain('onFixedAppearanceChanged');
+    expect(preloadTs).toContain('toggleUsagiHidden');
+    expect(preloadTs).toContain('onUsagiHiddenChanged');
+  });
 });

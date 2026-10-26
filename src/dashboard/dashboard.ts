@@ -60,6 +60,12 @@ const resetTimerBtn = document.getElementById('reset-timer-btn') as HTMLButtonEl
 // Wardrobe elements
 const costumeBadge = document.getElementById('costume-badge') as HTMLSpanElement | null;
 const costumeButtons = document.querySelectorAll<HTMLButtonElement>('.costume-card-btn');
+const fixAppearanceToggleBtn = document.getElementById(
+  'fix-appearance-toggle-btn'
+) as HTMLButtonElement | null;
+const hideUsagiToggleBtn = document.getElementById(
+  'hide-usagi-toggle-btn'
+) as HTMLButtonElement | null;
 const chipButtons = document.querySelectorAll<HTMLButtonElement>('.chip-btn');
 
 let currentVolumeConfig: VolumeConfig = {
@@ -80,6 +86,8 @@ let isStationary = false;
 let isPlayMode = false;
 let isGhostMode = false;
 let isCursorHugEnabled = true;
+let isFixedAppearance = false;
+let isUsagiHidden = false;
 
 // 1. Theme Management
 function updateThemeUI(theme: 'custard' | 'night'): void {
@@ -423,7 +431,44 @@ costumeButtons.forEach((btn) => {
   });
 });
 
-// 8. IPC Listeners from Main Process
+// 8. Fixed Appearance & Hide Usagi Controls
+function updateFixedAppearanceUI(fixed: boolean): void {
+  isFixedAppearance = fixed;
+  if (fixAppearanceToggleBtn) {
+    fixAppearanceToggleBtn.textContent = fixed ? '🔒 Appearance Fixed' : '🔄 Auto-Change (30m)';
+    if (fixed) {
+      fixAppearanceToggleBtn.classList.add('active');
+    } else {
+      fixAppearanceToggleBtn.classList.remove('active');
+    }
+  }
+}
+
+function updateUsagiHiddenUI(hidden: boolean): void {
+  isUsagiHidden = hidden;
+  if (hideUsagiToggleBtn) {
+    hideUsagiToggleBtn.textContent = hidden ? '🐰 Show Usagi' : '🙈 Hide Usagi';
+    if (hidden) {
+      hideUsagiToggleBtn.classList.add('active');
+    } else {
+      hideUsagiToggleBtn.classList.remove('active');
+    }
+  }
+}
+
+if (fixAppearanceToggleBtn) {
+  fixAppearanceToggleBtn.addEventListener('click', () => {
+    window.usagiAPI?.toggleFixedAppearance();
+  });
+}
+
+if (hideUsagiToggleBtn) {
+  hideUsagiToggleBtn.addEventListener('click', () => {
+    window.usagiAPI?.toggleUsagiHidden();
+  });
+}
+
+// 9. IPC Listeners from Main Process
 if (window.usagiAPI) {
   window.usagiAPI.onVolumeConfigChanged((config) => {
     currentVolumeConfig = config;
@@ -475,6 +520,14 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onCursorHugChanged((enabled) => {
     updateCursorHugUI(enabled);
+  });
+
+  window.usagiAPI.onFixedAppearanceChanged((fixed) => {
+    updateFixedAppearanceUI(fixed);
+  });
+
+  window.usagiAPI.onUsagiHiddenChanged((hidden) => {
+    updateUsagiHiddenUI(hidden);
   });
 
   window.usagiAPI

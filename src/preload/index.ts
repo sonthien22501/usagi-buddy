@@ -55,6 +55,10 @@ export interface UsagiAPI {
   toggleCursorHug: () => void;
   triggerCursorHugNow: () => void;
   onTriggerCursorHugNow: (callback: () => void) => () => void;
+  toggleFixedAppearance: () => void;
+  onFixedAppearanceChanged: (callback: (fixed: boolean) => void) => () => void;
+  toggleUsagiHidden: () => void;
+  onUsagiHiddenChanged: (callback: (hidden: boolean) => void) => () => void;
 }
 
 const api: UsagiAPI = {
@@ -218,6 +222,22 @@ const api: UsagiAPI = {
     const handler = () => callback();
     ipcRenderer.on('trigger-cursor-hug-now', handler);
     return () => ipcRenderer.removeListener('trigger-cursor-hug-now', handler);
+  },
+  toggleFixedAppearance: () => {
+    ipcRenderer.send('toggle-fixed-appearance');
+  },
+  onFixedAppearanceChanged: (callback: (fixed: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, fixed: boolean) => callback(fixed);
+    ipcRenderer.on('fixed-appearance-toggle', handler);
+    return () => ipcRenderer.removeListener('fixed-appearance-toggle', handler);
+  },
+  toggleUsagiHidden: () => {
+    ipcRenderer.send('toggle-usagi-hidden');
+  },
+  onUsagiHiddenChanged: (callback: (hidden: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, hidden: boolean) => callback(hidden);
+    ipcRenderer.on('usagi-hidden-toggle', handler);
+    return () => ipcRenderer.removeListener('usagi-hidden-toggle', handler);
   },
 };
 
