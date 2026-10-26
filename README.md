@@ -1,16 +1,65 @@
-# 🐰 Usagi Float (v0.3.0)
+# 🐰 Usagi Float (v0.5.0)
 
-A delightful, transparent, always-on-top desktop companion for **macOS** and **Windows**. Usagi swims organically across your screen, cheers you up with authentic Chiikawa voice lines ("Una!", "Bryy!", "Huhhhh?"), reminds you to stay hydrated, and keeps you focused with scientific study methods, quick repeat alarms, and a dedicated companion dashboard!
+A delightful, transparent, always-on-top desktop companion for **macOS** and **Windows**. Usagi swims organically across your screen, cheers you up with authentic Chiikawa voice lines ("Una!", "Bryy!", "Huhhhh?"), reminds you to stay hydrated, and keeps you focused with scientific study methods, quick repeat alarms, wardrobe costumes, desktop sticky notes, and a dedicated anime-themed companion dashboard!
 
 <p align="center">
   <img src="assets/Usagi_logo.png" alt="Usagi Float Logo" width="160" />
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.3.0-ff7675.svg" alt="Version 0.3.0" />
+  <img src="https://img.shields.io/badge/version-0.5.0-ff7675.svg" alt="Version 0.5.0" />
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-ffeaa7.svg" alt="Platforms" />
   <img src="https://img.shields.io/badge/license-MIT-55efc4.svg" alt="License" />
 </p>
+
+---
+
+## ✨ What's New in v0.5.0
+
+### 🍮 Usagi Custard & Caramel Anime Theme
+
+- **Day Custard Theme (Default)**: Warm custard yellow (`#FFF9D2`) anime palette with rounded pill buttons, creamy cards, and Chiikawa-accurate badge styling across the Dashboard and Sticky Note.
+- **Cozy Night Mode Toggle**: One-click day/night theme toggle with deep warm navy tones for late-night study sessions without eye fatigue.
+
+### 📝 Desktop-Pinned Sticky Quests Note
+
+- **Frameless Pinned Checklist (`src/sticky/`)**: A dedicated desktop note window for quick tasks, daily goals, and quest tracking.
+- **Comfy Strikethrough Interaction**: Instant click-to-complete with smooth strikethrough animation.
+- **Task Celebration Feats**: Completing a quest triggers an excited Usagi spin boost and speech celebration (`"Yaha!! ✓ <task>"`).
+- **Safe Persistence**: Automatically saves to `usagi-reminders.json` with multi-window synchronization across the Sticky Note, Dashboard, and System Tray.
+
+### 👗 30-Minute Wardrobe Auto-Rotation & Lock Toggle
+
+- **Auto-Rotation**: Usagi automatically rotates between outfits (Classic, Study, Vest/Work, Sigma, and Star) every 30 minutes of active use.
+- **Appearance Lock Toggle**: One-click `🔄 Auto-Change` vs. `🔒 Appearance Fixed` button in the Dashboard and Tray to pin your favorite outfit permanently.
+- **Combo-Click Morph**: Rapid clicking triggers a super-spin tornado that randomly morphs Usagi's costume!
+
+### 🙈 Do Not Disturb ("Hide Usagi") Mode
+
+- **Zero-Distraction Focus**: Hide the floating buddy with one click (`🙈 Hide Usagi`) from the Dashboard or System Tray when you need a clear screen for full-screen meetings or gaming.
+- **Uninterrupted Timers**: Focus countdowns and ambient wellness tracking keep running silently in the background.
+- **Guaranteed Alarms**: Giant Usagi Chaos Alarms still break through when your study session ends so you never miss a break!
+
+### 💧 Wellness & Treat Audio Polish
+
+- **Reliable Water Reminders**: Ambient 20–40 minute water reminders now feature a 10-minute AFK detection threshold so short reading pauses never starve hydration alerts.
+- **Extended Water Bubble**: Water reminder speech bubbles stay visible for 8 seconds.
+- **Authentic Pudding Sound Timing**: The pudding treat audio (`unayahayahauna.mp3`) plays strictly upon Usagi grabbing and gobbling the pudding, eliminating accidental sound triggers upon treat drop or alarm dismissal.
+
+---
+
+## ✨ What's New in v0.4.0
+
+### 👘 Usagi Wardrobe & Multi-Costume System
+
+- **5 Hand-Drawn Costumes**: Classic Upright, Study Usagi, Work Vest Usagi, Sigma/Ngau Usagi, and Star Wand Usagi.
+- **Interactive Wardrobe Grid**: Select costumes directly inside the Dashboard.
+- **Shuffle / Random Mode**: Automatically picks a new costume on every interaction.
+
+### 🚨 Multi-Sprite Giant Usagi Chaos Alarms
+
+- Randomized alarm takeover alternating between Classic Giant Usagi (`Usagi_Big.png`) and Chaos Screaming Giant Usagi (`Usagi_Big2.png`).
+- Dual-channel volume slider separating companion voice chirps from the Giant Alarm takeover.
 
 ---
 
@@ -54,7 +103,7 @@ When your study session ends, Big Usagi appears on screen with interactive actio
 
 ### 🎛️ Standalone Usagi Buddy Dashboard
 
-- **Dedicated Desktop Window**: Adjust all settings, timers, volume, and behaviors in a clean, modern GUI window.
+- **Dedicated Desktop Window**: Adjust all settings, timers, wardrobe costumes, volume, and behaviors in a clean, modern anime-styled GUI window.
 - **Background Persistence**: Close the dashboard anytime (`✕`)—Usagi continues floating, swimming, and tracking your focus timer in the background!
 - **Reopen Anytime**: Click **"🎛️ Open Usagi Dashboard..."** in the menu bar, tap the app icon, or press <kbd>Cmd/Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>.
 
@@ -75,7 +124,7 @@ When your study session ends, Big Usagi appears on screen with interactive actio
 ### 💧 Ambient Wellness & AFK Sleep Mode
 
 - **Ambient Water Reminders**: Usagi gently asks you to take a sip of water randomly every 20–40 minutes without interrupting your typing.
-- **AFK Sleep Mode**: If you step away from your computer for > 2 minutes, Usagi takes a nap (`"Zzz..."`) and celebrates when you return.
+- **AFK Sleep Mode**: If you step away from your computer for > 10 minutes, Usagi takes a nap (`"Zzz..."`) and preserves your focus progress.
 
 ---
 
@@ -99,11 +148,12 @@ When your study session ends, Big Usagi appears on screen with interactive actio
 Download pre-built packages from the [**GitHub Releases**](https://github.com/sonthien22501/usagi-buddy/releases) page:
 
 - **macOS** (Apple Silicon & Intel):
-  - Download `Usagi-Float-0.3.0-arm64.dmg` (M1/M2/M3/M4) or `Usagi-Float-0.3.0.dmg` (Intel).
+  - Download `Usagi-Float-0.5.0-arm64.dmg` (M1/M2/M3/M4) or `Usagi-Float-0.5.0.dmg` (Intel).
+  - Also available as portable `.zip`: `Usagi-Float-0.5.0-arm64-mac.zip` or `Usagi-Float-0.5.0-mac.zip`.
   - Drag `Usagi Float.app` into your **Applications** folder.
   - _First launch note_: Right-click (Control-click) `Usagi Float.app` ➔ **Open** to approve the Gatekeeper security prompt once.
 - **Windows**:
-  - Download `Usagi-Float-Setup-0.3.0.exe` or portable `.exe`.
+  - Download `Usagi-Float.Setup.0.5.0.exe` (installer) or `Usagi-Float.0.5.0.exe` (portable).
 
 ---
 
