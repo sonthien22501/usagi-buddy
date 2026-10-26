@@ -41,18 +41,21 @@ function render(state: ReminderState): void {
     for (const item of state.items) {
       const row = document.createElement('div');
       row.className = `quest-item ${item.completed ? 'completed' : ''}`;
-
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.className = 'quest-checkbox';
-      checkbox.checked = item.completed;
-      checkbox.addEventListener('change', () => {
+      row.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.quest-delete')) return;
         window.usagiAPI?.toggleReminder(item.id);
       });
+
+      const bullet = document.createElement('span');
+      bullet.className = 'quest-bullet';
+      bullet.textContent = item.completed ? '🍮' : '✦';
 
       const label = document.createElement('span');
       label.className = 'quest-text';
       label.textContent = item.text;
+      const comfyLine = document.createElement('span');
+      comfyLine.className = 'comfy-line';
+      label.appendChild(comfyLine);
 
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'quest-delete';
@@ -62,7 +65,7 @@ function render(state: ReminderState): void {
         window.usagiAPI?.deleteReminder(item.id);
       });
 
-      row.appendChild(checkbox);
+      row.appendChild(bullet);
       row.appendChild(label);
       row.appendChild(deleteBtn);
       questList.appendChild(row);

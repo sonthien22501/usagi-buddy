@@ -540,23 +540,43 @@
         align-items: center;
         gap: 8px;
         font-size: 12px;
+        cursor: pointer;
+        position: relative;
       }
 
-      .quest-dashboard-item.completed span {
-        text-decoration: line-through;
+      .quest-dashboard-item.completed .quest-text {
         opacity: 0.6;
       }
 
-      .quest-dashboard-item input[type='checkbox'] {
-        width: 15px;
-        height: 15px;
-        cursor: pointer;
-        accent-color: var(--accent-strawberry);
+      .quest-dashboard-item .quest-bullet {
+        flex-shrink: 0;
+        width: 16px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--accent-strawberry);
       }
 
-      .quest-dashboard-item .text {
+      .quest-dashboard-item .quest-text {
+        position: relative;
         flex: 1;
         word-break: break-word;
+      }
+
+      .quest-dashboard-item .comfy-line {
+        height: 3px;
+        border-radius: 999px;
+        background: var(--accent-strawberry);
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0%;
+        transition: width 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+        pointer-events: none;
+      }
+
+      .quest-dashboard-item.completed .comfy-line {
+        width: 100%;
       }
 
       .quest-dashboard-item .delete-btn {

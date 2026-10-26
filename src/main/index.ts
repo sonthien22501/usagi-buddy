@@ -227,7 +227,8 @@ function createStickyWindow(): void {
     skipTaskbar: true,
     fullscreenable: false,
     hasShadow: false,
-    type: process.platform === 'darwin' ? 'desktop' : undefined,
+    acceptFirstMouse: true,
+    focusable: true,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,

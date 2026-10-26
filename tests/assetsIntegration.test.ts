@@ -138,4 +138,31 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(html).toContain('cursor-hug-toggle-btn');
     expect(html).toContain('pounce-cursor-btn');
   });
+
+  it('verifies macOS sticky window accepts first mouse and quests use comfy strikethrough line', () => {
+    const mainTs = fs.readFileSync(path.resolve(__dirname, '../src/main/index.ts'), 'utf-8');
+    expect(mainTs).toContain('acceptFirstMouse: true');
+    expect(mainTs).not.toContain("type: process.platform === 'darwin' ? 'desktop' : undefined");
+
+    const stickyHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/sticky/index.html'),
+      'utf-8'
+    );
+    const dashboardHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/dashboard/index.html'),
+      'utf-8'
+    );
+    expect(stickyHtml).toContain('.comfy-line');
+    expect(dashboardHtml).toContain('.comfy-line');
+
+    const stickyTs = fs.readFileSync(path.resolve(__dirname, '../src/sticky/sticky.ts'), 'utf-8');
+    const dashboardTs = fs.readFileSync(
+      path.resolve(__dirname, '../src/dashboard/dashboard.ts'),
+      'utf-8'
+    );
+    expect(stickyTs).toContain('comfy-line');
+    expect(stickyTs).not.toContain("checkbox.type = 'checkbox'");
+    expect(dashboardTs).toContain('comfy-line');
+    expect(dashboardTs).not.toContain("cb.type = 'checkbox'");
+  });
 });

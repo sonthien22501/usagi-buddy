@@ -120,17 +120,21 @@ function updateReminderUI(state: ReminderState): void {
     for (const item of state.items) {
       const itemRow = document.createElement('div');
       itemRow.className = `quest-dashboard-item ${item.completed ? 'completed' : ''}`;
-
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = item.completed;
-      cb.addEventListener('change', () => {
+      itemRow.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.delete-btn')) return;
         window.usagiAPI?.toggleReminder(item.id);
       });
 
-      const span = document.createElement('span');
-      span.className = 'text';
-      span.textContent = item.text;
+      const bullet = document.createElement('span');
+      bullet.className = 'quest-bullet';
+      bullet.textContent = item.completed ? '🍮' : '✦';
+
+      const questText = document.createElement('span');
+      questText.className = 'quest-text';
+      questText.textContent = item.text;
+      const comfyLine = document.createElement('span');
+      comfyLine.className = 'comfy-line';
+      questText.appendChild(comfyLine);
 
       const del = document.createElement('button');
       del.className = 'delete-btn';
@@ -140,8 +144,8 @@ function updateReminderUI(state: ReminderState): void {
         window.usagiAPI?.deleteReminder(item.id);
       });
 
-      itemRow.appendChild(cb);
-      itemRow.appendChild(span);
+      itemRow.appendChild(bullet);
+      itemRow.appendChild(questText);
       itemRow.appendChild(del);
       dashboardQuestList.appendChild(itemRow);
     }
