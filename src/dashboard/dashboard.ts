@@ -23,12 +23,6 @@ const dashboardClearDoneBtn = document.getElementById(
   'dashboard-clear-done-btn'
 ) as HTMLButtonElement | null;
 
-// Cursor Hug elements
-const cursorHugToggleBtn = document.getElementById(
-  'cursor-hug-toggle-btn'
-) as HTMLButtonElement | null;
-const pounceCursorBtn = document.getElementById('pounce-cursor-btn') as HTMLButtonElement | null;
-
 // Volume elements
 const volumeSlider = document.getElementById('volume-slider') as HTMLInputElement | null;
 const volumeValBadge = document.getElementById('volume-val-badge') as HTMLSpanElement | null;
@@ -85,7 +79,6 @@ let isMuted = false;
 let isStationary = false;
 let isPlayMode = false;
 let isGhostMode = false;
-let isCursorHugEnabled = true;
 let isFixedAppearance = false;
 let isUsagiHidden = false;
 
@@ -198,32 +191,7 @@ if (toggleStickyWindowBtn) {
   });
 }
 
-// 3. Cursor Hug Controls
-function updateCursorHugUI(enabled: boolean): void {
-  isCursorHugEnabled = enabled;
-  if (cursorHugToggleBtn) {
-    cursorHugToggleBtn.textContent = enabled ? '🐾 Hug: ON' : '🐾 Hug: OFF';
-    if (enabled) {
-      cursorHugToggleBtn.classList.add('active');
-    } else {
-      cursorHugToggleBtn.classList.remove('active');
-    }
-  }
-}
-
-if (cursorHugToggleBtn) {
-  cursorHugToggleBtn.addEventListener('click', () => {
-    window.usagiAPI?.toggleCursorHug();
-  });
-}
-
-if (pounceCursorBtn) {
-  pounceCursorBtn.addEventListener('click', () => {
-    window.usagiAPI?.triggerCursorHugNow();
-  });
-}
-
-// 4. Unified Volume Slider with Active Dynamic Fill & Grey Inactive Track
+// 3. Unified Volume Slider with Active Dynamic Fill & Grey Inactive Track
 function updateSliderTrack(val: number): void {
   if (!volumeSlider) return;
   const pct = Math.max(0, Math.min(100, val));
@@ -435,7 +403,7 @@ costumeButtons.forEach((btn) => {
 function updateFixedAppearanceUI(fixed: boolean): void {
   isFixedAppearance = fixed;
   if (fixAppearanceToggleBtn) {
-    fixAppearanceToggleBtn.textContent = fixed ? '🔒 Appearance Fixed' : '🔄 Auto-Change (30m)';
+    fixAppearanceToggleBtn.textContent = fixed ? '🔒 Appearance Fixed' : '🔄 Auto-Change';
     if (fixed) {
       fixAppearanceToggleBtn.classList.add('active');
     } else {
@@ -516,10 +484,6 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onReminderStateChanged((state) => {
     updateReminderUI(state);
-  });
-
-  window.usagiAPI.onCursorHugChanged((enabled) => {
-    updateCursorHugUI(enabled);
   });
 
   window.usagiAPI.onFixedAppearanceChanged((fixed) => {

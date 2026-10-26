@@ -115,7 +115,7 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(htmlContent).toContain('questList');
   });
 
-  it('verifies dashboard contains Usagi Custard anime theme, reminder checklist, and cursor hug controls', () => {
+  it('verifies dashboard contains Usagi Custard anime theme, reminder checklist, and clean wardrobe controls', () => {
     const dashboardHtmlPath = path.resolve(__dirname, '../src/dashboard/index.html');
     expect(fs.existsSync(dashboardHtmlPath)).toBe(true);
     const html = fs.readFileSync(dashboardHtmlPath, 'utf-8');
@@ -134,9 +134,14 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(html).toContain('dashboard-quest-list');
     expect(html).toContain('dashboard-clear-done-btn');
 
-    // Playful Cursor Hug controls
-    expect(html).toContain('cursor-hug-toggle-btn');
-    expect(html).toContain('pounce-cursor-btn');
+    // Clean Wardrobe Auto-Change button
+    expect(html).toContain('fix-appearance-toggle-btn');
+    expect(html).toContain('🔄 Auto-Change');
+    expect(html).not.toContain('🔄 Auto-Change (30m)');
+
+    // Cursor Keychain Hug removed
+    expect(html).not.toContain('cursor-hug-toggle-btn');
+    expect(html).not.toContain('pounce-cursor-btn');
   });
 
   it('verifies macOS sticky window accepts first mouse and quests use comfy strikethrough line', () => {

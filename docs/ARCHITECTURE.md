@@ -29,9 +29,8 @@ usagi-buddy/
 │   ├── core/
 │   │   ├── alphaCropper.ts        # Alpha bounding-box scanner & auto-trimmer
 │   │   ├── physicsEngine.ts       # 60fps kick-and-glide swimming, squash/stretch, cursor follow, combo spin
-│   │   ├── cursorHugController.ts # Playful keychain hug physics, butt-wiggle pounce, pendulum inertia & shake-to-drop
 │   │   ├── reminderStore.ts       # Desktop sticky reminders state machine, JSON disk persistence & task celebration detection
-│   │   ├── costumeManager.ts      # Multi-costume wardrobe selector & shuffle system
+│   │   ├── costumeManager.ts      # Multi-costume wardrobe selector, 30m auto-rotation, & fixed appearance mode
 │   │   ├── ghostModeController.ts # Smart click-through & interactive hit-box forwarding logic
 │   │   ├── pomodoroTimer.ts       # 25-min study countdown & snack drop generator
 │   │   ├── giantAlarmController.ts # Chaos giant Usagi break alarm, speed lines, & click/key dismiss
@@ -46,14 +45,13 @@ usagi-buddy/
 │   │   └── sticky.ts              # Sticky note controller with theme toggle & task CRUD
 │   ├── dashboard/
 │   │   ├── index.html             # Dedicated Usagi Buddy Dashboard GUI window (Custard & Caramel anime theme)
-│   │   └── dashboard.ts           # Dashboard controller (reminders sync, cursor hug toggles, wardrobe grid, volume & timer)
+│   │   └── dashboard.ts           # Dashboard controller (reminders sync, wardrobe grid, fixed appearance toggle, volume & timer)
 │   └── renderer/
 │       ├── index.html             # Transparent full-screen overlay canvas & quick floating controls
-│       └── app.ts                 # 60fps swim transforms, cursor keychain hug physics, anime notes & task celebration spins
+│       └── app.ts                 # 60fps swim transforms, costume rendering, and task celebration spins
 └── tests/
     ├── alphaCropper.test.ts
     ├── physicsEngine.test.ts
-    ├── cursorHugController.test.ts
     ├── reminderStore.test.ts
     ├── costumeManager.test.ts
     ├── ghostModeController.test.ts
@@ -67,7 +65,7 @@ usagi-buddy/
 ## 4. Core Data Contracts
 
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
-- `CursorHugState`: `{ enabled, phase, phaseTimerMs, pendulumAngleRad, pendulumAngularVel, shakeReversals, lastMoveDirX, lastReversalAtMs, lastCursorPos }`
+- `WardrobeRotationState`: `{ fixedAppearance: boolean, elapsedMs: number }`
 - `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard' | 'night' }`
 - `ReminderItem`: `{ id: string, text: string, completed: boolean, createdAtMs: number }`
 - `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', nextReminderAtMs, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
@@ -93,4 +91,5 @@ usagi-buddy/
 - [x] M11: Scientific study method presets (Pomodoro 25/5, 52/17 Method, Ultradian Rhythm 90/20), dynamic alarm break matching, minute-only manual input starting at 0, and +10m rapid increment button (`src/dashboard/`, `src/renderer/`, `src/main/index.ts`, `src/core/`)
 - [x] M12: Low-spec device performance & startup optimizations (lazy Dashboard window creation on startup, fast 4-sided alpha bounds scan, 320px high-DPI texture downscaling, audio element pooling, desynchronized canvas rendering) (`src/core/alphaCropper.ts`, `src/renderer/app.ts`, `src/main/index.ts`)
 - [x] M13: Usagi Wardrobe & Multi-Costume System (Classic, Study, Work/Vest, Sigma, Star, and Shuffle/Random on Click), combo-click rapid spin outfit morphing, dedicated Dashboard wardrobe grid, minimal background tray menu, and randomized Giant Usagi Chaos Alarms (`Usagi_Big.png` + `Usagi_Big2.png`) (`src/core/costumeManager.ts`, `src/dashboard/`, `src/main/index.ts`, `src/renderer/app.ts`)
-- [x] M14: Usagi Custard & Caramel Anime Theme (Day Custard default + Night cozy toggle), Desktop-Pinned Sticky Reminders Note (`src/sticky/`) with task celebration broadcast, Playful Cursor Keychain Hug mode (`src/core/cursorHugController.ts`) with pendulum swing, floating anime canvas notes, and shake-to-drop physics
+- [x] M14: Usagi Custard & Caramel Anime Theme (Day Custard default + Night cozy toggle), Desktop-Pinned Sticky Reminders Note (`src/sticky/`) with task celebration broadcast
+- [x] M15: Wardrobe 30m Auto-Rotation with Clean `🔄 Auto-Change` / `🔒 Appearance Fixed` toggle, and `🙈 Hide Usagi (Do Not Disturb)` mode across Tray and Dashboard

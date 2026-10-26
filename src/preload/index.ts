@@ -51,10 +51,6 @@ export interface UsagiAPI {
   toggleStickyWindow: () => void;
   setTheme: (theme: 'custard' | 'night') => void;
   onTaskCelebration: (callback: (taskText: string) => void) => () => void;
-  onCursorHugChanged: (callback: (enabled: boolean) => void) => () => void;
-  toggleCursorHug: () => void;
-  triggerCursorHugNow: () => void;
-  onTriggerCursorHugNow: (callback: () => void) => () => void;
   toggleFixedAppearance: () => void;
   onFixedAppearanceChanged: (callback: (fixed: boolean) => void) => () => void;
   toggleUsagiHidden: () => void;
@@ -206,22 +202,6 @@ const api: UsagiAPI = {
     const handler = (_event: Electron.IpcRendererEvent, taskText: string) => callback(taskText);
     ipcRenderer.on('task-celebration', handler);
     return () => ipcRenderer.removeListener('task-celebration', handler);
-  },
-  onCursorHugChanged: (callback: (enabled: boolean) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, enabled: boolean) => callback(enabled);
-    ipcRenderer.on('cursor-hug-toggle', handler);
-    return () => ipcRenderer.removeListener('cursor-hug-toggle', handler);
-  },
-  toggleCursorHug: () => {
-    ipcRenderer.send('toggle-cursor-hug');
-  },
-  triggerCursorHugNow: () => {
-    ipcRenderer.send('trigger-cursor-hug-now');
-  },
-  onTriggerCursorHugNow: (callback: () => void) => {
-    const handler = () => callback();
-    ipcRenderer.on('trigger-cursor-hug-now', handler);
-    return () => ipcRenderer.removeListener('trigger-cursor-hug-now', handler);
   },
   toggleFixedAppearance: () => {
     ipcRenderer.send('toggle-fixed-appearance');

@@ -61,7 +61,6 @@ let ghostLocked = false;
 let playModeEnabled = false;
 let soundMuted = false;
 let stationaryMode = false;
-let cursorHugEnabled = true;
 let isQuitting = false;
 let volumeConfig: VolumeConfig = { ...DEFAULT_VOLUME_CONFIG };
 let costumeSelection: OutfitSelection = 'classic';
@@ -198,7 +197,6 @@ function createDashboardWindow(): void {
       dashboardWindow.webContents.send('play-mode-toggle', playModeEnabled);
       dashboardWindow.webContents.send('costume-changed', activeCostume, costumeSelection);
       dashboardWindow.webContents.send('reminder-state-changed', reminderState);
-      dashboardWindow.webContents.send('cursor-hug-toggle', cursorHugEnabled);
       dashboardWindow.webContents.send('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
       dashboardWindow.webContents.send('usagi-hidden-toggle', usagiHidden);
     }
@@ -496,7 +494,6 @@ function createMainWindow(): void {
   mainWindow.webContents.on('did-finish-load', () => {
     broadcastVolumeConfig();
     mainWindow?.webContents.send('stationary-mode-toggle', stationaryMode);
-    mainWindow?.webContents.send('cursor-hug-toggle', cursorHugEnabled);
     mainWindow?.webContents.send('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
     mainWindow?.webContents.send('usagi-hidden-toggle', usagiHidden);
   });
@@ -730,15 +727,6 @@ app.whenReady().then(() => {
     reminderState = { ...reminderState, theme };
     saveRemindersToDisk();
     broadcastReminderState();
-  });
-
-  ipcMain.on('toggle-cursor-hug', () => {
-    cursorHugEnabled = !cursorHugEnabled;
-    broadcastToAllWindows('cursor-hug-toggle', cursorHugEnabled);
-  });
-
-  ipcMain.on('trigger-cursor-hug-now', () => {
-    broadcastToAllWindows('trigger-cursor-hug-now');
   });
 
   ipcMain.on('toggle-fixed-appearance', () => {
