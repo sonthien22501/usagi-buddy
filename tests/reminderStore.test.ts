@@ -10,6 +10,7 @@ import {
   parseRemindersJson,
   serializeRemindersJson,
   extractDueDateToken,
+  formatReminderDueBadge,
 } from '../src/core/reminderStore';
 
 describe('reminderStore', () => {
@@ -212,6 +213,237 @@ describe('reminderStore', () => {
         cleanText: 'Simple reminder',
         dueDate: undefined,
       });
+    });
+
+    it('extracts natural language deadlines with conversational prefixes and capitalizes clean text', () => {
+      expect(extractDueDateToken('I have to do chores tomorrow', undefined, fixedNow)).toEqual({
+        cleanText: 'Do chores',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('i need to submit the report today', undefined, fixedNow)).toEqual(
+        {
+          cleanText: 'Submit the report',
+          dueDate: '2026-11-02',
+        }
+      );
+      expect(extractDueDateToken('Remind me to call mom tonight', undefined, fixedNow)).toEqual({
+        cleanText: 'Call mom',
+        dueDate: '2026-11-02',
+      });
+      expect(
+        extractDueDateToken("Don't forget to pay rent in 5 days", undefined, fixedNow)
+      ).toEqual({
+        cleanText: 'Pay rent',
+        dueDate: '2026-11-07',
+      });
+      expect(extractDueDateToken('Remember to clean desk next week', undefined, fixedNow)).toEqual({
+        cleanText: 'Clean desk',
+        dueDate: '2026-11-09',
+      });
+    });
+
+    it('extracts trailing or inline natural date tokens without conversational prefix', () => {
+      expect(extractDueDateToken('Buy groceries tmrw', undefined, fixedNow)).toEqual({
+        cleanText: 'Buy groceries',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('Finish homework by tomorrow', undefined, fixedNow)).toEqual({
+        cleanText: 'Finish homework',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('Dentist appointment on 2026-11-15', undefined, fixedNow)).toEqual(
+        {
+          cleanText: 'Dentist appointment',
+          dueDate: '2026-11-15',
+        }
+      );
+    });
+
+    it('cleans conversational prefix without a date token and capitalizes action', () => {
+      expect(extractDueDateToken('I have to water the plants', undefined, fixedNow)).toEqual({
+        cleanText: 'Water the plants',
+        dueDate: undefined,
+      });
+    });
+
+    it('extracts multilingual deadlines and conversational prefixes (VI, DE, FR, ES, JA, KO, ZH, and DD/MM)', () => {
+      // Vietnamese (🇻🇳)
+      expect(extractDueDateToken('Tôi phải dọn nhà ngày mai', undefined, fixedNow)).toEqual({
+        cleanText: 'Dọn nhà',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('Mai đi chợ', undefined, fixedNow)).toEqual({
+        cleanText: 'Đi chợ',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('Nhớ nộp bài hôm nay', undefined, fixedNow)).toEqual({
+        cleanText: 'Nộp bài',
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('Đi khám răng ngày mốt', undefined, fixedNow)).toEqual({
+        cleanText: 'Đi khám răng',
+        dueDate: '2026-11-04',
+      });
+      expect(extractDueDateToken('Nộp báo cáo 3 ngày nữa', undefined, fixedNow)).toEqual({
+        cleanText: 'Nộp báo cáo',
+        dueDate: '2026-11-05',
+      });
+      expect(extractDueDateToken('Họp nhóm tuần sau', undefined, fixedNow)).toEqual({
+        cleanText: 'Họp nhóm',
+        dueDate: '2026-11-09',
+      });
+
+      // German (🇩🇪)
+      expect(extractDueDateToken('Ich muss morgen einkaufen', undefined, fixedNow)).toEqual({
+        cleanText: 'Einkaufen',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('Bericht abgeben heute', undefined, fixedNow)).toEqual({
+        cleanText: 'Bericht abgeben',
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('Zahnarzt übermorgen', undefined, fixedNow)).toEqual({
+        cleanText: 'Zahnarzt',
+        dueDate: '2026-11-04',
+      });
+      expect(extractDueDateToken('Miete zahlen in 5 Tagen', undefined, fixedNow)).toEqual({
+        cleanText: 'Miete zahlen',
+        dueDate: '2026-11-07',
+      });
+      expect(extractDueDateToken('Projekt starten nächste Woche', undefined, fixedNow)).toEqual({
+        cleanText: 'Projekt starten',
+        dueDate: '2026-11-09',
+      });
+
+      // French (🇫🇷)
+      expect(extractDueDateToken('Je dois faire les courses demain', undefined, fixedNow)).toEqual({
+        cleanText: 'Faire les courses',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken("Appeler maman aujourd'hui", undefined, fixedNow)).toEqual({
+        cleanText: 'Appeler maman',
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('Rendez-vous après-demain', undefined, fixedNow)).toEqual({
+        cleanText: 'Rendez-vous',
+        dueDate: '2026-11-04',
+      });
+      expect(extractDueDateToken('Payer le loyer dans 4 jours', undefined, fixedNow)).toEqual({
+        cleanText: 'Payer le loyer',
+        dueDate: '2026-11-06',
+      });
+      expect(extractDueDateToken('Réunion la semaine prochaine', undefined, fixedNow)).toEqual({
+        cleanText: 'Réunion',
+        dueDate: '2026-11-09',
+      });
+
+      // Spanish (🇪🇸)
+      expect(extractDueDateToken('Tengo que limpiar la casa mañana', undefined, fixedNow)).toEqual({
+        cleanText: 'Limpiar la casa',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('Enviar correo hoy', undefined, fixedNow)).toEqual({
+        cleanText: 'Enviar correo',
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('Examen pasado mañana', undefined, fixedNow)).toEqual({
+        cleanText: 'Examen',
+        dueDate: '2026-11-04',
+      });
+      expect(extractDueDateToken('Pagar factura en 3 días', undefined, fixedNow)).toEqual({
+        cleanText: 'Pagar factura',
+        dueDate: '2026-11-05',
+      });
+      expect(extractDueDateToken('Viaje la próxima semana', undefined, fixedNow)).toEqual({
+        cleanText: 'Viaje',
+        dueDate: '2026-11-09',
+      });
+
+      // Japanese (🇯🇵)
+      expect(extractDueDateToken('明日掃除する', undefined, fixedNow)).toEqual({
+        cleanText: '掃除する',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('今日レポート提出', undefined, fixedNow)).toEqual({
+        cleanText: 'レポート提出',
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('明後日歯医者に行く', undefined, fixedNow)).toEqual({
+        cleanText: '歯医者に行く',
+        dueDate: '2026-11-04',
+      });
+      expect(extractDueDateToken('3日後に家賃を払う', undefined, fixedNow)).toEqual({
+        cleanText: '家賃を払う',
+        dueDate: '2026-11-05',
+      });
+      expect(extractDueDateToken('来週ミーティング', undefined, fixedNow)).toEqual({
+        cleanText: 'ミーティング',
+        dueDate: '2026-11-09',
+      });
+
+      // Korean (🇰🇷)
+      expect(extractDueDateToken('내일 청소하기', undefined, fixedNow)).toEqual({
+        cleanText: '청소하기',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('오늘 숙제 해야 해', undefined, fixedNow)).toEqual({
+        cleanText: '숙제',
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('모레 병원 가기', undefined, fixedNow)).toEqual({
+        cleanText: '병원 가기',
+        dueDate: '2026-11-04',
+      });
+      expect(extractDueDateToken('3일 후 발표 준비', undefined, fixedNow)).toEqual({
+        cleanText: '발표 준비',
+        dueDate: '2026-11-05',
+      });
+      expect(extractDueDateToken('다음 주 회의', undefined, fixedNow)).toEqual({
+        cleanText: '회의',
+        dueDate: '2026-11-09',
+      });
+
+      // Chinese (🇨🇳)
+      expect(extractDueDateToken('明天要打扫房间', undefined, fixedNow)).toEqual({
+        cleanText: '打扫房间',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('今天交作业', undefined, fixedNow)).toEqual({
+        cleanText: '交作业',
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('后天看牙医', undefined, fixedNow)).toEqual({
+        cleanText: '看牙医',
+        dueDate: '2026-11-04',
+      });
+      expect(extractDueDateToken('3天后交房租', undefined, fixedNow)).toEqual({
+        cleanText: '交房租',
+        dueDate: '2026-11-05',
+      });
+      expect(extractDueDateToken('下周开会', undefined, fixedNow)).toEqual({
+        cleanText: '开会',
+        dueDate: '2026-11-09',
+      });
+
+      // Universal DD/MM and DD/MM/YYYY
+      expect(extractDueDateToken('Khám răng ngày 15/11', undefined, fixedNow)).toEqual({
+        cleanText: 'Khám răng',
+        dueDate: '2026-11-15',
+      });
+      expect(extractDueDateToken('Submit thesis on 20/12/2026', undefined, fixedNow)).toEqual({
+        cleanText: 'Submit thesis',
+        dueDate: '2026-12-20',
+      });
+    });
+  });
+
+  describe('formatReminderDueBadge', () => {
+    it('formats badge with relative label and actual resolved date', () => {
+      expect(formatReminderDueBadge('2026-11-02', '2026-11-02')).toBe('Today (11/02)');
+      expect(formatReminderDueBadge('2026-11-03', '2026-11-02')).toBe('Tmrw (11/03)');
+      expect(formatReminderDueBadge('2026-11-01', '2026-11-02')).toBe('Yesterday (11/01)');
+      expect(formatReminderDueBadge('2026-10-28', '2026-11-02')).toBe('Overdue (10/28)');
+      expect(formatReminderDueBadge('2026-11-10', '2026-11-02')).toBe('Due 11/10');
     });
   });
 

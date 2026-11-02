@@ -1,7 +1,7 @@
 import { formatPomodoroTime, parseCustomDuration, PomodoroState } from '../core/pomodoroTimer';
 import { VolumeConfig } from '../core/soundManager';
 import { CostumeId, OutfitSelection, getCostumeDefinition } from '../core/costumeManager';
-import { ReminderState } from '../core/reminderStore';
+import { ReminderState, formatReminderDueBadge } from '../core/reminderStore';
 import { getKawaiiIcon, renderIconLabel } from '../core/kawaiiIcons';
 import {
   BuddyProfile,
@@ -9,7 +9,6 @@ import {
   buildMonthCalendarGrid,
   getUpcomingCountdownItems,
   formatDateYMD,
-  daysBetweenYMD,
 } from '../core/calendarStore';
 
 // Sticky Reminders elements
@@ -133,15 +132,6 @@ let isUsagiHidden = false;
 function getTodayYMD(): string {
   const now = new Date();
   return formatDateYMD(now.getFullYear(), now.getMonth() + 1, now.getDate());
-}
-
-function formatDueBadge(dueDateStr: string, todayYMD: string): string {
-  const diff = daysBetweenYMD(todayYMD, dueDateStr);
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Tmrw';
-  if (diff === -1) return 'Yesterday';
-  if (diff < -1) return `Overdue (${dueDateStr.slice(5)})`;
-  return dueDateStr.slice(5).replace('-', '/');
 }
 
 function renderBuddyProfile(profile: BuddyProfile): void {
@@ -382,7 +372,7 @@ function updateReminderUI(state: ReminderState): void {
       if (item.dueDate) {
         const badge = document.createElement('span');
         badge.className = 'quest-due-badge';
-        badge.textContent = formatDueBadge(item.dueDate, getTodayYMD());
+        badge.textContent = formatReminderDueBadge(item.dueDate, getTodayYMD());
         questText.appendChild(badge);
       }
 

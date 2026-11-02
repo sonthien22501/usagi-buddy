@@ -1,4 +1,4 @@
-import { ReminderItem, ReminderState } from '../core/reminderStore';
+import { ReminderItem, ReminderState, formatReminderDueBadge } from '../core/reminderStore';
 import { getKawaiiIcon } from '../core/kawaiiIcons';
 import {
   HolidayEvent,
@@ -6,7 +6,6 @@ import {
   buildMonthCalendarGrid,
   getUpcomingCountdownItems,
   formatDateYMD,
-  daysBetweenYMD,
 } from '../core/calendarStore';
 
 let currentState: ReminderState = {
@@ -71,15 +70,6 @@ if (stickyHeaderIcon) {
 function getTodayYMD(): string {
   const now = new Date();
   return formatDateYMD(now.getFullYear(), now.getMonth() + 1, now.getDate());
-}
-
-function formatDueBadge(dueDateStr: string, todayYMD: string): string {
-  const diff = daysBetweenYMD(todayYMD, dueDateStr);
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Tmrw';
-  if (diff === -1) return 'Yesterday';
-  if (diff < -1) return `Overdue (${dueDateStr.slice(5)})`;
-  return dueDateStr.slice(5).replace('-', '/');
 }
 
 function switchTab(tab: 'quests' | 'calendar'): void {
@@ -291,7 +281,7 @@ function render(state: ReminderState): void {
       if (item.dueDate) {
         const badge = document.createElement('span');
         badge.className = 'quest-due-badge';
-        badge.textContent = formatDueBadge(item.dueDate, getTodayYMD());
+        badge.textContent = formatReminderDueBadge(item.dueDate, getTodayYMD());
         label.appendChild(badge);
       }
 
