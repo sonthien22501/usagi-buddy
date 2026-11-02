@@ -185,4 +185,59 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(preloadTs).toContain('toggleUsagiHidden');
     expect(preloadTs).toContain('onUsagiHiddenChanged');
   });
+
+  it('verifies custom themed tray popover window and kawaii SVG icons integration', () => {
+    // 1. Core modules exist
+    const kawaiiTsPath = path.resolve(__dirname, '../src/core/kawaiiIcons.ts');
+    const trayPosPath = path.resolve(__dirname, '../src/core/trayPositioner.ts');
+    expect(fs.existsSync(kawaiiTsPath)).toBe(true);
+    expect(fs.existsSync(trayPosPath)).toBe(true);
+
+    // 2. Tray window assets exist
+    const trayHtmlPath = path.resolve(__dirname, '../src/tray/index.html');
+    const trayTsPath = path.resolve(__dirname, '../src/tray/tray.ts');
+    expect(fs.existsSync(trayHtmlPath)).toBe(true);
+    expect(fs.existsSync(trayTsPath)).toBe(true);
+
+    const trayHtml = fs.readFileSync(trayHtmlPath, 'utf-8');
+    expect(trayHtml).toContain('data-theme');
+    expect(trayHtml).toContain('--bg-color');
+    expect(trayHtml).toContain('--border-color');
+    expect(trayHtml).toContain('tray-theme-toggle-btn');
+    expect(trayHtml).toContain('tray-clock-time');
+    expect(trayHtml).toContain('tray-clock-badge');
+    expect(trayHtml).toContain('tray-start-pause-btn');
+    expect(trayHtml).toContain('tray-reset-btn');
+    expect(trayHtml).toContain('tray-open-dashboard-btn');
+    expect(trayHtml).toContain('tray-toggle-sticky-btn');
+    expect(trayHtml).toContain('tray-toggle-hidden-btn');
+    expect(trayHtml).toContain('tray-drop-snack-btn');
+    expect(trayHtml).toContain('tray-toggle-ghost-btn');
+    expect(trayHtml).toContain('tray-quit-btn');
+
+    // 3. Build script copies and bundles tray window
+    const buildMjs = fs.readFileSync(path.resolve(__dirname, '../scripts/build.mjs'), 'utf-8');
+    expect(buildMjs).toContain('dist/tray');
+    expect(buildMjs).toContain('src/tray/index.html');
+    expect(buildMjs).toContain('src/tray/tray.ts');
+
+    // 4. Preload exposes tray control methods
+    const preloadTs = fs.readFileSync(path.resolve(__dirname, '../src/preload/index.ts'), 'utf-8');
+    expect(preloadTs).toContain('openDashboardWindow');
+    expect(preloadTs).toContain('quitApp');
+    expect(preloadTs).toContain('closeTrayPopover');
+
+    // 5. Dashboard and Sticky HTML include kawaii-svg CSS helpers
+    const dashboardHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/dashboard/index.html'),
+      'utf-8'
+    );
+    const stickyHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/sticky/index.html'),
+      'utf-8'
+    );
+    expect(dashboardHtml).toContain('.kawaii-svg');
+    expect(stickyHtml).toContain('.kawaii-svg');
+    expect(trayHtml).toContain('.kawaii-svg');
+  });
 });

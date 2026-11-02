@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Usagi Float Tray</title>
+    <style>
+      :root,
+      [data-theme='custard'] {
+        --bg-color: #fff8e7;
+        --card-bg: #ffffff;
+        --card-inner: #fff0c2;
+        --border-color: #5c3a21;
+        --text-color: #5c3a21;
+        --text-muted: #8b6247;
+        --accent-strawberry: #ff8fa3;
+        --accent-strawberry-hover: #ff758f;
+        --shadow-color: #e6c88a;
+        --badge-bg: #ffe699;
+        --badge-text: #5c3a21;
+        --item-hover: #fff3d6;
+      }
+
+      [data-theme='night'] {
+        --bg-color: #1e1a29;
+        --card-bg: #272138;
+        --card-inner: #332a4a;
+        --border-color: #e8b4b8;
+        --text-color: #fce8ee;
+        --text-muted: #bdaec6;
+        --accent-strawberry: #ff758f;
+        --accent-strawberry-hover: #ff8fa3;
+        --shadow-color: #120f1d;
+        --badge-bg: #3a2e52;
+        --badge-text: #fce8ee;
+        --item-hover: #3a2e52;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      html,
+      body {
+        width: 320px;
+        height: 490px;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Nunito', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      }
+
+      .tray-container {
+        width: 100%;
+        height: 100%;
+        background-color: var(--bg-color);
+        background-image: radial-gradient(var(--border-color) 0.65px, transparent 0.65px);
+        background-size: 16px 16px;
+        border: 2.5px solid var(--border-color);
+        border-radius: 16px;
+        box-shadow: 0 4px 0 var(--shadow-color), 0 8px 20px rgba(0, 0, 0, 0.15);
+        color: var(--text-color);
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+        gap: 10px;
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      }
+
+      .kawaii-svg {
+        display: inline-block;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+
+      .kawaii-icon-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+
+      /* Header */
+      .tray-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      .tray-header-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .tray-logo {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        border: 1.5px solid var(--border-color);
+        overflow: hidden;
+        background: var(--card-bg);
+      }
+
+      .tray-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .tray-title-text h1 {
+        font-size: 14px;
+        font-weight: 900;
+        letter-spacing: 0.3px;
+        line-height: 1.1;
+      }
+
+      .tray-status-pill {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--accent-strawberry);
+        letter-spacing: 0.2px;
+      }
+
+      .theme-btn {
+        background: var(--card-inner);
+        border: 1.5px solid var(--border-color);
+        color: var(--text-color);
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        box-shadow: 0 2px 0 var(--border-color);
+        transition: transform 0.08s ease;
+      }
+
+      .theme-btn:active {
+        transform: translateY(1.5px);
+        box-shadow: none;
+      }
+
+      /* Timer Card */
+      .timer-card {
+        background: var(--card-bg);
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        padding: 8px 10px;
+        box-shadow: 0 2px 0 var(--shadow-color);
+      }
+
+      .timer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+
+      .timer-display {
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: 0.8px;
+        color: var(--text-color);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .timer-badge {
+        background: var(--badge-bg);
+        color: var(--badge-text);
+        border: 1.5px solid var(--border-color);
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .timer-actions {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+
+      .btn-timer {
+        flex: 1;
+        background: var(--card-inner);
+        border: 1.5px solid var(--border-color);
+        color: var(--text-color);
+        padding: 4px 6px;
+        border-radius: 7px;
+        font-size: 11px;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        box-shadow: 0 1.5px 0 var(--border-color);
+        transition: transform 0.08s ease;
+      }
+
+      .btn-timer.btn-primary {
+        background: var(--accent-strawberry);
+        color: #ffffff;
+      }
+
+      .btn-timer:active {
+        transform: translateY(1.5px);
+        box-shadow: none;
+      }
+
+      .preset-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+      }
+
+      .preset-chip {
+        background: var(--card-inner);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        border-radius: 6px;
+        padding: 3px 2px;
+        font-size: 9.5px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        transition: background 0.1s ease;
+      }
+
+      .preset-chip:hover {
+        background: var(--item-hover);
+      }
+
+      /* Quick Actions */
+      .action-list {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        flex: 1;
+      }
+
+      .action-item-btn {
+        width: 100%;
+        background: var(--card-bg);
+        border: 1.5px solid var(--border-color);
+        color: var(--text-color);
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 0 var(--shadow-color);
+        transition: transform 0.08s ease, background 0.15s ease;
+      }
+
+      .action-item-btn:hover {
+        background: var(--card-inner);
+      }
+
+      .action-item-btn:active {
+        transform: translateY(1.5px);
+        box-shadow: none;
+      }
+
+      .action-btn-left {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .action-item-btn.active {
+        background: var(--card-inner);
+        border-color: var(--accent-strawberry);
+      }
+
+      /* Footer */
+      .tray-footer {
+        padding-top: 6px;
+        border-top: 1.5px dashed var(--border-color);
+      }
+
+      .quit-btn {
+        width: 100%;
+        background: var(--card-inner);
+        border: 1.5px solid var(--border-color);
+        color: var(--text-color);
+        border-radius: 9px;
+        padding: 5px 8px;
+        font-size: 11px;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: 0 2px 0 var(--border-color);
+        transition: transform 0.08s ease;
+      }
+
+      .quit-btn:hover {
+        color: #e63946;
+      }
+
+      .quit-btn:active {
+        transform: translateY(1.5px);
+        box-shadow: none;
+      }
+    </style>
+  </head>
+  <body data-theme="custard">
+    <div class="tray-container">
+      <!-- Header -->
+      <div class="tray-header">
+        <div class="tray-header-left">
+          <div class="tray-logo">
+            <img src="../assets/Usagi_logo.png" alt="Usagi" />
+          </div>
+          <div class="tray-title-text">
+            <h1>Usagi Float</h1>
+            <span class="tray-status-pill">● Floating</span>
+          </div>
+        </div>
+        <button id="tray-theme-toggle-btn" class="theme-btn" title="Toggle Day / Night Theme">
+          <span class="kawaii-icon-wrap" id="tray-theme-icon-wrap"></span>
+          <span id="tray-theme-text">Night</span>
+        </button>
+      </div>
+
+      <!-- Focus Timer -->
+      <div class="timer-card">
+        <div class="timer-row">
+          <div class="timer-display" id="tray-clock-time">25:00</div>
+          <span class="timer-badge" id="tray-clock-badge">IDLE</span>
+        </div>
+        <div class="timer-actions">
+          <button id="tray-start-pause-btn" class="btn-timer btn-primary">
+            <span class="kawaii-icon-wrap" id="tray-start-pause-icon"></span>
+            <span id="tray-start-pause-text">Start</span>
+          </button>
+          <button id="tray-reset-btn" class="btn-timer">
+            <span class="kawaii-icon-wrap" id="tray-reset-icon"></span>
+            <span>Reset</span>
+          </button>
+        </div>
+        <div class="preset-grid">
+          <button class="preset-chip" data-min="25" id="chip-25m">
+            <span class="kawaii-icon-wrap" id="chip-tomato-icon"></span>
+            <span>25m</span>
+          </button>
+          <button class="preset-chip" data-min="52" id="chip-52m">
+            <span class="kawaii-icon-wrap" id="chip-bolt-icon"></span>
+            <span>52m</span>
+          </button>
+          <button class="preset-chip" data-min="90" id="chip-90m">
+            <span class="kawaii-icon-wrap" id="chip-wave-icon"></span>
+            <span>90m</span>
+          </button>
+          <button class="preset-chip" data-min="5" id="chip-5m">
+            <span class="kawaii-icon-wrap" id="chip-coffee-icon-1"></span>
+            <span>5m Rest</span>
+          </button>
+          <button class="preset-chip" data-min="17" id="chip-17m">
+            <span class="kawaii-icon-wrap" id="chip-coffee-icon-2"></span>
+            <span>17m Rest</span>
+          </button>
+          <button class="preset-chip" data-min="1" id="chip-1m">
+            <span class="kawaii-icon-wrap" id="chip-test-icon"></span>
+            <span>1m Test</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="action-list">
+        <button id="tray-open-dashboard-btn" class="action-item-btn">
+          <span class="action-btn-left">
+            <span class="kawaii-icon-wrap" id="tray-dashboard-icon"></span>
+            <span>Usagi Dashboard</span>
+          </span>
+          <span>↗</span>
+        </button>
+
+        <button id="tray-toggle-sticky-btn" class="action-item-btn">
+          <span class="action-btn-left">
+            <span class="kawaii-icon-wrap" id="tray-sticky-icon"></span>
+            <span id="tray-sticky-text">Sticky Quests</span>
+          </span>
+          <span id="tray-sticky-status">●</span>
+        </button>
+
+        <button id="tray-toggle-hidden-btn" class="action-item-btn">
+          <span class="action-btn-left">
+            <span class="kawaii-icon-wrap" id="tray-hidden-icon"></span>
+            <span id="tray-hidden-text">Hide Usagi Buddy</span>
+          </span>
+          <span id="tray-hidden-status"></span>
+        </button>
+
+        <button id="tray-drop-snack-btn" class="action-item-btn">
+          <span class="action-btn-left">
+            <span class="kawaii-icon-wrap" id="tray-pudding-icon"></span>
+            <span>Drop Pudding Snack</span>
+          </span>
+          <span>✨</span>
+        </button>
+
+        <button id="tray-toggle-ghost-btn" class="action-item-btn">
+          <span class="action-btn-left">
+            <span class="kawaii-icon-wrap" id="tray-ghost-icon"></span>
+            <span id="tray-ghost-text">Ghost Mode</span>
+          </span>
+          <span id="tray-ghost-status">OFF</span>
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="tray-footer">
+        <button id="tray-quit-btn" class="quit-btn">
+          <span class="kawaii-icon-wrap" id="tray-quit-icon"></span>
+          <span>Quit Usagi Float</span>
+        </button>
+      </div>
+    </div>
+
+    <script type="module" src="./tray.js"></script>
+  </body>
+</html>

@@ -166,3 +166,25 @@ export function pickRandomGiantAlarmSprite(
   const pickedIndex = Math.floor(randomFn() * pool.length);
   return pool[pickedIndex];
 }
+
+export function resolveOutfitSelectionChange(
+  selection: OutfitSelection | string,
+  currentCostume: CostumeId,
+  randomFn: () => number = Math.random
+): { costumeSelection: OutfitSelection; activeCostume: CostumeId; fixedAppearance: boolean } {
+  if (selection === 'random') {
+    const activeCostume = pickRandomCostume(currentCostume, randomFn);
+    return {
+      costumeSelection: 'random',
+      activeCostume,
+      fixedAppearance: false,
+    };
+  }
+
+  const activeCostume = normalizeCostumeId(selection);
+  return {
+    costumeSelection: activeCostume,
+    activeCostume,
+    fixedAppearance: true,
+  };
+}

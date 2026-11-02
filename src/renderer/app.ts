@@ -47,6 +47,7 @@ import {
   tickGiantAlarm,
   triggerGiantAlarm,
 } from '../core/giantAlarmController';
+import { shouldFollowCursor } from '../core/settingsStore';
 
 interface ProcessedFrame {
   readonly canvas: HTMLCanvasElement;
@@ -332,7 +333,9 @@ window.addEventListener('pointermove', (e: MouseEvent) => {
 });
 
 window.addEventListener('mouseleave', () => {
-  cursorPos = null;
+  if (!playModeEnabled) {
+    cursorPos = null;
+  }
   updateMouseIgnoreState();
 });
 
@@ -515,6 +518,7 @@ if (muteToggleBtn) {
       }
       window.usagiAPI?.updateVolumeConfig(updatedConfig);
     }
+    window.usagiAPI?.toggleSoundMute();
   });
 }
 
@@ -567,6 +571,15 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onPlayModeChanged((enabled) => {
     playModeEnabled = enabled;
+    if (!enabled) {
+      cursorPos = null;
+      updateMouseIgnoreState();
+    }
+  });
+
+  window.usagiAPI.onCursorPositionUpdated((pos) => {
+    cursorPos = pos;
+    updateMouseIgnoreState();
   });
 
   window.usagiAPI.onStationaryModeChanged((stationary) => {
@@ -1138,8 +1151,16 @@ function animationLoop(now: number): void {
     }
   }
 
-  const cursorTarget = playModeEnabled && !ghostState.ghostModeLocked ? cursorPos : null;
-  const result = stepUsagiPhysics(state, dt, screenBounds, activeSnack, undefined, cursorTarget);
+  const effectiveSnack = isUsagiHidden && !giantAlarmState.active ? null : activeSnack;
+  const cursorTarget = shouldFollowCursor({
+    ghostLocked: ghostState.ghostModeLocked,
+    playModeEnabled,
+    stationaryMode: state.stationary,
+    usagiHidden: isUsagiHidden,
+  })
+    ? cursorPos
+    : null;
+  const result = stepUsagiPhysics(state, dt, screenBounds, effectiveSnack, undefined, cursorTarget);
   state = result.state;
 
   if (result.snackConsumed && activeSnack) {

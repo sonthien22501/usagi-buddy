@@ -13,6 +13,7 @@ import {
   normalizeCostumeId,
   pickRandomCostume,
   pickRandomGiantAlarmSprite,
+  resolveOutfitSelectionChange,
   tickWardrobeRotation,
 } from '../src/core/costumeManager';
 
@@ -144,5 +145,40 @@ describe('costumeManager', () => {
     expect(r1.nextCostume).toBeNull();
     expect(r1.state.elapsedMs).toBe(0);
     expect(r1.state.fixedAppearance).toBe(true);
+  });
+
+  describe('resolveOutfitSelectionChange', () => {
+    it('sets activeCostume, costumeSelection, and locks fixedAppearance to true for specific costume', () => {
+      const res = resolveOutfitSelectionChange('vest', 'classic');
+      expect(res).toEqual({
+        costumeSelection: 'vest',
+        activeCostume: 'vest',
+        fixedAppearance: true,
+      });
+
+      const resStar = resolveOutfitSelectionChange('star', 'vest');
+      expect(resStar).toEqual({
+        costumeSelection: 'star',
+        activeCostume: 'star',
+        fixedAppearance: true,
+      });
+    });
+
+    it('normalizes alias costumes like ngau to sigma and locks fixedAppearance', () => {
+      const res = resolveOutfitSelectionChange('ngau', 'classic');
+      expect(res).toEqual({
+        costumeSelection: 'sigma',
+        activeCostume: 'sigma',
+        fixedAppearance: true,
+      });
+    });
+
+    it('picks random costume, sets costumeSelection to random, and sets fixedAppearance to false', () => {
+      const res = resolveOutfitSelectionChange('random', 'classic', () => 0);
+      expect(res.costumeSelection).toBe('random');
+      expect(res.fixedAppearance).toBe(false);
+      expect(res.activeCostume).not.toBe('classic');
+      expect(ALL_COSTUME_IDS).toContain(res.activeCostume);
+    });
   });
 });

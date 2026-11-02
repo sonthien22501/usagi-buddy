@@ -39,9 +39,18 @@ import {
   pickRandomCostume,
   isKnownOutfitSelection,
   createWardrobeRotationState,
+  resolveOutfitSelectionChange,
   tickWardrobeRotation,
   WardrobeRotationState,
 } from '../core/costumeManager';
+import {
+  ModeFlags,
+  parseUserSettingsJson,
+  resolveModeTransition,
+  serializeUserSettingsJson,
+  shouldFollowCursor,
+  UserSettings,
+} from '../core/settingsStore';
 import {
   ReminderState,
   createInitialReminderState,
@@ -52,11 +61,14 @@ import {
   parseRemindersJson,
   serializeRemindersJson,
 } from '../core/reminderStore';
+import { computeTrayPopoverPosition } from '../core/trayPositioner';
 
 let mainWindow: BrowserWindow | null = null;
 let dashboardWindow: BrowserWindow | null = null;
 let stickyWindow: BrowserWindow | null = null;
+let trayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+let lastTrayBlurMs = 0;
 let ghostLocked = false;
 let playModeEnabled = false;
 let soundMuted = false;
@@ -74,6 +86,64 @@ let reminderState: ReminderState = createInitialReminderState();
 
 let pomodoroInterval: NodeJS.Timeout | null = null;
 let wellnessInterval: NodeJS.Timeout | null = null;
+let cursorInterval: NodeJS.Timeout | null = null;
+
+function getSettingsFilePath(): string {
+  try {
+    return path.join(app.getPath('userData'), 'usagi-settings.json');
+  } catch {
+    return path.resolve(__dirname, '../../usagi-settings.json');
+  }
+}
+
+function loadSettingsFromDisk(): void {
+  try {
+    const p = getSettingsFilePath();
+    if (fs.existsSync(p)) {
+      const raw = fs.readFileSync(p, 'utf-8');
+      const settings = parseUserSettingsJson(raw);
+      costumeSelection = settings.costumeSelection;
+      activeCostume = settings.activeCostume;
+      wardrobeRotation = createWardrobeRotationState(settings.fixedAppearance);
+      volumeConfig = settings.volumeConfig;
+      soundMuted = settings.soundMuted;
+      ghostLocked = settings.ghostLocked;
+      playModeEnabled = settings.playModeEnabled;
+      stationaryMode = settings.stationaryMode;
+      usagiHidden = settings.usagiHidden;
+      pomodoroState = {
+        ...createPomodoroTimer(settings.timerDurationMs),
+        remainingMs: settings.timerRemainingMs,
+        phase: settings.timerPhase,
+      };
+    }
+  } catch (err) {
+    console.warn('Failed to load settings from disk:', err);
+  }
+}
+
+function saveSettingsToDisk(): void {
+  try {
+    const p = getSettingsFilePath();
+    const settings: UserSettings = {
+      costumeSelection,
+      activeCostume,
+      fixedAppearance: wardrobeRotation.fixedAppearance,
+      timerDurationMs: pomodoroState.durationMs,
+      timerRemainingMs: pomodoroState.remainingMs,
+      timerPhase: pomodoroState.phase,
+      volumeConfig,
+      soundMuted,
+      ghostLocked,
+      playModeEnabled,
+      stationaryMode,
+      usagiHidden,
+    };
+    fs.writeFileSync(p, serializeUserSettingsJson(settings), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to save settings to disk:', err);
+  }
+}
 
 function getRemindersFilePath(): string {
   try {
@@ -123,6 +193,9 @@ function broadcastToAllWindows(channel: string, ...args: any[]): void {
   if (stickyWindow && !stickyWindow.isDestroyed()) {
     stickyWindow.webContents.send(channel, ...args);
   }
+  if (trayWindow && !trayWindow.isDestroyed()) {
+    trayWindow.webContents.send(channel, ...args);
+  }
 }
 
 function broadcastReminderState(): void {
@@ -154,8 +227,23 @@ function getAppLogoPath(): string {
   return '';
 }
 
+function sendFullStateToWindow(win: BrowserWindow | null): void {
+  if (!win || win.isDestroyed()) return;
+  win.webContents.send('volume-config-changed', volumeConfig);
+  win.webContents.send('pomodoro-state-changed', pomodoroState);
+  win.webContents.send('stationary-mode-toggle', stationaryMode);
+  win.webContents.send('sound-mute-toggle', soundMuted);
+  win.webContents.send('ghost-mode-toggle', ghostLocked);
+  win.webContents.send('play-mode-toggle', playModeEnabled);
+  win.webContents.send('costume-changed', activeCostume, costumeSelection);
+  win.webContents.send('reminder-state-changed', reminderState);
+  win.webContents.send('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
+  win.webContents.send('usagi-hidden-toggle', usagiHidden);
+}
+
 function createDashboardWindow(): void {
   if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+    sendFullStateToWindow(dashboardWindow);
     dashboardWindow.show();
     dashboardWindow.focus();
     return;
@@ -188,18 +276,7 @@ function createDashboardWindow(): void {
   });
 
   dashboardWindow.webContents.on('did-finish-load', () => {
-    broadcastVolumeConfig();
-    broadcastPomodoroState();
-    if (dashboardWindow && !dashboardWindow.isDestroyed()) {
-      dashboardWindow.webContents.send('stationary-mode-toggle', stationaryMode);
-      dashboardWindow.webContents.send('sound-mute-toggle', soundMuted);
-      dashboardWindow.webContents.send('ghost-mode-toggle', ghostLocked);
-      dashboardWindow.webContents.send('play-mode-toggle', playModeEnabled);
-      dashboardWindow.webContents.send('costume-changed', activeCostume, costumeSelection);
-      dashboardWindow.webContents.send('reminder-state-changed', reminderState);
-      dashboardWindow.webContents.send('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
-      dashboardWindow.webContents.send('usagi-hidden-toggle', usagiHidden);
-    }
+    sendFullStateToWindow(dashboardWindow);
   });
 }
 
@@ -282,15 +359,94 @@ function toggleStickyWindow(): void {
   }
 }
 
-function setCostume(selection: OutfitSelection): void {
-  costumeSelection = selection;
-  if (selection === 'random') {
-    activeCostume = pickRandomCostume(activeCostume);
-  } else {
-    activeCostume = selection;
+function createTrayWindow(): void {
+  if (trayWindow && !trayWindow.isDestroyed()) {
+    return;
   }
+
+  trayWindow = new BrowserWindow({
+    width: 320,
+    height: 490,
+    show: false,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    fullscreenable: false,
+    hasShadow: false,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  const htmlPath = path.join(__dirname, '../tray/index.html');
+  trayWindow.loadFile(htmlPath);
+
+  trayWindow.on('blur', () => {
+    if (trayWindow && !trayWindow.isDestroyed() && trayWindow.isVisible()) {
+      lastTrayBlurMs = Date.now();
+      trayWindow.hide();
+    }
+  });
+
+  trayWindow.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault();
+      trayWindow?.hide();
+    }
+  });
+
+  trayWindow.webContents.on('did-finish-load', () => {
+    sendFullStateToWindow(trayWindow);
+  });
+}
+
+function toggleTrayWindow(): void {
+  if (!trayWindow || trayWindow.isDestroyed()) {
+    createTrayWindow();
+  }
+
+  if (trayWindow && trayWindow.isVisible()) {
+    trayWindow.hide();
+    return;
+  }
+
+  if (Date.now() - lastTrayBlurMs < 200) {
+    return;
+  }
+
+  const trayBounds = tray ? tray.getBounds() : { x: 0, y: 0, width: 0, height: 0 };
+  const activeDisplay =
+    trayBounds.width > 0 && trayBounds.height > 0
+      ? screen.getDisplayMatching(trayBounds)
+      : screen.getPrimaryDisplay();
+  const workArea = activeDisplay.workArea;
+  const pos = computeTrayPopoverPosition(trayBounds, workArea, { width: 320, height: 490 });
+
+  if (trayWindow) {
+    trayWindow.setPosition(pos.x, pos.y);
+    sendFullStateToWindow(trayWindow);
+    trayWindow.show();
+    trayWindow.focus();
+  }
+}
+
+function setCostume(selection: OutfitSelection): void {
+  const result = resolveOutfitSelectionChange(selection, activeCostume);
+  costumeSelection = result.costumeSelection;
+  activeCostume = result.activeCostume;
+  wardrobeRotation = {
+    ...wardrobeRotation,
+    fixedAppearance: result.fixedAppearance,
+    elapsedMs: 0,
+  };
   broadcastToAllWindows('costume-changed', activeCostume, costumeSelection);
+  broadcastToAllWindows('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
   updateTrayMenu();
+  saveSettingsToDisk();
 }
 
 function updateTrayMenu(): void {
@@ -300,120 +456,57 @@ function updateTrayMenu(): void {
   const titleText = ghostLocked ? `👻 ${timeStr}` : timeStr;
   tray.setTitle(titleText);
   tray.setToolTip(`Usagi Float — ${pomodoroState.phase.toUpperCase()} (${timeStr})`);
+}
 
-  const isRunning = pomodoroState.phase === 'running';
+function applyModes(next: ModeFlags): void {
+  const ghostChanged = ghostLocked !== next.ghostLocked;
+  const playChanged = playModeEnabled !== next.playModeEnabled;
+  const stationaryChanged = stationaryMode !== next.stationaryMode;
+  const hiddenChanged = usagiHidden !== next.usagiHidden;
 
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: `⏱️ Focus Timer: ${timeStr} (${pomodoroState.phase.toUpperCase()})`,
-      enabled: false,
-    },
-    {
-      label: isRunning ? '⏸️ Pause Timer' : '▶️ Start Timer',
-      click: () => {
-        if (isRunning) {
-          pomodoroState = pausePomodoro(pomodoroState);
-        } else {
-          pomodoroState = startPomodoro(pomodoroState);
-        }
-        updateTrayMenu();
-        broadcastPomodoroState();
-      },
-    },
-    {
-      label: '🔄 Reset Timer',
-      click: () => {
-        pomodoroState = resetPomodoro(pomodoroState);
-        updateTrayMenu();
-        broadcastPomodoroState();
-      },
-    },
-    {
-      label: '⏱️ Set Timer Duration',
-      submenu: [
-        {
-          label: '🍅 25-Min Pomodoro (5m Break)',
-          click: () => setPomodoroDuration(25 * 60_000),
-        },
-        {
-          label: '⚡ 52-Min Focus (17m Break)',
-          click: () => setPomodoroDuration(52 * 60_000),
-        },
-        {
-          label: '🌊 90-Min Ultradian (20m Break)',
-          click: () => setPomodoroDuration(90 * 60_000),
-        },
-        { type: 'separator' },
-        {
-          label: '☕ 5-Minute Short Break',
-          click: () => setPomodoroDuration(5 * 60_000),
-        },
-        {
-          label: '☕ 17-Minute 52/17 Rest Break',
-          click: () => setPomodoroDuration(17 * 60_000),
-        },
-        {
-          label: '☕ 20-Minute Deep Rest Break',
-          click: () => setPomodoroDuration(20 * 60_000),
-        },
-        {
-          label: '⚡ 1-Minute Quick Test',
-          click: () => setPomodoroDuration(60_000),
-        },
-        { type: 'separator' },
-        {
-          label: '✏️ Custom Duration... (Open Dashboard)',
-          click: () => createDashboardWindow(),
-        },
-      ],
-    },
-    { type: 'separator' },
-    {
-      label: '🎛️ Open Usagi Dashboard...',
-      click: () => createDashboardWindow(),
-    },
-    {
-      label: reminderState.stickyVisible ? '📝 Hide Sticky Quests' : '📝 Show Sticky Quests',
-      click: () => toggleStickyWindow(),
-    },
-    {
-      label: usagiHidden ? '🐰 Show Usagi Buddy' : '🙈 Hide Usagi Buddy',
-      click: () => toggleUsagiHidden(),
-    },
-    { type: 'separator' },
-    {
-      label: '🚪 Quit Usagi Float',
-      click: () => {
-        app.quit();
-      },
-    },
-  ]);
+  ghostLocked = next.ghostLocked;
+  playModeEnabled = next.playModeEnabled;
+  stationaryMode = next.stationaryMode;
+  usagiHidden = next.usagiHidden;
 
-  tray.setContextMenu(contextMenu);
+  if (ghostChanged) broadcastToAllWindows('ghost-mode-toggle', ghostLocked);
+  if (playChanged) broadcastToAllWindows('play-mode-toggle', playModeEnabled);
+  if (stationaryChanged) broadcastToAllWindows('stationary-mode-toggle', stationaryMode);
+  if (hiddenChanged) broadcastToAllWindows('usagi-hidden-toggle', usagiHidden);
+
+  updateTrayMenu();
+  saveSettingsToDisk();
 }
 
 function toggleGhostMode(): void {
-  ghostLocked = !ghostLocked;
-  broadcastToAllWindows('ghost-mode-toggle', ghostLocked);
-  updateTrayMenu();
+  const next = resolveModeTransition(
+    { ghostLocked, playModeEnabled, stationaryMode, usagiHidden },
+    { type: 'toggle-ghost' }
+  );
+  applyModes(next);
 }
 
 function togglePlayMode(): void {
-  playModeEnabled = !playModeEnabled;
-  broadcastToAllWindows('play-mode-toggle', playModeEnabled);
-  updateTrayMenu();
+  const next = resolveModeTransition(
+    { ghostLocked, playModeEnabled, stationaryMode, usagiHidden },
+    { type: 'toggle-play' }
+  );
+  applyModes(next);
 }
 
 function toggleStationaryMode(): void {
-  stationaryMode = !stationaryMode;
-  broadcastToAllWindows('stationary-mode-toggle', stationaryMode);
-  updateTrayMenu();
+  const next = resolveModeTransition(
+    { ghostLocked, playModeEnabled, stationaryMode, usagiHidden },
+    { type: 'toggle-stationary' }
+  );
+  applyModes(next);
 }
 
 function toggleSoundMute(): void {
   soundMuted = !soundMuted;
   broadcastToAllWindows('sound-mute-toggle', soundMuted);
   updateTrayMenu();
+  saveSettingsToDisk();
 }
 
 function toggleFixedAppearance(): void {
@@ -423,12 +516,15 @@ function toggleFixedAppearance(): void {
     elapsedMs: 0,
   };
   broadcastToAllWindows('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
+  saveSettingsToDisk();
 }
 
 function toggleUsagiHidden(): void {
-  usagiHidden = !usagiHidden;
-  broadcastToAllWindows('usagi-hidden-toggle', usagiHidden);
-  updateTrayMenu();
+  const next = resolveModeTransition(
+    { ghostLocked, playModeEnabled, stationaryMode, usagiHidden },
+    { type: 'toggle-hidden' }
+  );
+  applyModes(next);
 }
 
 function dropSnackNow(): void {
@@ -448,6 +544,7 @@ function setPomodoroDuration(durationMs: number): void {
   pomodoroState = startPomodoro(pomodoroState);
   updateTrayMenu();
   broadcastPomodoroState();
+  saveSettingsToDisk();
 }
 
 function triggerPreviewWellnessReminder(): void {
@@ -492,10 +589,7 @@ function createMainWindow(): void {
   mainWindow.loadFile(htmlPath);
 
   mainWindow.webContents.on('did-finish-load', () => {
-    broadcastVolumeConfig();
-    mainWindow?.webContents.send('stationary-mode-toggle', stationaryMode);
-    mainWindow?.webContents.send('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
-    mainWindow?.webContents.send('usagi-hidden-toggle', usagiHidden);
+    sendFullStateToWindow(mainWindow);
   });
 
   mainWindow.on('closed', () => {
@@ -514,6 +608,13 @@ function createSystemTray(): void {
 
   tray = new Tray(trayIcon);
   updateTrayMenu();
+
+  tray.on('click', () => {
+    toggleTrayWindow();
+  });
+  tray.on('right-click', () => {
+    toggleTrayWindow();
+  });
 }
 
 function setupPomodoroTicker(): void {
@@ -526,6 +627,7 @@ function setupPomodoroTicker(): void {
       if (spawnedSnack && mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('trigger-giant-alarm');
         wellnessState = recordPomodoroCompleted(wellnessState);
+        saveSettingsToDisk();
       }
     }
     updateTrayMenu();
@@ -559,8 +661,12 @@ function setupWellnessCoachTicker(): void {
     wardrobeRotation = wardrobeResult.state;
     if (wardrobeResult.nextCostume) {
       activeCostume = wardrobeResult.nextCostume;
+      if (costumeSelection !== 'random') {
+        costumeSelection = activeCostume;
+      }
       broadcastToAllWindows('costume-changed', activeCostume, costumeSelection);
       updateTrayMenu();
+      saveSettingsToDisk();
     }
 
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -588,13 +694,38 @@ function setupWellnessCoachTicker(): void {
   }, 5000);
 }
 
+function setupCursorTrackingTicker(): void {
+  cursorInterval = setInterval(() => {
+    if (
+      shouldFollowCursor({
+        ghostLocked,
+        playModeEnabled,
+        stationaryMode,
+        usagiHidden,
+      }) &&
+      mainWindow &&
+      !mainWindow.isDestroyed()
+    ) {
+      const pt = screen.getCursorScreenPoint();
+      const bounds = mainWindow.getBounds();
+      mainWindow.webContents.send('cursor-position-updated', {
+        x: pt.x - bounds.x,
+        y: pt.y - bounds.y,
+      });
+    }
+  }, 33);
+}
+
 app.whenReady().then(() => {
+  loadSettingsFromDisk();
   loadRemindersFromDisk();
   createMainWindow();
   createStickyWindow();
+  createTrayWindow();
   createSystemTray();
   setupPomodoroTicker();
   setupWellnessCoachTicker();
+  setupCursorTrackingTicker();
 
   globalShortcut.register('CommandOrControl+Shift+G', () => {
     toggleGhostMode();
@@ -625,6 +756,7 @@ app.whenReady().then(() => {
     }
     updateTrayMenu();
     broadcastPomodoroState();
+    saveSettingsToDisk();
   });
 
   ipcMain.on('pause-pomodoro-timer', () => {
@@ -635,18 +767,21 @@ app.whenReady().then(() => {
     }
     updateTrayMenu();
     broadcastPomodoroState();
+    saveSettingsToDisk();
   });
 
   ipcMain.on('reset-pomodoro-timer', () => {
     pomodoroState = resetPomodoro(pomodoroState);
     updateTrayMenu();
     broadcastPomodoroState();
+    saveSettingsToDisk();
   });
 
   ipcMain.on('update-volume-config', (_e, nextConfig: VolumeConfig) => {
     volumeConfig = { ...nextConfig };
     broadcastVolumeConfig();
     updateTrayMenu();
+    saveSettingsToDisk();
   });
 
   ipcMain.on('test-sound', () => {
@@ -742,6 +877,23 @@ app.whenReady().then(() => {
     toggleUsagiHidden();
   });
 
+  ipcMain.on('open-dashboard-window', () => {
+    if (trayWindow && !trayWindow.isDestroyed()) {
+      trayWindow.hide();
+    }
+    createDashboardWindow();
+  });
+
+  ipcMain.on('quit-app', () => {
+    app.quit();
+  });
+
+  ipcMain.on('close-tray-popover', () => {
+    if (trayWindow && !trayWindow.isDestroyed()) {
+      trayWindow.hide();
+    }
+  });
+
   screen.on('display-metrics-changed', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       const primaryDisplay = screen.getPrimaryDisplay();
@@ -752,6 +904,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  saveSettingsToDisk();
 });
 
 app.on('activate', () => {
@@ -767,6 +920,10 @@ app.on('will-quit', () => {
   if (wellnessInterval) {
     clearInterval(wellnessInterval);
     wellnessInterval = null;
+  }
+  if (cursorInterval) {
+    clearInterval(cursorInterval);
+    cursorInterval = null;
   }
 });
 

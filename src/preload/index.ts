@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { CostumeId, OutfitSelection } from '../core/costumeManager';
-import { SnackTarget } from '../core/physicsEngine';
+import { SnackTarget, Vector2D } from '../core/physicsEngine';
 import { PomodoroState } from '../core/pomodoroTimer';
 import { VolumeConfig } from '../core/soundManager';
 import { ReminderState } from '../core/reminderStore';
@@ -17,6 +17,7 @@ export interface UsagiAPI {
   onSnackSpawned: (callback: (snack: SnackTarget) => void) => () => void;
   onTriggerInteraction: (callback: () => void) => () => void;
   notifySnackConsumed: () => void;
+  onCursorPositionUpdated: (callback: (pos: Vector2D) => void) => () => void;
   onPlayModeChanged: (callback: (enabled: boolean) => void) => () => void;
   togglePlayMode: () => void;
   toggleGhostMode: () => void;
@@ -55,6 +56,9 @@ export interface UsagiAPI {
   onFixedAppearanceChanged: (callback: (fixed: boolean) => void) => () => void;
   toggleUsagiHidden: () => void;
   onUsagiHiddenChanged: (callback: (hidden: boolean) => void) => () => void;
+  openDashboardWindow: () => void;
+  quitApp: () => void;
+  closeTrayPopover: () => void;
 }
 
 const api: UsagiAPI = {
@@ -78,6 +82,11 @@ const api: UsagiAPI = {
   },
   notifySnackConsumed: () => {
     ipcRenderer.send('snack-consumed');
+  },
+  onCursorPositionUpdated: (callback: (pos: Vector2D) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, pos: Vector2D) => callback(pos);
+    ipcRenderer.on('cursor-position-updated', handler);
+    return () => ipcRenderer.removeListener('cursor-position-updated', handler);
   },
   onPlayModeChanged: (callback: (enabled: boolean) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, enabled: boolean) => callback(enabled);
@@ -218,6 +227,15 @@ const api: UsagiAPI = {
     const handler = (_event: Electron.IpcRendererEvent, hidden: boolean) => callback(hidden);
     ipcRenderer.on('usagi-hidden-toggle', handler);
     return () => ipcRenderer.removeListener('usagi-hidden-toggle', handler);
+  },
+  openDashboardWindow: () => {
+    ipcRenderer.send('open-dashboard-window');
+  },
+  quitApp: () => {
+    ipcRenderer.send('quit-app');
+  },
+  closeTrayPopover: () => {
+    ipcRenderer.send('close-tray-popover');
   },
 };
 
