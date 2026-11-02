@@ -25,7 +25,6 @@ const toggleHiddenBtn = document.getElementById(
   'tray-toggle-hidden-btn'
 ) as HTMLButtonElement | null;
 const dropSnackBtn = document.getElementById('tray-drop-snack-btn') as HTMLButtonElement | null;
-const toggleGhostBtn = document.getElementById('tray-toggle-ghost-btn') as HTMLButtonElement | null;
 const quitBtn = document.getElementById('tray-quit-btn') as HTMLButtonElement | null;
 
 const stickyText = document.getElementById('tray-sticky-text') as HTMLSpanElement | null;
@@ -33,8 +32,6 @@ const stickyStatus = document.getElementById('tray-sticky-status') as HTMLSpanEl
 const hiddenText = document.getElementById('tray-hidden-text') as HTMLSpanElement | null;
 const hiddenStatus = document.getElementById('tray-hidden-status') as HTMLSpanElement | null;
 const hiddenIcon = document.getElementById('tray-hidden-icon') as HTMLSpanElement | null;
-const ghostText = document.getElementById('tray-ghost-text') as HTMLSpanElement | null;
-const ghostStatus = document.getElementById('tray-ghost-status') as HTMLSpanElement | null;
 
 let currentPomodoroState: PomodoroState | null = null;
 let currentReminderState: ReminderState = {
@@ -43,28 +40,9 @@ let currentReminderState: ReminderState = {
   theme: 'custard',
 };
 let isUsagiHidden = false;
-let isGhostLocked = false;
 
 // Populate static kawaii icons
 function initStaticIcons(): void {
-  const chipTomato = document.getElementById('chip-tomato-icon');
-  if (chipTomato) chipTomato.innerHTML = getKawaiiIcon('tomato', 12);
-
-  const chipBolt = document.getElementById('chip-bolt-icon');
-  if (chipBolt) chipBolt.innerHTML = getKawaiiIcon('bolt', 12);
-
-  const chipWave = document.getElementById('chip-wave-icon');
-  if (chipWave) chipWave.innerHTML = getKawaiiIcon('wave', 12);
-
-  const chipCoffee1 = document.getElementById('chip-coffee-icon-1');
-  if (chipCoffee1) chipCoffee1.innerHTML = getKawaiiIcon('coffee', 12);
-
-  const chipCoffee2 = document.getElementById('chip-coffee-icon-2');
-  if (chipCoffee2) chipCoffee2.innerHTML = getKawaiiIcon('coffee', 12);
-
-  const chipTest = document.getElementById('chip-test-icon');
-  if (chipTest) chipTest.innerHTML = getKawaiiIcon('sparkle', 12);
-
   const dashboardIcon = document.getElementById('tray-dashboard-icon');
   if (dashboardIcon) dashboardIcon.innerHTML = getKawaiiIcon('dashboard', 16);
 
@@ -73,9 +51,6 @@ function initStaticIcons(): void {
 
   const puddingIcon = document.getElementById('tray-pudding-icon');
   if (puddingIcon) puddingIcon.innerHTML = getKawaiiIcon('pudding', 16);
-
-  const ghostIcon = document.getElementById('tray-ghost-icon');
-  if (ghostIcon) ghostIcon.innerHTML = getKawaiiIcon('ghost', 16);
 
   const quitIcon = document.getElementById('tray-quit-icon');
   if (quitIcon) quitIcon.innerHTML = getKawaiiIcon('door-quit', 15);
@@ -146,28 +121,9 @@ function updateHiddenUI(hidden: boolean): void {
   }
 }
 
-// Update Ghost Mode State
-function updateGhostUI(locked: boolean): void {
-  isGhostLocked = locked;
-  if (ghostText) {
-    ghostText.textContent = locked ? 'Ghost Mode (Active)' : 'Ghost Mode';
-  }
-  if (ghostStatus) {
-    ghostStatus.textContent = locked ? 'ON' : 'OFF';
-  }
-  if (toggleGhostBtn) {
-    if (locked) {
-      toggleGhostBtn.classList.add('active');
-    } else {
-      toggleGhostBtn.classList.remove('active');
-    }
-  }
-}
-
 // Event Bindings
 initStaticIcons();
 updateHiddenUI(false);
-updateGhostUI(false);
 
 if (startPauseBtn) {
   startPauseBtn.addEventListener('click', () => {
@@ -220,12 +176,6 @@ if (dropSnackBtn) {
   });
 }
 
-if (toggleGhostBtn) {
-  toggleGhostBtn.addEventListener('click', () => {
-    window.usagiAPI?.toggleGhostMode();
-  });
-}
-
 if (quitBtn) {
   quitBtn.addEventListener('click', () => {
     window.usagiAPI?.quitApp();
@@ -244,10 +194,6 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onUsagiHiddenChanged((hidden) => {
     updateHiddenUI(hidden);
-  });
-
-  window.usagiAPI.onGhostModeChanged((locked) => {
-    updateGhostUI(locked);
   });
 
   window.usagiAPI

@@ -656,7 +656,7 @@ function createTrayWindow(): void {
 
   trayWindow = new BrowserWindow({
     width: 320,
-    height: 490,
+    height: 410,
     show: false,
     frame: false,
     transparent: true,
@@ -714,7 +714,7 @@ function toggleTrayWindow(): void {
       ? screen.getDisplayMatching(trayBounds)
       : screen.getPrimaryDisplay();
   const workArea = activeDisplay.workArea;
-  const pos = computeTrayPopoverPosition(trayBounds, workArea, { width: 320, height: 490 });
+  const pos = computeTrayPopoverPosition(trayBounds, workArea, { width: 320, height: 410 });
 
   if (trayWindow) {
     trayWindow.setPosition(pos.x, pos.y);
@@ -764,6 +764,7 @@ function applyModes(next: ModeFlags): void {
   if (stationaryChanged) broadcastToAllWindows('stationary-mode-toggle', stationaryMode);
   if (hiddenChanged) broadcastToAllWindows('usagi-hidden-toggle', usagiHidden);
 
+  setupCursorTrackingTicker();
   updateTrayMenu();
   saveSettingsToDisk();
 }
@@ -991,25 +992,42 @@ function setupWellnessCoachTicker(): void {
 }
 
 function setupCursorTrackingTicker(): void {
-  cursorInterval = setInterval(() => {
-    if (
-      shouldFollowCursor({
-        ghostLocked,
-        playModeEnabled,
-        stationaryMode,
-        usagiHidden,
-      }) &&
-      mainWindow &&
-      !mainWindow.isDestroyed()
-    ) {
-      const pt = screen.getCursorScreenPoint();
-      const bounds = mainWindow.getBounds();
-      mainWindow.webContents.send('cursor-position-updated', {
-        x: pt.x - bounds.x,
-        y: pt.y - bounds.y,
-      });
-    }
-  }, 33);
+  const follow = shouldFollowCursor({
+    ghostLocked,
+    playModeEnabled,
+    stationaryMode,
+    usagiHidden,
+  });
+
+  if (follow && !cursorInterval) {
+    cursorInterval = setInterval(() => {
+      if (
+        shouldFollowCursor({
+          ghostLocked,
+          playModeEnabled,
+          stationaryMode,
+          usagiHidden,
+        }) &&
+        mainWindow &&
+        !mainWindow.isDestroyed()
+      ) {
+        const pt = screen.getCursorScreenPoint();
+        const bounds = mainWindow.getBounds();
+        mainWindow.webContents.send('cursor-position-updated', {
+          x: pt.x - bounds.x,
+          y: pt.y - bounds.y,
+        });
+      } else {
+        if (cursorInterval) {
+          clearInterval(cursorInterval);
+          cursorInterval = null;
+        }
+      }
+    }, 33);
+  } else if (!follow && cursorInterval) {
+    clearInterval(cursorInterval);
+    cursorInterval = null;
+  }
 }
 
 app.whenReady().then(() => {
@@ -1019,8 +1037,9 @@ app.whenReady().then(() => {
   loadCalendarFromDisk();
   loadScheduleFromDisk();
   createMainWindow();
-  createStickyWindow();
-  createTrayWindow();
+  if (reminderState.stickyVisible) {
+    createStickyWindow();
+  }
   createSystemTray();
   setupPomodoroTicker();
   setupWellnessCoachTicker();

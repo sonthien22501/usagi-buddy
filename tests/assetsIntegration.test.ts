@@ -136,7 +136,8 @@ describe('Usagi PNG and MP3 assets verification', () => {
 
     // Clean Wardrobe Auto-Change button
     expect(html).toContain('fix-appearance-toggle-btn');
-    expect(html).toContain('🔄 Auto-Change');
+    expect(html).toContain('Auto-Change');
+    expect(html).not.toContain('🔄 Auto-Change');
 
     // Cursor Keychain Hug removed
     expect(html).not.toContain('cursor-hug-toggle-btn');
@@ -201,8 +202,20 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(trayHtml).toContain('tray-toggle-sticky-btn');
     expect(trayHtml).toContain('tray-toggle-hidden-btn');
     expect(trayHtml).toContain('tray-drop-snack-btn');
-    expect(trayHtml).toContain('tray-toggle-ghost-btn');
+    expect(trayHtml).not.toContain('tray-toggle-ghost-btn');
     expect(trayHtml).toContain('tray-quit-btn');
+    expect(trayHtml).toContain('chip-25m');
+    expect(trayHtml).toContain('chip-52m');
+    expect(trayHtml).toContain('chip-90m');
+    expect(trayHtml).not.toContain('chip-5m');
+    expect(trayHtml).not.toContain('chip-17m');
+    expect(trayHtml).not.toContain('chip-1m');
+    expect(trayHtml).toContain('height: 410px');
+
+    const trayTs = fs.readFileSync(trayTsPath, 'utf-8');
+    expect(trayTs).not.toContain('tray-toggle-ghost-btn');
+    expect(trayTs).not.toContain('toggleGhostBtn');
+    expect(trayTs).not.toContain('updateGhostUI');
 
     // 3. Build script copies and bundles tray window
     const buildMjs = fs.readFileSync(path.resolve(__dirname, '../scripts/build.mjs'), 'utf-8');
@@ -233,5 +246,133 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(stickyHtml).toContain('data-theme="custard"');
     expect(stickyHtml).not.toContain("[data-theme='night']");
     expect(stickyHtml).not.toContain('themeToggleBtn');
+  });
+
+  it('verifies UI is distilled (no redundant helper descriptions, footer tips, or stacked preset/tab icons)', () => {
+    // 1. Dashboard
+    const dashHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/dashboard/index.html'),
+      'utf-8'
+    );
+    const dashTs = fs.readFileSync(
+      path.resolve(__dirname, '../src/dashboard/dashboard.ts'),
+      'utf-8'
+    );
+    expect(dashHtml).not.toContain('Custard Anime Companion & Quests');
+    expect(dashHtml).not.toContain('app-footer');
+    expect(dashHtml).not.toContain('💡 Close this window anytime');
+    expect(dashHtml).toContain('id="dashTabCompanion">Companion</button>');
+    expect(dashHtml).toContain('id="dashTabConfig">Settings</button>');
+
+    const redundantHelpers = [
+      'Your preferred display name',
+      'Usagi celebrates your special day!',
+      'Calendar public holiday countdowns',
+      'Display across quests & calendar',
+      'Calendar grid header order',
+      'Font scaling on sticky window',
+      'Compact / Medium / Large preset',
+      'Float above all apps or stay on desktop',
+      'Auto-change costume every 30m or fix',
+    ];
+    for (const helper of redundantHelpers) {
+      expect(dashHtml).not.toContain(helper);
+    }
+
+    const removedIcons = [
+      'sticky-title-icon',
+      'pin-title-icon',
+      'wand-title-icon',
+      'ghost-title-icon',
+      'pudding-title-icon',
+      'hide-title-icon',
+    ];
+    for (const iconId of removedIcons) {
+      expect(dashHtml).not.toContain(iconId);
+      expect(dashTs).not.toContain(iconId);
+    }
+
+    expect(dashTs).not.toContain('renderIconLabel');
+    expect(dashTs).not.toContain('🖥️ Desktop Widget');
+    expect(dashTs).not.toContain('📌 Pinned on Top');
+    expect(dashHtml).toContain('costume-icon-classic');
+    expect(dashHtml).toContain('.kawaii-svg');
+
+    // 2. Tray
+    const trayHtml = fs.readFileSync(path.resolve(__dirname, '../src/tray/index.html'), 'utf-8');
+    const trayTs = fs.readFileSync(path.resolve(__dirname, '../src/tray/tray.ts'), 'utf-8');
+    const removedTrayChips = [
+      'chip-tomato-icon',
+      'chip-bolt-icon',
+      'chip-wave-icon',
+      'chip-coffee-icon-1',
+      'chip-coffee-icon-2',
+      'chip-test-icon',
+    ];
+    for (const chipId of removedTrayChips) {
+      expect(trayHtml).not.toContain(chipId);
+      expect(trayTs).not.toContain(chipId);
+    }
+    expect(trayHtml).not.toContain('<span>✨</span>');
+    expect(trayHtml).not.toContain('<span>↗</span>');
+
+    // 3. Sticky
+    const stickyHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/sticky/index.html'),
+      'utf-8'
+    );
+    const stickyTs = fs.readFileSync(path.resolve(__dirname, '../src/sticky/sticky.ts'), 'utf-8');
+    expect(stickyHtml).toContain('id="tabBtnQuests">Quests</button>');
+    expect(stickyHtml).toContain('id="tabBtnCalendar">Calendar</button>');
+    expect(stickyHtml).toContain('id="tabBtnSchedule">Schedule</button>');
+    expect(stickyHtml).not.toContain('📝 Quests');
+    expect(stickyHtml).not.toContain('📅 Calendar');
+    expect(stickyHtml).not.toContain('📚 Schedule');
+    expect(stickyHtml).not.toContain('📅 Target Date');
+    expect(stickyHtml).not.toContain('📅 Selected Date');
+    expect(stickyHtml).not.toContain('⏳ Upcoming');
+    expect(stickyHtml).not.toContain('⏳ Loading schedule');
+    expect(stickyTs).not.toContain('📅 Selected:');
+    expect(stickyTs).not.toContain('📅 Target Date:');
+    expect(stickyTs).not.toContain('🟢 Now:');
+    expect(stickyTs).not.toContain('⏳ Next:');
+    expect(stickyTs).not.toContain('☕ No more classes');
+
+    // 4. Renderer
+    const rendererHtml = fs.readFileSync(
+      path.resolve(__dirname, '../src/renderer/index.html'),
+      'utf-8'
+    );
+    expect(rendererHtml).not.toContain(
+      'Keep Usagi still in one spot while focusing (can drag anytime)'
+    );
+    expect(rendererHtml).not.toContain('[ Press ESC or click outside to close ]');
+    expect(rendererHtml).not.toContain('🎵 Test Sound');
+    expect(rendererHtml).not.toContain('🔇 Mute');
+    expect(rendererHtml).not.toContain('📌 Pin Still');
+    expect(rendererHtml).not.toContain('🍅 25m Pomodoro');
+    expect(rendererHtml).not.toContain('⚡ 52m Rule');
+    expect(rendererHtml).not.toContain('🌊 90m Ultradian');
+    expect(rendererHtml).not.toContain('<span>🔁</span>');
+    expect(rendererHtml).not.toContain('<span>⏳</span>');
+    expect(rendererHtml).not.toContain('<span>☕</span>');
+  });
+
+  it('verifies bundle diet, minification, sourcemap exclusion, and package file deduplication', () => {
+    const buildMjs = fs.readFileSync(path.resolve(__dirname, '../scripts/build.mjs'), 'utf-8');
+    expect(buildMjs).toContain('minify: true');
+    expect(buildMjs).not.toContain('sourcemap: true');
+    expect(buildMjs).toContain('sourcemap: false');
+
+    const pkgJson = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf-8')
+    );
+    expect(pkgJson.build.files).toContain('dist/**/*');
+    expect(pkgJson.build.files).toContain('package.json');
+    expect(pkgJson.build.files).not.toContain('assets/**/*');
+
+    expect(buildMjs).toContain('excludedSprites');
+    expect(fs.existsSync(path.resolve(__dirname, '../dist/assets/Usagi3.png'))).toBe(true);
+    expect(fs.existsSync(path.resolve(__dirname, '../dist/assets/Usagi1.png'))).toBe(false);
   });
 });

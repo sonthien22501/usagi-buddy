@@ -694,9 +694,9 @@
 
       <!-- 3-Tab Switcher -->
       <div class="sticky-tabs">
-        <button class="sticky-tab-btn active" id="tabBtnQuests">📝 Quests</button>
-        <button class="sticky-tab-btn" id="tabBtnCalendar">📅 Calendar</button>
-        <button class="sticky-tab-btn" id="tabBtnSchedule">📚 Schedule</button>
+        <button class="sticky-tab-btn active" id="tabBtnQuests">Quests</button>
+        <button class="sticky-tab-btn" id="tabBtnCalendar">Calendar</button>
+        <button class="sticky-tab-btn" id="tabBtnSchedule">Schedule</button>
       </div>
 
       <!-- Tab 1: Quests View -->
@@ -726,7 +726,7 @@
             color: var(--text-color);
           "
         >
-          <span id="stickySelectedDateLabel">📅 Target Date: --</span>
+          <span id="stickySelectedDateLabel">Target Date: --</span>
           <button
             id="stickyChipClearDate"
             class="sticky-chip-btn"
@@ -753,14 +753,23 @@
             <button class="cal-nav-btn" id="stickyCalPrevBtn">‹</button>
             <span
               id="stickyCalMonthTitle"
-              style="font-weight: 800; font-size: calc(11px * var(--font-scale)); color: var(--text-color)"
+              style="
+                font-weight: 800;
+                font-size: calc(11px * var(--font-scale));
+                color: var(--text-color);
+              "
               >November 2026</span
             >
             <div style="display: flex; gap: 4px">
               <button
                 class="cal-nav-btn"
                 id="stickyCalTodayBtn"
-                style="font-size: calc(9px * var(--font-scale)); padding: 2px 6px; width: auto; font-weight: 700"
+                style="
+                  font-size: calc(9px * var(--font-scale));
+                  padding: 2px 6px;
+                  width: auto;
+                  font-weight: 700;
+                "
               >
                 Today
               </button>
@@ -797,7 +806,7 @@
           >
             <div style="display: flex; justify-content: space-between; align-items: center">
               <span id="stickyCalDetailText" style="font-weight: 800; color: var(--text-color)"
-                >📅 Selected Date</span
+                >Selected Date</span
               >
               <button
                 id="stickyCalJumpAddBtn"
@@ -834,7 +843,7 @@
                 color: var(--text-color);
               "
             >
-              <span>⏳ Upcoming (This & Next Month)</span>
+              <span>Upcoming (This & Next Month)</span>
               <span style="font-size: 9px; opacity: 0.7">Countdown</span>
             </div>
             <div id="stickyUpcomingList" style="display: flex; flex-direction: column; gap: 3px">
@@ -861,7 +870,7 @@
             justify-content: space-between;
           "
         >
-          <span id="stickyScheduleNowText">⏳ Loading schedule...</span>
+          <span id="stickyScheduleNowText">Loading schedule...</span>
         </div>
 
         <!-- 7-Day Weekday Pill Bar -->
@@ -894,7 +903,14 @@
               value="09:00"
               style="padding: 3px 5px; font-size: calc(10px * var(--font-scale)); flex: 0 0 62px"
             />
-            <span style="font-weight: 800; align-self: center; font-size: calc(10px * var(--font-scale))">–</span>
+            <span
+              style="
+                font-weight: 800;
+                align-self: center;
+                font-size: calc(10px * var(--font-scale));
+              "
+              >–</span
+            >
             <input
               id="schedEndInput"
               type="time"
@@ -908,7 +924,12 @@
               class="input-text"
               placeholder="Room/Note"
               maxlength="30"
-              style="padding: 3px 5px; font-size: calc(10px * var(--font-scale)); flex: 1; min-width: 0"
+              style="
+                padding: 3px 5px;
+                font-size: calc(10px * var(--font-scale));
+                flex: 1;
+                min-width: 0;
+              "
             />
           </div>
           <div style="display: flex; gap: 4px; width: 100%">

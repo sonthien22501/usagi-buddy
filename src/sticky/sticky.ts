@@ -232,7 +232,7 @@ function renderCalendar(): void {
     const fmt = currentState.dateFormat || 'DD/MM';
 
     if (stickyCalDetailText) {
-      stickyCalDetailText.textContent = `📅 Selected: ${formatDisplayDate(selectedDateStr, fmt, true)}`;
+      stickyCalDetailText.textContent = `Selected: ${formatDisplayDate(selectedDateStr, fmt, true)}`;
     }
     if (stickyCalJumpAddBtn) {
       stickyCalJumpAddBtn.textContent = `+ Add Quest on ${formatDisplayDate(selectedDateStr, fmt, false)}`;
@@ -403,7 +403,7 @@ function renderSchedule(): void {
     if (current) {
       const locStr = current.location ? ` • ${current.location}` : '';
       const prefix = document.createElement('strong');
-      prefix.textContent = '🟢 Now: ';
+      prefix.textContent = 'Now: ';
       stickyScheduleNowText.appendChild(prefix);
       stickyScheduleNowText.appendChild(
         document.createTextNode(
@@ -413,13 +413,13 @@ function renderSchedule(): void {
     } else if (next) {
       const locStr = next.location ? ` • ${next.location}` : '';
       const prefix = document.createElement('strong');
-      prefix.textContent = '⏳ Next: ';
+      prefix.textContent = 'Next: ';
       stickyScheduleNowText.appendChild(prefix);
       stickyScheduleNowText.appendChild(
         document.createTextNode(`${next.title} at ${next.startTime}${locStr}`)
       );
     } else {
-      stickyScheduleNowText.textContent = '☕ No more classes right now today';
+      stickyScheduleNowText.textContent = 'No more classes today';
     }
   }
 
@@ -774,7 +774,7 @@ function init(): void {
         if (stickySelectedDateRow) stickySelectedDateRow.style.display = 'flex';
         if (stickySelectedDateLabel) {
           const fmt = currentState.dateFormat || 'DD/MM';
-          stickySelectedDateLabel.textContent = `📅 Target Date: ${formatDisplayDate(activeQuickDueDate, fmt, true)}`;
+          stickySelectedDateLabel.textContent = `Target Date: ${formatDisplayDate(activeQuickDueDate, fmt, true)}`;
         }
       }
       switchTab('quests');

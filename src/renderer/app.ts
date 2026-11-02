@@ -237,7 +237,7 @@ function updateStationaryBadge(): void {
     stationaryValBadge.style.color = isStill ? '#55efc4' : '#ffeaa7';
   }
   if (stationaryToggleBtn) {
-    stationaryToggleBtn.textContent = isStill ? '🌊 Resume Swim' : '📌 Pin Still';
+    stationaryToggleBtn.textContent = isStill ? 'Resume Swim' : 'Pin Still';
   }
 }
 
@@ -251,7 +251,7 @@ function openSettingsModal(): void {
     volumeValBadge.textContent = `${volumeRange.value}%`;
   }
   if (muteToggleBtn) {
-    muteToggleBtn.textContent = soundState.muted ? '🔊 Unmute' : '🔇 Mute';
+    muteToggleBtn.textContent = soundState.muted ? 'Unmute' : 'Mute';
   }
   updateStationaryBadge();
   updateMouseIgnoreState();
@@ -381,11 +381,13 @@ function handlePointerUp(): void {
 
       if (currentCostumeSelection === 'random') {
         currentCostumeId = pickRandomCostume(currentCostumeId);
+        ensureCostumeLoaded(currentCostumeId);
       }
 
       if (state.comboClicks >= 3) {
         if (!isFixedAppearance || currentCostumeSelection === 'random') {
           currentCostumeId = pickRandomCostume(currentCostumeId);
+          ensureCostumeLoaded(currentCostumeId);
           window.usagiAPI?.setCostume(
             currentCostumeSelection === 'random' ? 'random' : currentCostumeId
           );
@@ -509,7 +511,7 @@ if (muteToggleBtn) {
   muteToggleBtn.addEventListener('click', () => {
     const nextMuted = !soundState.muted;
     soundState = { ...soundState, muted: nextMuted };
-    muteToggleBtn.textContent = nextMuted ? '🔊 Unmute' : '🔇 Mute';
+    muteToggleBtn.textContent = nextMuted ? 'Unmute' : 'Mute';
     if (!nextMuted && soundState.volumeConfig.master <= 0) {
       const updatedConfig = { ...soundState.volumeConfig, master: 0.7 };
       soundState = { ...soundState, volumeConfig: updatedConfig };
@@ -606,7 +608,7 @@ if (window.usagiAPI) {
   window.usagiAPI.onSoundMutedChanged((muted) => {
     soundState = { ...soundState, muted };
     if (muteToggleBtn) {
-      muteToggleBtn.textContent = muted ? '🔊 Unmute' : '🔇 Mute';
+      muteToggleBtn.textContent = muted ? 'Unmute' : 'Mute';
     }
   });
 
@@ -663,11 +665,13 @@ if (window.usagiAPI) {
 
     if (currentCostumeSelection === 'random') {
       currentCostumeId = pickRandomCostume(currentCostumeId);
+      ensureCostumeLoaded(currentCostumeId);
     }
 
     if (state.comboClicks >= 3) {
       if (!isFixedAppearance || currentCostumeSelection === 'random') {
         currentCostumeId = pickRandomCostume(currentCostumeId);
+        ensureCostumeLoaded(currentCostumeId);
         window.usagiAPI?.setCostume(
           currentCostumeSelection === 'random' ? 'random' : currentCostumeId
         );
@@ -683,6 +687,7 @@ if (window.usagiAPI) {
   });
 
   window.usagiAPI.onGiantAlarmTriggered(() => {
+    ensureGiantSpritesLoaded();
     if (giantSpriteFrames.length > 0) {
       const pickedIdx = Math.floor(Math.random() * giantSpriteFrames.length);
       activeGiantFrame = giantSpriteFrames[pickedIdx];
@@ -696,6 +701,9 @@ if (window.usagiAPI) {
   window.usagiAPI.onCostumeChanged((costume, selection) => {
     currentCostumeId = costume;
     currentCostumeSelection = selection;
+    if (costume !== 'classic') {
+      ensureCostumeLoaded(costume);
+    }
   });
 
   window.usagiAPI.onTestSound(() => {
@@ -769,6 +777,10 @@ function processImageToFrame(
     );
   }
 
+  // Release temporary offscreen buffer immediately to free memory
+  offscreen.width = 0;
+  offscreen.height = 0;
+
   return {
     canvas: trimmed,
     width: targetW,
@@ -811,27 +823,30 @@ function loadNamedSprite(filename: string, maxDimension: number): Promise<Proces
   });
 }
 
-async function loadAllSprites(): Promise<void> {
-  const promises: Promise<ProcessedFrame>[] = [];
-  for (let i = 1; i <= 6; i++) {
-    promises.push(loadSingleSprite(i));
-  }
-  const loaded = await Promise.all(promises);
-  processedFrames.push(...loaded);
+const costumeLoading = new Set<string>();
 
-  // Background load all custom costumes
-  for (const def of COSTUME_DEFINITIONS) {
-    if (def.id === 'classic') continue;
-    loadNamedSprite(def.filename, 320)
-      .then((frame) => {
-        if (frame) {
-          costumeFrames.set(def.id, frame);
-        }
-      })
-      .catch(() => {});
-  }
+function ensureCostumeLoaded(id: CostumeId): void {
+  if (id === 'classic' || costumeFrames.has(id) || costumeLoading.has(id)) return;
+  const def = COSTUME_DEFINITIONS.find((d) => d.id === id);
+  if (!def) return;
+  costumeLoading.add(id);
+  loadNamedSprite(def.filename, 320)
+    .then((frame) => {
+      if (frame) {
+        costumeFrames.set(id, frame);
+      }
+    })
+    .catch(() => {})
+    .finally(() => {
+      costumeLoading.delete(id);
+    });
+}
 
-  // Background load all giant alarm sprites
+let giantLoading = false;
+
+function ensureGiantSpritesLoaded(): void {
+  if (giantSpriteFrames.length > 0 || giantLoading) return;
+  giantLoading = true;
   const giantCandidates = ['Usagi_Big.png', 'Usagi_Big2.png', 'GiantUsagi.png'];
   for (const filename of giantCandidates) {
     loadNamedSprite(filename, 768)
@@ -841,9 +856,27 @@ async function loadAllSprites(): Promise<void> {
           if (!giantSpriteFrame) {
             giantSpriteFrame = frame;
           }
+          if (!activeGiantFrame) {
+            activeGiantFrame = frame;
+          }
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        giantLoading = false;
+      });
+  }
+}
+
+async function loadAllSprites(): Promise<void> {
+  // Only load Usagi3.png (the upright sprite) eagerly on startup
+  const upright = await loadSingleSprite(3);
+  processedFrames[UPRIGHT_SPRITE_INDEX] = upright;
+  processedFrames[0] = upright;
+
+  // On-demand: if active costume is not classic, load it
+  if (currentCostumeId !== 'classic') {
+    ensureCostumeLoaded(currentCostumeId);
   }
 }
 
@@ -1186,7 +1219,9 @@ function animationLoop(now: number): void {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (isUsagiHidden && !giantAlarmState.active) {
-    requestAnimationFrame(animationLoop);
+    setTimeout(() => {
+      requestAnimationFrame(animationLoop);
+    }, 250);
     return;
   }
 
@@ -1196,6 +1231,9 @@ function animationLoop(now: number): void {
 
   // Uses upright sprite frame (Usagi3.png) or active custom costume
   const uprightFrame = processedFrames[UPRIGHT_SPRITE_INDEX] || processedFrames[0];
+  if (currentCostumeId !== 'classic' && !costumeFrames.has(currentCostumeId)) {
+    ensureCostumeLoaded(currentCostumeId);
+  }
   const activeFrame =
     currentCostumeId === 'classic'
       ? uprightFrame
@@ -1215,6 +1253,7 @@ function animationLoop(now: number): void {
 
   // Draw giant alarm overlay on top of canvas when active (randomized between giant sprites)
   if (giantAlarmState.active) {
+    ensureGiantSpritesLoaded();
     const giantFrame =
       activeGiantFrame ||
       giantSpriteFrames[0] ||

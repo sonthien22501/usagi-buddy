@@ -2,7 +2,7 @@ import { formatPomodoroTime, parseCustomDuration, PomodoroState } from '../core/
 import { VolumeConfig } from '../core/soundManager';
 import { CostumeId, OutfitSelection, getCostumeDefinition } from '../core/costumeManager';
 import { ReminderState } from '../core/reminderStore';
-import { getKawaiiIcon, renderIconLabel } from '../core/kawaiiIcons';
+import { getKawaiiIcon } from '../core/kawaiiIcons';
 import { BuddyProfile, HolidayEvent } from '../core/calendarStore';
 
 // Tab Switcher Elements
@@ -204,9 +204,7 @@ function renderReminderConfigUI(state: ReminderState): void {
   }
 
   if (configStickyPinBtn) {
-    configStickyPinBtn.textContent = state.stickyAlwaysOnTop
-      ? '📌 Pinned on Top'
-      : '🖥️ Desktop Widget';
+    configStickyPinBtn.textContent = state.stickyAlwaysOnTop ? 'Pinned on Top' : 'Desktop Widget';
     configStickyPinBtn.classList.toggle('active', Boolean(state.stickyAlwaysOnTop));
   }
 
@@ -353,11 +351,7 @@ function updatePomodoroUI(state: PomodoroState): void {
   }
 
   if (pauseTimerBtn) {
-    pauseTimerBtn.innerHTML = renderIconLabel(
-      state.phase === 'running' ? 'pause' : 'play',
-      state.phase === 'running' ? 'Pause' : 'Resume',
-      13
-    );
+    pauseTimerBtn.textContent = state.phase === 'running' ? 'Pause' : 'Resume';
   }
 }
 
@@ -410,21 +404,10 @@ function updateCostumeUI(costume: CostumeId, selection: OutfitSelection): void {
   if (costumeBadge) {
     if (selection === 'random') {
       const def = getCostumeDefinition(costume);
-      costumeBadge.innerHTML = renderIconLabel('dice', `RANDOM (${def.label.toUpperCase()})`, 12);
+      costumeBadge.textContent = `RANDOM (${def.label.toUpperCase()})`;
     } else {
       const def = getCostumeDefinition(costume);
-      const iconId = (
-        def.id === 'classic'
-          ? 'usagi'
-          : def.id === 'study'
-            ? 'book'
-            : def.id === 'vest'
-              ? 'tie'
-              : def.id === 'sigma'
-                ? 'shades'
-                : 'star'
-      ) as any;
-      costumeBadge.innerHTML = renderIconLabel(iconId, def.label.toUpperCase(), 12);
+      costumeBadge.textContent = def.label.toUpperCase();
     }
   }
 
@@ -451,11 +434,7 @@ costumeButtons.forEach((btn) => {
 function updateStationaryUI(stationary: boolean): void {
   isStationary = stationary;
   if (stationaryToggleBtn) {
-    stationaryToggleBtn.innerHTML = renderIconLabel(
-      'pin',
-      stationary ? 'Stationary' : 'Pin Still',
-      13
-    );
+    stationaryToggleBtn.textContent = stationary ? 'Stationary' : 'Pin Still';
     stationaryToggleBtn.classList.toggle('active', stationary);
   }
 }
@@ -463,11 +442,7 @@ function updateStationaryUI(stationary: boolean): void {
 function updatePlayModeUI(enabled: boolean): void {
   isPlayMode = enabled;
   if (playModeToggleBtn) {
-    playModeToggleBtn.innerHTML = renderIconLabel(
-      'wand',
-      enabled ? 'Following' : 'Follow Mouse',
-      13
-    );
+    playModeToggleBtn.textContent = enabled ? 'Following' : 'Follow Mouse';
     playModeToggleBtn.classList.toggle('active', enabled);
   }
 }
@@ -475,11 +450,7 @@ function updatePlayModeUI(enabled: boolean): void {
 function updateGhostModeUI(locked: boolean): void {
   isGhostMode = locked;
   if (ghostModeToggleBtn) {
-    ghostModeToggleBtn.innerHTML = renderIconLabel(
-      'ghost',
-      locked ? 'Pass-thru' : 'Ghost Mode',
-      13
-    );
+    ghostModeToggleBtn.textContent = locked ? 'Pass-thru' : 'Ghost Mode';
     ghostModeToggleBtn.classList.toggle('active', locked);
   }
 }
@@ -487,11 +458,7 @@ function updateGhostModeUI(locked: boolean): void {
 function updateFixedAppearanceUI(fixed: boolean): void {
   isFixedAppearance = fixed;
   if (fixAppearanceToggleBtn) {
-    fixAppearanceToggleBtn.innerHTML = renderIconLabel(
-      fixed ? 'lock' : 'rotate',
-      fixed ? 'Appearance Fixed' : 'Auto-Change',
-      13
-    );
+    fixAppearanceToggleBtn.textContent = fixed ? 'Appearance Fixed' : 'Auto-Change';
     fixAppearanceToggleBtn.classList.toggle('active', fixed);
   }
 }
@@ -499,11 +466,7 @@ function updateFixedAppearanceUI(fixed: boolean): void {
 function updateUsagiHiddenUI(hidden: boolean): void {
   isUsagiHidden = hidden;
   if (hideUsagiToggleBtn) {
-    hideUsagiToggleBtn.innerHTML = renderIconLabel(
-      hidden ? 'usagi' : 'eye-hide',
-      hidden ? 'Show Usagi' : 'Hide Usagi',
-      13
-    );
+    hideUsagiToggleBtn.textContent = hidden ? 'Show Usagi' : 'Hide Usagi';
     hideUsagiToggleBtn.classList.toggle('active', hidden);
   }
 }
@@ -555,20 +518,8 @@ function initDashboardIcons(): void {
   const volHighIcon = document.getElementById('vol-high-icon');
   if (volHighIcon) volHighIcon.innerHTML = getKawaiiIcon('volume', 14);
 
-  if (testSoundBtn) testSoundBtn.innerHTML = renderIconLabel('music', 'Test Sound', 13);
-
   const timerCardIcon = document.getElementById('timer-card-icon');
   if (timerCardIcon) timerCardIcon.innerHTML = getKawaiiIcon('tomato', 16);
-
-  if (startTimerBtn) startTimerBtn.innerHTML = renderIconLabel('play', 'Start', 13);
-  if (resetTimerBtn) resetTimerBtn.innerHTML = renderIconLabel('reset', 'Reset', 13);
-
-  const chip25 = document.querySelector('.chip-btn[data-min="25"]');
-  if (chip25) chip25.innerHTML = renderIconLabel('tomato', '25m Pomodoro', 13);
-  const chip52 = document.querySelector('.chip-btn[data-min="52"]');
-  if (chip52) chip52.innerHTML = renderIconLabel('bolt', '52m Rule (17m rest)', 13);
-  const chip90 = document.querySelector('.chip-btn[data-min="90"]');
-  if (chip90) chip90.innerHTML = renderIconLabel('wave', '90m Ultradian (20m rest)', 13);
 
   const wardrobeCardIcon = document.getElementById('wardrobe-card-icon');
   if (wardrobeCardIcon) wardrobeCardIcon.innerHTML = getKawaiiIcon('wardrobe', 16);
@@ -588,21 +539,6 @@ function initDashboardIcons(): void {
 
   const modesCardIcon = document.getElementById('modes-card-icon');
   if (modesCardIcon) modesCardIcon.innerHTML = getKawaiiIcon('gamepad', 16);
-
-  const stickyTitleIcon = document.getElementById('sticky-title-icon');
-  if (stickyTitleIcon) stickyTitleIcon.innerHTML = getKawaiiIcon('note', 14);
-  const pinTitleIcon = document.getElementById('pin-title-icon');
-  if (pinTitleIcon) pinTitleIcon.innerHTML = getKawaiiIcon('pin', 14);
-  const wandTitleIcon = document.getElementById('wand-title-icon');
-  if (wandTitleIcon) wandTitleIcon.innerHTML = getKawaiiIcon('wand', 14);
-  const ghostTitleIcon = document.getElementById('ghost-title-icon');
-  if (ghostTitleIcon) ghostTitleIcon.innerHTML = getKawaiiIcon('ghost', 14);
-  const puddingTitleIcon = document.getElementById('pudding-title-icon');
-  if (puddingTitleIcon) puddingTitleIcon.innerHTML = getKawaiiIcon('pudding', 14);
-  const hideTitleIcon = document.getElementById('hide-title-icon');
-  if (hideTitleIcon) hideTitleIcon.innerHTML = getKawaiiIcon('eye-hide', 14);
-
-  if (dropSnackBtn) dropSnackBtn.innerHTML = renderIconLabel('pudding', 'Drop Snack', 13);
 
   if (buddyProfileIcon) buddyProfileIcon.innerHTML = getKawaiiIcon('usagi', 14);
   if (configCalendarIcon) configCalendarIcon.innerHTML = getKawaiiIcon('note', 16);
@@ -627,11 +563,7 @@ if (window.usagiAPI) {
   window.usagiAPI.onSoundMutedChanged((muted) => {
     isMuted = muted;
     if (muteToggleBtn) {
-      muteToggleBtn.innerHTML = renderIconLabel(
-        muted ? 'volume' : 'mute',
-        muted ? 'Unmute' : 'Mute',
-        13
-      );
+      muteToggleBtn.textContent = muted ? 'Unmute' : 'Mute';
       muteToggleBtn.classList.toggle('active', muted);
     }
   });
