@@ -12,6 +12,7 @@ import {
   formatLocalDateYMD,
 } from './reminderStore';
 import { daysBetweenYMD } from './calendarStore';
+import { SupportedLocale, t } from './i18n';
 
 export interface DeadlineAlertEvent {
   stage: DeadlineAlertStage;
@@ -28,7 +29,8 @@ export interface DeadlineEvaluationResult {
 export function evaluateDeadlineAlerts(
   state: ReminderState,
   now: Date = new Date(),
-  eveningHour = 19
+  eveningHour = 19,
+  locale: SupportedLocale = 'en'
 ): DeadlineEvaluationResult {
   const todayYMD = formatLocalDateYMD(now);
   const hour = now.getHours();
@@ -52,10 +54,11 @@ export function evaluateDeadlineAlerts(
       const count = todayItems.length;
       let message = '';
       if (count === 1) {
-        message = `☀️ Today's quest: ${todayItems[0].text}! Ganbatte~`;
+        message = t(locale, 'digest.todaySingle', { title: todayItems[0].text });
       } else {
         const names = todayItems.slice(0, 2).map((i) => i.text);
-        message = `☀️ Today you have ${count} quests: ${names.join(', ')}${count > 2 ? '...' : ''}~`;
+        const nameStr = names.join(', ') + (count > 2 ? '...' : '');
+        message = t(locale, 'digest.todayMulti', { count, names: nameStr });
       }
 
       const nextItems = state.items.map((item) => {
@@ -101,10 +104,11 @@ export function evaluateDeadlineAlerts(
       const count = tomorrowItems.length;
       let message = '';
       if (count === 1) {
-        message = `🌙 Tomorrow's quest: ${tomorrowItems[0].text}~`;
+        message = t(locale, 'digest.tomorrowSingle', { title: tomorrowItems[0].text });
       } else {
         const names = tomorrowItems.slice(0, 2).map((i) => i.text);
-        message = `🌙 Tomorrow you have ${count} quests: ${names.join(', ')}${count > 2 ? '...' : ''}~`;
+        const nameStr = names.join(', ') + (count > 2 ? '...' : '');
+        message = t(locale, 'digest.tomorrowMulti', { count, names: nameStr });
       }
 
       const nextItems = state.items.map((item) => {

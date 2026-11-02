@@ -1,6 +1,7 @@
 import { getKawaiiIcon } from '../core/kawaiiIcons';
 import { formatPomodoroTime, PomodoroState } from '../core/pomodoroTimer';
 import { ReminderState } from '../core/reminderStore';
+import { SupportedLocale, t } from '../core/i18n';
 
 // Timer elements
 const clockTime = document.getElementById('tray-clock-time') as HTMLDivElement | null;
@@ -10,6 +11,11 @@ const startPauseIcon = document.getElementById('tray-start-pause-icon') as HTMLS
 const startPauseText = document.getElementById('tray-start-pause-text') as HTMLSpanElement | null;
 const resetBtn = document.getElementById('tray-reset-btn') as HTMLButtonElement | null;
 const resetIcon = document.getElementById('tray-reset-icon') as HTMLSpanElement | null;
+const resetText = document.getElementById('tray-reset-text') as HTMLSpanElement | null;
+const trayStatusPill = document.getElementById('tray-status-pill') as HTMLSpanElement | null;
+const trayDashboardText = document.getElementById('tray-dashboard-text') as HTMLSpanElement | null;
+const traySnackText = document.getElementById('tray-snack-text') as HTMLSpanElement | null;
+const trayQuitText = document.getElementById('tray-quit-text') as HTMLSpanElement | null;
 
 // Chips
 const presetChips = document.querySelectorAll<HTMLButtonElement>('.preset-chip');
@@ -40,6 +46,7 @@ let currentReminderState: ReminderState = {
   theme: 'custard',
 };
 let isUsagiHidden = false;
+let currentLocale: SupportedLocale = 'en';
 
 // Populate static kawaii icons
 function initStaticIcons(): void {
@@ -74,10 +81,13 @@ function updatePomodoroUI(state: PomodoroState): void {
   if (startPauseIcon && startPauseText) {
     if (state.phase === 'running') {
       startPauseIcon.innerHTML = getKawaiiIcon('pause', 14);
-      startPauseText.textContent = 'Pause';
+      startPauseText.textContent = t(currentLocale, 'dash.timer.pause');
     } else {
       startPauseIcon.innerHTML = getKawaiiIcon('play', 14);
-      startPauseText.textContent = state.phase === 'paused' ? 'Resume' : 'Start';
+      startPauseText.textContent =
+        state.phase === 'paused'
+          ? t(currentLocale, 'dash.timer.resume')
+          : t(currentLocale, 'dash.timer.start');
     }
   }
 }
@@ -88,7 +98,9 @@ function updateReminderUI(state: ReminderState): void {
   document.body.setAttribute('data-theme', 'custard');
 
   if (stickyText && stickyStatus) {
-    stickyText.textContent = state.stickyVisible ? 'Hide Sticky Quests' : 'Show Sticky Quests';
+    stickyText.textContent = state.stickyVisible
+      ? t(currentLocale, 'tray.hideSticky')
+      : t(currentLocale, 'tray.showSticky');
     stickyStatus.textContent = state.stickyVisible ? 'ON' : 'OFF';
   }
   if (toggleStickyBtn) {
@@ -104,7 +116,9 @@ function updateReminderUI(state: ReminderState): void {
 function updateHiddenUI(hidden: boolean): void {
   isUsagiHidden = hidden;
   if (hiddenText) {
-    hiddenText.textContent = hidden ? 'Show Usagi Buddy' : 'Hide Usagi Buddy';
+    hiddenText.textContent = hidden
+      ? t(currentLocale, 'tray.showUsagi')
+      : t(currentLocale, 'tray.hideUsagi');
   }
   if (hiddenStatus) {
     hiddenStatus.textContent = hidden ? 'HIDDEN' : '';
@@ -119,6 +133,25 @@ function updateHiddenUI(hidden: boolean): void {
       toggleHiddenBtn.classList.remove('active');
     }
   }
+}
+
+function renderTrayLocale(): void {
+  if (trayStatusPill) trayStatusPill.textContent = t(currentLocale, 'tray.status.floating');
+  if (resetText) resetText.textContent = t(currentLocale, 'dash.timer.reset');
+  if (trayDashboardText) trayDashboardText.textContent = t(currentLocale, 'tray.openDashboard');
+  if (traySnackText) traySnackText.textContent = t(currentLocale, 'tray.dropSnack');
+  if (trayQuitText) trayQuitText.textContent = t(currentLocale, 'tray.quit');
+
+  const chip25 = document.getElementById('chip-25m');
+  if (chip25) chip25.innerHTML = `<span>25${t(currentLocale, 'dash.timer.min')}</span>`;
+  const chip52 = document.getElementById('chip-52m');
+  if (chip52) chip52.innerHTML = `<span>52${t(currentLocale, 'dash.timer.min')}</span>`;
+  const chip90 = document.getElementById('chip-90m');
+  if (chip90) chip90.innerHTML = `<span>90${t(currentLocale, 'dash.timer.min')}</span>`;
+
+  if (currentPomodoroState) updatePomodoroUI(currentPomodoroState);
+  updateReminderUI(currentReminderState);
+  updateHiddenUI(isUsagiHidden);
 }
 
 // Event Bindings
@@ -194,6 +227,11 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onUsagiHiddenChanged((hidden) => {
     updateHiddenUI(hidden);
+  });
+
+  window.usagiAPI.onLocaleChanged((locale) => {
+    currentLocale = locale;
+    renderTrayLocale();
   });
 
   window.usagiAPI

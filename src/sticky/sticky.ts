@@ -19,6 +19,14 @@ import {
   getEntriesForDay,
   getCurrentAndNextSchedule,
 } from '../core/scheduleStore';
+import {
+  SupportedLocale,
+  t,
+  getMonthNames,
+  getWeekdayLabels,
+  getScheduleWeekdayPills,
+  getLocalizedHolidayTitle,
+} from '../core/i18n';
 
 let currentState: ReminderState = {
   items: [],
@@ -42,6 +50,7 @@ let activeTab: 'quests' | 'calendar' | 'schedule' = 'quests';
 
 let currentScheduleState: ScheduleState = createInitialScheduleState();
 let selectedScheduleDay: number = new Date().getDay(); // 0..6
+let currentLocale: SupportedLocale = 'en';
 
 const tabBtnQuests = document.getElementById('tabBtnQuests') as HTMLButtonElement | null;
 const tabBtnCalendar = document.getElementById('tabBtnCalendar') as HTMLButtonElement | null;
@@ -120,6 +129,27 @@ function getTodayYMD(): string {
   return formatDateYMD(now.getFullYear(), now.getMonth() + 1, now.getDate());
 }
 
+function renderStaticLocaleText(): void {
+  const titleEl = document.getElementById('stickyHeaderTitle');
+  if (titleEl) titleEl.textContent = t(currentLocale, 'sticky.title');
+  if (tabBtnQuests) tabBtnQuests.textContent = t(currentLocale, 'sticky.tab.quests');
+  if (tabBtnCalendar) tabBtnCalendar.textContent = t(currentLocale, 'sticky.tab.calendar');
+  if (tabBtnSchedule) tabBtnSchedule.textContent = t(currentLocale, 'sticky.tab.schedule');
+  if (clearDoneBtn) clearDoneBtn.textContent = t(currentLocale, 'sticky.footer.clearDone');
+  if (stickyCalTodayBtn) stickyCalTodayBtn.textContent = t(currentLocale, 'sticky.cal.todayBtn');
+  if (stickyChipClearDate) stickyChipClearDate.textContent = t(currentLocale, 'sticky.clearDate');
+
+  const upcomingTitleEl = document.getElementById('stickyUpcomingTitle');
+  if (upcomingTitleEl) upcomingTitleEl.textContent = t(currentLocale, 'sticky.cal.upcomingTitle');
+  const countdownBadge = document.getElementById('stickyCountdownBadge');
+  if (countdownBadge) countdownBadge.textContent = t(currentLocale, 'sticky.cal.countdown');
+
+  if (schedTitleInput)
+    schedTitleInput.placeholder = t(currentLocale, 'sticky.sched.titlePlaceholder');
+  if (schedLocationInput)
+    schedLocationInput.placeholder = t(currentLocale, 'sticky.sched.roomPlaceholder');
+}
+
 function switchTab(tab: 'quests' | 'calendar' | 'schedule', persist = true): void {
   activeTab = tab;
   tabBtnQuests?.classList.toggle('active', tab === 'quests');
@@ -142,31 +172,13 @@ function switchTab(tab: 'quests' | 'calendar' | 'schedule', persist = true): voi
   }
 }
 
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
 function renderCalendar(): void {
   if (!stickyCalDaysGrid || !stickyCalMonthTitle) return;
   const todayYMD = getTodayYMD();
-  stickyCalMonthTitle.textContent = `${MONTH_NAMES[currentCalendarMonth - 1]} ${currentCalendarYear}`;
+  stickyCalMonthTitle.textContent = `${getMonthNames(currentLocale)[currentCalendarMonth - 1]} ${currentCalendarYear}`;
 
   if (stickyCalWeekdaysGrid) {
-    const startOnMonday = (currentState.weekStartsOn ?? 1) === 1;
-    const days = startOnMonday
-      ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
-      : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    const days = getWeekdayLabels(currentLocale, currentState.weekStartsOn ?? 1);
     stickyCalWeekdaysGrid.innerHTML = days.map((d) => `<div>${d}</div>`).join('');
   }
 
@@ -232,10 +244,10 @@ function renderCalendar(): void {
     const fmt = currentState.dateFormat || 'DD/MM';
 
     if (stickyCalDetailText) {
-      stickyCalDetailText.textContent = `Selected: ${formatDisplayDate(selectedDateStr, fmt, true)}`;
+      stickyCalDetailText.textContent = `${t(currentLocale, 'sticky.cal.selected')} ${formatDisplayDate(selectedDateStr, fmt, true)}`;
     }
     if (stickyCalJumpAddBtn) {
-      stickyCalJumpAddBtn.textContent = `+ Add Quest on ${formatDisplayDate(selectedDateStr, fmt, false)}`;
+      stickyCalJumpAddBtn.textContent = `${t(currentLocale, 'sticky.cal.addQuestOn')} (${formatDisplayDate(selectedDateStr, fmt, false)})`;
     }
 
     if (stickyCalDayItemsList) {
@@ -246,7 +258,7 @@ function renderCalendar(): void {
         empty.style.color = 'var(--text-muted)';
         empty.style.fontStyle = 'italic';
         empty.style.padding = '2px 0';
-        empty.textContent = 'No holidays or reminders on this date~';
+        empty.textContent = t(currentLocale, 'sticky.cal.emptyDate');
         stickyCalDayItemsList.appendChild(empty);
       } else {
         for (const h of summary.holidays) {
@@ -268,14 +280,17 @@ function renderCalendar(): void {
           title.style.overflow = 'hidden';
           title.style.textOverflow = 'ellipsis';
           title.style.whiteSpace = 'nowrap';
-          title.textContent = h.name;
+          title.textContent = getLocalizedHolidayTitle(h, currentLocale);
 
           left.appendChild(icon);
           left.appendChild(title);
 
           const badge = document.createElement('span');
           badge.className = 'upcoming-badge';
-          badge.textContent = h.type === 'birthday' ? 'Birthday' : 'Holiday';
+          badge.textContent =
+            h.type === 'birthday'
+              ? t(currentLocale, 'sticky.cal.badgeBirthday')
+              : t(currentLocale, 'sticky.cal.badgeHoliday');
 
           row.appendChild(left);
           row.appendChild(badge);
@@ -310,7 +325,9 @@ function renderCalendar(): void {
           const badge = document.createElement('span');
           badge.className = 'upcoming-badge';
           badge.style.background = q.completed ? 'var(--text-muted)' : 'var(--accent-color)';
-          badge.textContent = q.completed ? 'Done' : 'Quest';
+          badge.textContent = q.completed
+            ? t(currentLocale, 'sticky.cal.badgeDone')
+            : t(currentLocale, 'sticky.cal.badgeQuest');
 
           row.appendChild(left);
           row.appendChild(badge);
@@ -335,7 +352,8 @@ function renderUpcoming(): void {
     currentState.items,
     todayYMD,
     5,
-    selectedDateStr
+    selectedDateStr,
+    currentLocale
   );
 
   if (upcoming.length === 0) {
@@ -345,8 +363,8 @@ function renderUpcoming(): void {
     empty.style.textAlign = 'center';
     empty.style.padding = '4px 0';
     empty.textContent = selectedDateStr
-      ? 'No other upcoming holidays or quests~'
-      : 'No upcoming holidays or due quests~';
+      ? t(currentLocale, 'sticky.cal.emptyOtherUpcoming')
+      : t(currentLocale, 'sticky.cal.emptyUpcoming');
     stickyUpcomingList.appendChild(empty);
     return;
   }
@@ -403,7 +421,7 @@ function renderSchedule(): void {
     if (current) {
       const locStr = current.location ? ` • ${current.location}` : '';
       const prefix = document.createElement('strong');
-      prefix.textContent = 'Now: ';
+      prefix.textContent = `${t(currentLocale, 'sticky.sched.now')}: `;
       stickyScheduleNowText.appendChild(prefix);
       stickyScheduleNowText.appendChild(
         document.createTextNode(
@@ -413,23 +431,27 @@ function renderSchedule(): void {
     } else if (next) {
       const locStr = next.location ? ` • ${next.location}` : '';
       const prefix = document.createElement('strong');
-      prefix.textContent = 'Next: ';
+      prefix.textContent = `${t(currentLocale, 'sticky.sched.next')}: `;
       stickyScheduleNowText.appendChild(prefix);
       stickyScheduleNowText.appendChild(
-        document.createTextNode(`${next.title} at ${next.startTime}${locStr}`)
+        document.createTextNode(
+          `${next.title} ${t(currentLocale, 'sticky.sched.at')} ${next.startTime}${locStr}`
+        )
       );
     } else {
-      stickyScheduleNowText.textContent = 'No more classes today';
+      stickyScheduleNowText.textContent = t(currentLocale, 'sticky.sched.noMoreClasses');
     }
   }
 
   // 2. Update Weekday Selector Buttons
   if (stickySchedDaysRow) {
-    const buttons = stickySchedDaysRow.querySelectorAll<HTMLButtonElement>('.sticky-chip-btn');
-    buttons.forEach((btn) => {
-      const dayNum = Number(btn.getAttribute('data-day'));
-      btn.classList.toggle('active', dayNum === selectedScheduleDay);
-    });
+    const pills = getScheduleWeekdayPills(currentLocale);
+    stickySchedDaysRow.innerHTML = pills
+      .map(
+        (p) =>
+          `<button class="sticky-chip-btn ${p.day === selectedScheduleDay ? 'active' : ''}" data-day="${p.day}">${p.label}</button>`
+      )
+      .join('');
   }
 
   // 3. Render Schedule Entry Cards
@@ -440,7 +462,7 @@ function renderSchedule(): void {
   if (entries.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
-    empty.innerHTML = `<div class="emoji">📚</div><div>No classes scheduled for this day~</div>`;
+    empty.innerHTML = `<div class="emoji">📚</div><div>${t(currentLocale, 'sticky.sched.emptyDay')}</div>`;
     stickyScheduleList.appendChild(empty);
     return;
   }
@@ -561,10 +583,10 @@ function render(state: ReminderState): void {
   }
 
   if (questInput) {
-    questInput.placeholder =
-      state.dateFormat === 'MM/DD'
-        ? 'Add quest (e.g. Submit exam 11/15)...'
-        : 'Add quest (e.g. Submit exam 15/11)...';
+    questInput.placeholder = t(
+      currentLocale,
+      state.dateFormat === 'MM/DD' ? 'sticky.input.placeholderMMDD' : 'sticky.input.placeholderDDMM'
+    );
   }
 
   renderCalendar();
@@ -586,7 +608,7 @@ function render(state: ReminderState): void {
     empty.className = 'empty-state';
     empty.innerHTML = `
       <div class="emoji">🍮</div>
-      <div>${activeQuickDueDate ? `No quests due on ${formatDisplayDate(activeQuickDueDate, fmt, true)}~` : 'No quests yet! Relax or add one below~'}</div>
+      <div>${activeQuickDueDate ? t(currentLocale, 'sticky.empty.questsOnDate') : t(currentLocale, 'sticky.empty.quests')}</div>
     `;
     questList.appendChild(empty);
   } else {
@@ -611,7 +633,7 @@ function render(state: ReminderState): void {
       if (item.dueDate) {
         const badge = document.createElement('span');
         badge.className = 'quest-due-badge';
-        const baseBadge = formatReminderDueBadge(item.dueDate, getTodayYMD(), fmt);
+        const baseBadge = formatReminderDueBadge(item.dueDate, getTodayYMD(), fmt, currentLocale);
         badge.textContent = item.repeat ? `↻ ${baseBadge}` : baseBadge;
         text.appendChild(badge);
       }
@@ -638,9 +660,20 @@ function render(state: ReminderState): void {
 
   const completed = state.items.filter((it) => it.completed).length;
   if (questCounter) {
-    questCounter.textContent = activeQuickDueDate
-      ? `${itemsToRender.filter((it) => it.completed).length}/${itemsToRender.length} due on ${formatDisplayDate(activeQuickDueDate, fmt, false)}`
-      : `${completed}/${state.items.length} completed`;
+    const base = t(currentLocale, 'sticky.footer.completed', {
+      done: completed,
+      total: state.items.length,
+    });
+    if (activeQuickDueDate) {
+      const filteredDue = state.items.filter((it) => it.dueDate === activeQuickDueDate).length;
+      const suffix = t(currentLocale, 'sticky.footer.dueOn', {
+        count: filteredDue,
+        date: formatDisplayDate(activeQuickDueDate, fmt, false),
+      });
+      questCounter.textContent = `${base} ${suffix}`;
+    } else {
+      questCounter.textContent = base;
+    }
   }
 }
 
@@ -656,6 +689,8 @@ function handleAddQuest(): void {
 }
 
 function init(): void {
+  renderStaticLocaleText();
+
   if (tabBtnQuests) {
     tabBtnQuests.addEventListener('click', () => switchTab('quests'));
   }
@@ -776,7 +811,7 @@ function init(): void {
         if (stickySelectedDateRow) stickySelectedDateRow.style.display = 'flex';
         if (stickySelectedDateLabel) {
           const fmt = currentState.dateFormat || 'DD/MM';
-          stickySelectedDateLabel.textContent = `Target Date: ${formatDisplayDate(activeQuickDueDate, fmt, true)}`;
+          stickySelectedDateLabel.textContent = `${t(currentLocale, 'sticky.targetDate')} ${formatDisplayDate(activeQuickDueDate, fmt, true)}`;
         }
       }
       switchTab('quests');
@@ -799,6 +834,12 @@ function init(): void {
   if (window.usagiAPI) {
     window.usagiAPI.onReminderStateChanged((state) => {
       render(state);
+    });
+
+    window.usagiAPI.onLocaleChanged((locale) => {
+      currentLocale = locale;
+      renderStaticLocaleText();
+      render(currentState);
     });
 
     window.usagiAPI.onCalendarStateChanged((payload) => {

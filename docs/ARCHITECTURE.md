@@ -30,6 +30,7 @@ usagi-buddy/
 │   │   ├── alphaCropper.ts        # Alpha bounding-box scanner & auto-trimmer
 │   │   ├── calendarStore.ts       # Pure month grid, Nager.Date holiday normalizer, country detection, birthday injection & countdowns
 │   │   ├── deadlineScheduler.ts   # Smart Multi-Stage Deadline Engine (#11) with evening-before, due-day & overdue evaluation
+│   │   ├── i18n.ts                # Zero-dependency internationalization engine (8 locales: EN/VI/DE/FR/ES/JA/KO/ZH)
 │   │   ├── kawaiiIcons.ts         # Unified Kawaii rounded SVG icon set with theme-adaptive fills
 │   │   ├── settingsStore.ts       # Zero-dependency user preferences store, JSON serialization & multi-mode transition resolver
 │   │   ├── trayPositioner.ts      # Cross-platform tray popover anchor & screen boundary clamping
@@ -61,6 +62,7 @@ usagi-buddy/
     ├── alphaCropper.test.ts
     ├── calendarStore.test.ts
     ├── deadlineScheduler.test.ts
+    ├── i18n.test.ts
     ├── physicsEngine.test.ts
     ├── reminderStore.test.ts
     ├── costumeManager.test.ts
@@ -79,7 +81,8 @@ usagi-buddy/
 
 - `BuddyProfile`: `{ nickname, birthdayMonth, birthdayDay, countryCode }`
 - `HolidayEvent`: `{ id, date, name, localName, countryCode, type: 'public_holiday' | 'birthday' }`
-- `UserSettings`: `{ costumeSelection, activeCostume, fixedAppearance, timerDurationMs, timerRemainingMs, timerPhase, volumeConfig, soundMuted, ghostLocked, playModeEnabled, stationaryMode, usagiHidden, usagiX?: number | null, usagiY?: number | null, activeDashboardTab?: 'companion' | 'config' }`
+- `SupportedLocale`: `'en' | 'vi' | 'de' | 'fr' | 'es' | 'ja' | 'ko' | 'zh'`
+- `UserSettings`: `{ costumeSelection, activeCostume, fixedAppearance, timerDurationMs, timerRemainingMs, timerPhase, volumeConfig, soundMuted, ghostLocked, playModeEnabled, stationaryMode, usagiHidden, usagiX?: number | null, usagiY?: number | null, activeDashboardTab?: 'companion' | 'config', locale?: SupportedLocale }`
 - `ModeFlags`: `{ ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
 - `WardrobeRotationState`: `{ fixedAppearance: boolean, elapsedMs: number }`
@@ -120,3 +123,4 @@ usagi-buddy/
 - [x] M19: Cross-Session State Persistence & Geometry Memory (Sticky note dimensions & screen coordinates persistence, active sticky tab and active dashboard tab hydration, proportional text scaling via CSS var(--font-scale), Usagi companion coordinates persistence across drag/pin, and unified dev vs packaged userData migration) (`src/core/reminderStore.ts`, `src/core/settingsStore.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/sticky/`, `src/dashboard/`, `src/renderer/`)
 - [x] M20: Streamlined Taskbar Tray & Memory/Storage Diet (removal of Tray Ghost Mode, 3-chip core focus presets in Tray, lazy window/sprite loading, on-demand cursor tracking, hidden loop throttling, and deduplicated minified asset packaging) (`src/main/index.ts`, `src/tray/`, `src/renderer/app.ts`, `scripts/build.mjs`, `package.json`)
 - [x] M21: Cozy Date-Only Daily Digest & Natural Recurring Quests (#11, #13 distilled) — Smart Deadline Engine with combined Morning Today Digest (hour >= 8) and Cozy Evening Preview (hour >= 19), overdue alert suppression on completed items, Usagi-hidden gating to prevent swallowed alerts, and Natural Language Recurring Quests ('every Tuesday', 'every day', 'every weekday', 'mỗi ngày', 'mỗi thứ ...') with auto due-date rollover on completion (`computeNextRecurringDueDate`), subtle `↻ ` badge prefix in Sticky Note, and celebration trigger (`src/core/deadlineScheduler.ts`, `src/core/reminderStore.ts`, `src/sticky/sticky.ts`, `src/main/index.ts`, `tests/deadlineScheduler.test.ts`, `tests/reminderStore.test.ts`)
+- [x] M22: Multi-Language Support (i18n) & Multilingual Natural Recurring Quests (#18) — Zero-dependency i18n engine supporting 8 locales (`en`, `vi`, `de`, `fr`, `es`, `ja`, `ko`, `zh`), system locale auto-detection, comprehensive UI dictionaries across Dashboard, Sticky Note, and Tray Popover, multilingual recurrence NLP parser (`every day/weekday/<Weekday>` across all 8 languages), synchronized dynamic UI translations on `#buddy-language-select` change via IPC broadcast (`onLocaleChanged`), and settings persistence (`src/core/i18n.ts`, `src/core/reminderStore.ts`, `src/core/calendarStore.ts`, `src/core/deadlineScheduler.ts`, `src/core/settingsStore.ts`, `src/dashboard/`, `src/sticky/`, `src/tray/`, `src/main/index.ts`, `src/preload/index.ts`, `tests/i18n.test.ts`)

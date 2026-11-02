@@ -12,6 +12,7 @@ import {
 } from '../core/reminderStore';
 import { BuddyProfile, HolidayEvent } from '../core/calendarStore';
 import { ScheduleState, NewScheduleEntryInput } from '../core/scheduleStore';
+import { SupportedLocale } from '../core/i18n';
 
 export interface CalendarStatePayload {
   profile: BuddyProfile;
@@ -83,6 +84,8 @@ export interface UsagiAPI {
   onUsagiPositionChanged: (callback: (pos: { x: number; y: number }) => void) => () => void;
   updateDashboardTab: (tab: 'companion' | 'config') => void;
   onDashboardTabChanged: (callback: (tab: 'companion' | 'config') => void) => () => void;
+  setLocale: (locale: SupportedLocale) => void;
+  onLocaleChanged: (callback: (locale: SupportedLocale) => void) => () => void;
   quitApp: () => void;
   closeTrayPopover: () => void;
 }
@@ -306,6 +309,15 @@ const api: UsagiAPI = {
       callback(tab);
     ipcRenderer.on('dashboard-tab-changed', handler);
     return () => ipcRenderer.removeListener('dashboard-tab-changed', handler);
+  },
+  setLocale: (locale: SupportedLocale) => {
+    ipcRenderer.send('set-locale', locale);
+  },
+  onLocaleChanged: (callback: (locale: SupportedLocale) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, locale: SupportedLocale) =>
+      callback(locale);
+    ipcRenderer.on('locale-changed', handler);
+    return () => ipcRenderer.removeListener('locale-changed', handler);
   },
   quitApp: () => {
     ipcRenderer.send('quit-app');

@@ -3,6 +3,7 @@
  */
 
 import { daysBetweenYMD } from './calendarStore';
+import { t, SupportedLocale } from './i18n';
 
 export type DeadlineAlertStage = 'evening-before' | 'due-day' | 'overdue';
 
@@ -177,15 +178,154 @@ function applyExtractor(
   return { matched: false, text: str };
 }
 
-function parseRecurringDayOfWeek(token: string): number | undefined {
+export function parseRecurringDayOfWeek(token: string): number | undefined {
   const t = token.toLowerCase().trim();
-  if (['sun', 'sunday', 'chủ nhật', 'cn'].includes(t)) return 0;
-  if (['mon', 'monday', 'thứ hai', 'thứ 2'].includes(t)) return 1;
-  if (['tue', 'tuesday', 'thứ ba', 'thứ 3'].includes(t)) return 2;
-  if (['wed', 'wednesday', 'thứ tư', 'thứ 4'].includes(t)) return 3;
-  if (['thu', 'thursday', 'thứ năm', 'thứ 5'].includes(t)) return 4;
-  if (['fri', 'friday', 'thứ sáu', 'thứ 6'].includes(t)) return 5;
-  if (['sat', 'saturday', 'thứ bảy', 'thứ 7'].includes(t)) return 6;
+  if (
+    [
+      'sun',
+      'sunday',
+      'chủ nhật',
+      'cn',
+      'sonntag',
+      'dimanche',
+      'dimanches',
+      'domingo',
+      'domingos',
+      '日',
+      '日曜',
+      '日曜日',
+      '일',
+      '일요일',
+      '天',
+      '星期日',
+      '星期天',
+    ].includes(t)
+  )
+    return 0;
+  if (
+    [
+      'mon',
+      'monday',
+      'thứ hai',
+      'thứ 2',
+      'montag',
+      'lundi',
+      'lundis',
+      'lunes',
+      '月',
+      '月曜',
+      '月曜日',
+      '월',
+      '월요일',
+      '一',
+      '星期一',
+    ].includes(t)
+  )
+    return 1;
+  if (
+    [
+      'tue',
+      'tuesday',
+      'thứ ba',
+      'thứ 3',
+      'dienstag',
+      'mardi',
+      'mardis',
+      'martes',
+      '火',
+      '火曜',
+      '火曜日',
+      '화',
+      '화요일',
+      '二',
+      '星期二',
+    ].includes(t)
+  )
+    return 2;
+  if (
+    [
+      'wed',
+      'wednesday',
+      'thứ tư',
+      'thứ 4',
+      'mittwoch',
+      'mercredi',
+      'mercredis',
+      'miércoles',
+      'miercoles',
+      '水',
+      '水曜',
+      '水曜日',
+      '수',
+      '수요일',
+      '三',
+      '星期三',
+    ].includes(t)
+  )
+    return 3;
+  if (
+    [
+      'thu',
+      'thursday',
+      'thứ năm',
+      'thứ 5',
+      'donnerstag',
+      'jeudi',
+      'jeudis',
+      'jueves',
+      '木',
+      '木曜',
+      '木曜日',
+      '목',
+      '목요일',
+      '四',
+      '星期四',
+    ].includes(t)
+  )
+    return 4;
+  if (
+    [
+      'fri',
+      'friday',
+      'thứ sáu',
+      'thứ 6',
+      'freitag',
+      'vendredi',
+      'vendredis',
+      'viernes',
+      '金',
+      '金曜',
+      '金曜日',
+      '금',
+      '금요일',
+      '五',
+      '星期五',
+    ].includes(t)
+  )
+    return 5;
+  if (
+    [
+      'sat',
+      'saturday',
+      'thứ bảy',
+      'thứ 7',
+      'samstag',
+      'samedi',
+      'samedis',
+      'sábado',
+      'sabado',
+      'sábados',
+      'sabados',
+      '土',
+      '土曜',
+      '土曜日',
+      '토',
+      '토요일',
+      '六',
+      '星期六',
+    ].includes(t)
+  )
+    return 6;
   return undefined;
 }
 
@@ -206,63 +346,255 @@ export function extractDueDateToken(
     shouldCapitalize = true;
   }
 
-  // Recurrence: Daily
-  const dailyRegex = /(?:^|\s)(?:@daily|every\s+day|daily|mỗi\s+ngày|hàng\s+ngày)(?:\s+|$)/i;
-  const matchDaily = text.match(dailyRegex);
-  if (matchDaily) {
-    repeat = { type: 'daily' };
-    dueDate = formatLocalDateYMD(now);
-    text = text.replace(dailyRegex, ' ');
-    shouldCapitalize = true;
-  }
+  // Recurrence: Weekdays (check before Daily so "mỗi ngày trong tuần" matches before "mỗi ngày")
+  const weekdaysSpacedRegex =
+    /(?:^|\s)(?:@weekdays?|every\s+weekday|weekdays|mỗi\s+ngày\s+trong\s+tuần|các\s+ngày\s+trong\s+tuần|jeden\s+werktag|werktags|wochentags|tous\s+les\s+jours\s+ouvrés?|tous\s+les\s+jours\s+ouvres?|en\s+semaine|entre\s+semana|días\s+laborables|dias\s+laborables)(?:\s+|$)/i;
+  const weekdaysCJKRegex =
+    /^(?:平日|毎週平日|평일마다|매주\s*평일|평일|每个工作日|每個工作日|工作日)\s*/;
+  const weekdaysCJKTrailing =
+    /(?:\s+|^)(?:平日|毎週平日|평일마다|매주\s*평일|평일|每个工作日|每個工作日|工作日)\s*[.!?]*$/;
 
-  // Recurrence: Weekdays
-  const weekdaysRegex =
-    /(?:^|\s)(?:@weekdays?|every\s+weekday|weekdays|mỗi\s+ngày\s+trong\s+tuần)(?:\s+|$)/i;
-  const matchWeekdays = text.match(weekdaysRegex);
-  if (!repeat && matchWeekdays) {
+  const matchWeekdaysSpaced = text.match(weekdaysSpacedRegex);
+  if (matchWeekdaysSpaced) {
     repeat = { type: 'weekdays' };
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     while (d.getDay() === 0 || d.getDay() === 6) {
       d.setDate(d.getDate() + 1);
     }
     dueDate = formatLocalDateYMD(d);
-    text = text.replace(weekdaysRegex, ' ');
+    text = text.replace(weekdaysSpacedRegex, ' ');
     shouldCapitalize = true;
-  }
-
-  // Recurrence: Weekly (Day of Week)
-  const weeklyEnRegex =
-    /(?:^|\s)every\s+(sunday|sun|monday|mon|tuesday|tue|wednesday|wed|thursday|thu|friday|fri|saturday|sat)(?:\s+|$)/i;
-  const matchWeeklyEn = text.match(weeklyEnRegex);
-  if (!repeat && matchWeeklyEn) {
-    const dow = parseRecurringDayOfWeek(matchWeeklyEn[1]);
-    if (dow !== undefined) {
-      repeat = { type: 'weekly', dayOfWeek: dow };
+  } else {
+    const resWeekdaysCJK = applyExtractor(text, weekdaysCJKRegex, /^$/, weekdaysCJKTrailing);
+    if (resWeekdaysCJK.matched) {
+      repeat = { type: 'weekdays' };
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      while (d.getDay() !== dow) {
+      while (d.getDay() === 0 || d.getDay() === 6) {
         d.setDate(d.getDate() + 1);
       }
       dueDate = formatLocalDateYMD(d);
-      text = text.replace(weeklyEnRegex, ' ');
+      text = resWeekdaysCJK.text;
       shouldCapitalize = true;
     }
   }
 
-  const weeklyViRegex =
-    /(?:^|\s)(?:mỗi|hàng\s+tuần\s+vào)\s+(thứ\s+[2-7]|thứ\s+hai|thứ\s+ba|thứ\s+tư|thứ\s+năm|thứ\s+sáu|thứ\s+bảy|chủ\s+nhật|cn)(?:\s+|$)/i;
-  const matchWeeklyVi = text.match(weeklyViRegex);
-  if (!repeat && matchWeeklyVi) {
-    const dow = parseRecurringDayOfWeek(matchWeeklyVi[1]);
-    if (dow !== undefined) {
-      repeat = { type: 'weekly', dayOfWeek: dow };
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      while (d.getDay() !== dow) {
-        d.setDate(d.getDate() + 1);
-      }
-      dueDate = formatLocalDateYMD(d);
-      text = text.replace(weeklyViRegex, ' ');
+  // Recurrence: Daily
+  if (!repeat) {
+    const dailySpacedRegex =
+      /(?:^|\s)(?:@daily|every\s+day|everyday|daily|mỗi\s+ngày|hàng\s+ngày|mỗi\s+hôm|jeden\s+tag|täglich|taeglich|tous\s+les\s+jours|chaque\s+jour|quotidiennement|todos\s+los\s+días|todos\s+los\s+dias|cada\s+día|cada\s+dia|diario)(?:\s+|$)/i;
+    const dailyCJKRegex = /^(?:毎日|まいにち|매일|每天|每日)\s*/;
+    const dailyCJKTrailing = /(?:\s+|^)(?:毎日|まいにち|매일|每天|每日)\s*[.!?]*$/;
+
+    const matchDailySpaced = text.match(dailySpacedRegex);
+    if (matchDailySpaced) {
+      repeat = { type: 'daily' };
+      dueDate = formatLocalDateYMD(now);
+      text = text.replace(dailySpacedRegex, ' ');
       shouldCapitalize = true;
+    } else {
+      const resDailyCJK = applyExtractor(text, dailyCJKRegex, /^$/, dailyCJKTrailing);
+      if (resDailyCJK.matched) {
+        repeat = { type: 'daily' };
+        dueDate = formatLocalDateYMD(now);
+        text = resDailyCJK.text;
+        shouldCapitalize = true;
+      }
+    }
+  }
+
+  // Recurrence: Weekly (Day of Week)
+  if (!repeat) {
+    // EN
+    const weeklyEnRegex =
+      /(?:^|\s)every\s+(sunday|sun|monday|mon|tuesday|tue|wednesday|wed|thursday|thu|friday|fri|saturday|sat)(?:\s+|$)/i;
+    const matchWeeklyEn = text.match(weeklyEnRegex);
+    if (matchWeeklyEn) {
+      const dow = parseRecurringDayOfWeek(matchWeeklyEn[1]);
+      if (dow !== undefined) {
+        repeat = { type: 'weekly', dayOfWeek: dow };
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        while (d.getDay() !== dow) {
+          d.setDate(d.getDate() + 1);
+        }
+        dueDate = formatLocalDateYMD(d);
+        text = text.replace(weeklyEnRegex, ' ');
+        shouldCapitalize = true;
+      }
+    }
+  }
+
+  if (!repeat) {
+    // VI
+    const weeklyViRegex =
+      /(?:^|\s)(?:mỗi|hàng\s+tuần\s+vào)\s+(thứ\s+[2-7]|thứ\s+hai|thứ\s+ba|thứ\s+tư|thứ\s+năm|thứ\s+sáu|thứ\s+bảy|chủ\s+nhật|cn)(?:\s+|$)/i;
+    const matchWeeklyVi = text.match(weeklyViRegex);
+    if (matchWeeklyVi) {
+      const dow = parseRecurringDayOfWeek(matchWeeklyVi[1]);
+      if (dow !== undefined) {
+        repeat = { type: 'weekly', dayOfWeek: dow };
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        while (d.getDay() !== dow) {
+          d.setDate(d.getDate() + 1);
+        }
+        dueDate = formatLocalDateYMD(d);
+        text = text.replace(weeklyViRegex, ' ');
+        shouldCapitalize = true;
+      }
+    }
+  }
+
+  if (!repeat) {
+    // DE: jeden (montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)
+    const weeklyDeRegex =
+      /(?:^|\s)jeden\s+(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)(?:\s+|$)/i;
+    const matchWeeklyDe = text.match(weeklyDeRegex);
+    if (matchWeeklyDe) {
+      const dow = parseRecurringDayOfWeek(matchWeeklyDe[1]);
+      if (dow !== undefined) {
+        repeat = { type: 'weekly', dayOfWeek: dow };
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        while (d.getDay() !== dow) {
+          d.setDate(d.getDate() + 1);
+        }
+        dueDate = formatLocalDateYMD(d);
+        text = text.replace(weeklyDeRegex, ' ');
+        shouldCapitalize = true;
+      }
+    }
+  }
+
+  if (!repeat) {
+    // FR: (tous les|chaque) (lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)s?
+    const weeklyFrRegex =
+      /(?:^|\s)(?:tous\s+les|chaque)\s+(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)s?(?:\s+|$)/i;
+    const matchWeeklyFr = text.match(weeklyFrRegex);
+    if (matchWeeklyFr) {
+      const dow = parseRecurringDayOfWeek(matchWeeklyFr[1]);
+      if (dow !== undefined) {
+        repeat = { type: 'weekly', dayOfWeek: dow };
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        while (d.getDay() !== dow) {
+          d.setDate(d.getDate() + 1);
+        }
+        dueDate = formatLocalDateYMD(d);
+        text = text.replace(weeklyFrRegex, ' ');
+        shouldCapitalize = true;
+      }
+    }
+  }
+
+  if (!repeat) {
+    // ES: (todos los|cada) (lunes|martes|miércoles|miercoles|jueves|viernes|sábados|sabados|sábado|sabado|domingos|domingo)
+    const weeklyEsRegex =
+      /(?:^|\s)(?:todos\s+los|cada)\s+(lunes|martes|miércoles|miercoles|jueves|viernes|sábados|sabados|sábado|sabado|domingos|domingo)(?:\s+|$)/i;
+    const matchWeeklyEs = text.match(weeklyEsRegex);
+    if (matchWeeklyEs) {
+      const dow = parseRecurringDayOfWeek(matchWeeklyEs[1]);
+      if (dow !== undefined) {
+        repeat = { type: 'weekly', dayOfWeek: dow };
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        while (d.getDay() !== dow) {
+          d.setDate(d.getDate() + 1);
+        }
+        dueDate = formatLocalDateYMD(d);
+        text = text.replace(weeklyEsRegex, ' ');
+        shouldCapitalize = true;
+      }
+    }
+  }
+
+  if (!repeat) {
+    // JA: 毎週(月|火|水|木|金|土|日)曜(?:日)?
+    const weeklyJaLeading = /^毎週\s*([月火水木金土日])曜(?:日)?\s*/;
+    const weeklyJaTrailing = /(?:\s+|^)毎週\s*([月火水木金土日])曜(?:日)?\s*[.!?]*$/;
+    const weeklyJaInText = /(?:^|\s)毎週\s*([月火水木金土日])曜(?:日)?(?:\s+|$)/;
+
+    const mLead = text.match(weeklyJaLeading);
+    const mTrail = text.match(weeklyJaTrailing);
+    const mIn = text.match(weeklyJaInText);
+    const mJa = mLead || mTrail || mIn;
+    if (mJa) {
+      const dow = parseRecurringDayOfWeek(mJa[1]);
+      if (dow !== undefined) {
+        repeat = { type: 'weekly', dayOfWeek: dow };
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        while (d.getDay() !== dow) {
+          d.setDate(d.getDate() + 1);
+        }
+        dueDate = formatLocalDateYMD(d);
+        if (mLead) {
+          text = text.slice(mLead[0].length);
+        } else if (mTrail && mTrail.index !== undefined) {
+          text = text.slice(0, mTrail.index);
+        } else {
+          text = text.replace(weeklyJaInText, ' ');
+        }
+        shouldCapitalize = true;
+      }
+    }
+  }
+
+  if (!repeat) {
+    // KO: 매주\s*(월|화|수|목|금|토|일)요일
+    const weeklyKoLeading = /^매주\s*([월화수목금토일])(?:요일)?\s*/;
+    const weeklyKoTrailing = /(?:\s+|^)매주\s*([월화수목금토일])(?:요일)?\s*[.!?]*$/;
+    const weeklyKoInText = /(?:^|\s)매주\s*([월화수목금토일])(?:요일)?(?:\s+|$)/;
+
+    const mLead = text.match(weeklyKoLeading);
+    const mTrail = text.match(weeklyKoTrailing);
+    const mIn = text.match(weeklyKoInText);
+    const mKo = mLead || mTrail || mIn;
+    if (mKo) {
+      const dow = parseRecurringDayOfWeek(mKo[1]);
+      if (dow !== undefined) {
+        repeat = { type: 'weekly', dayOfWeek: dow };
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        while (d.getDay() !== dow) {
+          d.setDate(d.getDate() + 1);
+        }
+        dueDate = formatLocalDateYMD(d);
+        if (mLead) {
+          text = text.slice(mLead[0].length);
+        } else if (mTrail && mTrail.index !== undefined) {
+          text = text.slice(0, mTrail.index);
+        } else {
+          text = text.replace(weeklyKoInText, ' ');
+        }
+        shouldCapitalize = true;
+      }
+    }
+  }
+
+  if (!repeat) {
+    // ZH: (?:每周|每週|每星期|每个星期|每個星期)(一|二|三|四|五|六|日|天)
+    const weeklyZhLeading = /^(?:每周|每週|每星期|每个星期|每個星期)\s*([一二三四五六日天])\s*/;
+    const weeklyZhTrailing =
+      /(?:\s+|^)(?:每周|每週|每星期|每个星期|每個星期)\s*([一二三四五六日天])\s*[.!?]*$/;
+    const weeklyZhInText =
+      /(?:^|\s)(?:每周|每週|每星期|每个星期|每個星期)\s*([一二三四五六日天])(?:\s+|$)/;
+
+    const mLead = text.match(weeklyZhLeading);
+    const mTrail = text.match(weeklyZhTrailing);
+    const mIn = text.match(weeklyZhInText);
+    const mZh = mLead || mTrail || mIn;
+    if (mZh) {
+      const dow = parseRecurringDayOfWeek(mZh[1]);
+      if (dow !== undefined) {
+        repeat = { type: 'weekly', dayOfWeek: dow };
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        while (d.getDay() !== dow) {
+          d.setDate(d.getDate() + 1);
+        }
+        dueDate = formatLocalDateYMD(d);
+        if (mLead) {
+          text = text.slice(mLead[0].length);
+        } else if (mTrail && mTrail.index !== undefined) {
+          text = text.slice(0, mTrail.index);
+        } else {
+          text = text.replace(weeklyZhInText, ' ');
+        }
+        shouldCapitalize = true;
+      }
     }
   }
 
@@ -515,15 +847,16 @@ export function formatDisplayDate(
 export function formatReminderDueBadge(
   dueDateStr: string,
   todayYMD: string,
-  format: DateFormatPreference = 'DD/MM'
+  format: DateFormatPreference = 'DD/MM',
+  locale: SupportedLocale = 'en'
 ): string {
   const diff = daysBetweenYMD(todayYMD, dueDateStr);
   const shortDate = formatDisplayDate(dueDateStr, format, false);
-  if (diff === 0) return `Today (${shortDate})`;
-  if (diff === 1) return `Tmrw (${shortDate})`;
-  if (diff === -1) return `Yesterday (${shortDate})`;
-  if (diff < -1) return `Overdue (${shortDate})`;
-  return `Due ${shortDate}`;
+  if (diff === 0) return `${t(locale, 'sticky.badge.today')} (${shortDate})`;
+  if (diff === 1) return `${t(locale, 'sticky.badge.tmrw')} (${shortDate})`;
+  if (diff === -1) return `${t(locale, 'sticky.badge.yesterday')} (${shortDate})`;
+  if (diff < -1) return `${t(locale, 'sticky.badge.overdue')} (${shortDate})`;
+  return t(locale, 'sticky.badge.due', { date: shortDate });
 }
 
 export const DEFAULT_STARTER_ITEMS: ReminderItem[] = [
