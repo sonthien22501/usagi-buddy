@@ -237,7 +237,7 @@ function updateStationaryBadge(): void {
     stationaryValBadge.style.color = isStill ? '#55efc4' : '#ffeaa7';
   }
   if (stationaryToggleBtn) {
-    stationaryToggleBtn.textContent = isStill ? '🌊 Resume Swim' : '📌 Pin Still';
+    stationaryToggleBtn.textContent = isStill ? 'Resume Swim' : 'Pin Still';
   }
 }
 
@@ -251,7 +251,7 @@ function openSettingsModal(): void {
     volumeValBadge.textContent = `${volumeRange.value}%`;
   }
   if (muteToggleBtn) {
-    muteToggleBtn.textContent = soundState.muted ? '🔊 Unmute' : '🔇 Mute';
+    muteToggleBtn.textContent = soundState.muted ? 'Unmute' : 'Mute';
   }
   updateStationaryBadge();
   updateMouseIgnoreState();
@@ -509,7 +509,7 @@ if (muteToggleBtn) {
   muteToggleBtn.addEventListener('click', () => {
     const nextMuted = !soundState.muted;
     soundState = { ...soundState, muted: nextMuted };
-    muteToggleBtn.textContent = nextMuted ? '🔊 Unmute' : '🔇 Mute';
+    muteToggleBtn.textContent = nextMuted ? 'Unmute' : 'Mute';
     if (!nextMuted && soundState.volumeConfig.master <= 0) {
       const updatedConfig = { ...soundState.volumeConfig, master: 0.7 };
       soundState = { ...soundState, volumeConfig: updatedConfig };
@@ -606,7 +606,7 @@ if (window.usagiAPI) {
   window.usagiAPI.onSoundMutedChanged((muted) => {
     soundState = { ...soundState, muted };
     if (muteToggleBtn) {
-      muteToggleBtn.textContent = muted ? '🔊 Unmute' : '🔇 Mute';
+      muteToggleBtn.textContent = muted ? 'Unmute' : 'Mute';
     }
   });
 

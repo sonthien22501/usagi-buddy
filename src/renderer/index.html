@@ -468,42 +468,39 @@
             <span style="font-size: 14px">🔊</span>
           </div>
           <div class="slider-actions">
-            <button class="action-pill-btn" id="test-sound-btn">🎵 Test Sound</button>
-            <button class="action-pill-btn" id="mute-toggle-btn">🔇 Mute</button>
+            <button class="action-pill-btn" id="test-sound-btn">Test Sound</button>
+            <button class="action-pill-btn" id="mute-toggle-btn">Mute</button>
           </div>
         </div>
 
         <!-- Focus & Movement Section -->
         <div class="settings-section">
           <div class="section-label">
-            <span>📌 Focus Anchor Mode</span>
+            <span>Focus Anchor Mode</span>
             <span class="volume-badge" id="stationary-val-badge">SWIMMING</span>
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center">
-            <span style="font-size: 12px; color: rgba(255, 255, 255, 0.75)">
-              Keep Usagi still in one spot while focusing (can drag anytime)
-            </span>
-            <button class="action-pill-btn" id="stationary-toggle-btn">📌 Pin Still</button>
+          <div style="display: flex; justify-content: flex-end; align-items: center">
+            <button class="action-pill-btn" id="stationary-toggle-btn">Pin Still</button>
           </div>
         </div>
 
         <!-- Pomodoro Custom Timer Section -->
         <div class="settings-section">
           <div class="section-label">
-            <span>🍅 Focus Timer</span>
+            <span>Focus Timer</span>
             <span class="volume-badge" id="pomodoro-status-badge">25:00 IDLE</span>
           </div>
 
           <!-- Scientific Method Preset Pills -->
           <div class="preset-chips">
             <button class="chip-btn" data-min="25" title="Pomodoro Technique: 25m work / 5m break">
-              🍅 25m Pomodoro
+              25m Pomodoro
             </button>
             <button class="chip-btn" data-min="52" title="52/17 Method: 52m work / 17m break">
-              ⚡ 52m Rule
+              52m Rule
             </button>
             <button class="chip-btn" data-min="90" title="Ultradian Rhythm: 90m work / 20m break">
-              🌊 90m Ultradian
+              90m Ultradian
             </button>
           </div>
 
@@ -530,8 +527,6 @@
             <button class="primary-start-btn" id="start-custom-timer-btn">▶ Start</button>
           </div>
         </div>
-
-        <div class="settings-footer">[ Press ESC or click outside to close ]</div>
       </div>
     </div>
 
@@ -543,7 +538,6 @@
           id="alarm-repeat-btn"
           title="Repeat Session (Space or Enter)"
         >
-          <span>🔁</span>
           <span id="alarm-repeat-text">Study Another 25m</span>
           <span class="kbd-chip">Space</span>
         </button>
@@ -552,7 +546,6 @@
           id="alarm-snooze-btn"
           title="Add 5 Minutes (S or +)"
         >
-          <span>⏳</span>
           <span>+5m Wrap-up</span>
           <span class="kbd-chip">S</span>
         </button>
@@ -561,7 +554,6 @@
           id="alarm-break-btn"
           title="Recommended Break (B)"
         >
-          <span>☕</span>
           <span id="alarm-break-text">5m Break</span>
           <span class="kbd-chip">B</span>
         </button>

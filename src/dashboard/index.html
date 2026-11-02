@@ -722,16 +722,6 @@
         color: var(--text-color);
         outline: none;
       }
-
-      .app-footer {
-        text-align: center;
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--text-muted);
-        margin-top: 14px;
-        padding-top: 8px;
-        border-top: 1.5px dashed var(--border-color);
-      }
     </style>
   </head>
   <body data-theme="custard">
@@ -743,15 +733,14 @@
         </div>
         <div class="app-header-text">
           <h1>Usagi Buddy Dashboard</h1>
-          <p>Custard Anime Companion & Quests</p>
         </div>
       </div>
     </div>
 
     <!-- 2-Tab Switcher Navigation -->
     <div class="dash-tabs-bar">
-      <button class="dash-tab-btn active" id="dashTabCompanion">🏠 Companion & Focus</button>
-      <button class="dash-tab-btn" id="dashTabConfig">⚙️ Settings & Config</button>
+      <button class="dash-tab-btn active" id="dashTabCompanion">Companion</button>
+      <button class="dash-tab-btn" id="dashTabConfig">Settings</button>
     </div>
 
     <!-- Tab 1: Companion & Focus View -->
@@ -840,7 +829,11 @@
             <span class="costume-icon" id="costume-icon-classic"></span>
             <span class="costume-name">Classic</span>
           </button>
-          <button class="costume-card-btn" data-costume="study" title="Study Mode with book & pencil">
+          <button
+            class="costume-card-btn"
+            data-costume="study"
+            title="Study Mode with book & pencil"
+          >
             <span class="costume-icon" id="costume-icon-study"></span>
             <span class="costume-name">Study</span>
           </button>
@@ -860,7 +853,11 @@
             <span class="costume-icon" id="costume-icon-star"></span>
             <span class="costume-name">Star</span>
           </button>
-          <button class="costume-card-btn" data-costume="random" title="Surprise / Shuffle on click">
+          <button
+            class="costume-card-btn"
+            data-costume="random"
+            title="Surprise / Shuffle on click"
+          >
             <span class="costume-icon" id="costume-icon-random"></span>
             <span class="costume-name">Shuffle</span>
           </button>
@@ -879,7 +876,6 @@
           <!-- Sticky Quests Note Window Toggle -->
           <div class="mode-item">
             <div class="mode-title">
-              <span class="kawaii-icon-wrap" id="sticky-title-icon"></span>
               <span>Sticky Quests Note</span>
             </div>
             <button class="feature-btn" id="toggle-sticky-window-btn">Hide Note</button>
@@ -888,7 +884,6 @@
           <!-- Stay Still -->
           <div class="mode-item">
             <div class="mode-title">
-              <span class="kawaii-icon-wrap" id="pin-title-icon"></span>
               <span>Stay Still</span>
             </div>
             <button class="feature-btn" id="stationary-toggle-btn">Pin Still</button>
@@ -897,7 +892,6 @@
           <!-- Play Mode / Follow Cursor -->
           <div class="mode-item">
             <div class="mode-title">
-              <span class="kawaii-icon-wrap" id="wand-title-icon"></span>
               <span>Play Mode</span>
             </div>
             <button class="feature-btn" id="play-mode-toggle-btn">Follow Mouse</button>
@@ -906,7 +900,6 @@
           <!-- Ghost Mode / Click-Through -->
           <div class="mode-item">
             <div class="mode-title">
-              <span class="kawaii-icon-wrap" id="ghost-title-icon"></span>
               <span>Ghost Mode</span>
             </div>
             <button class="feature-btn" id="ghost-mode-toggle-btn">Ghost Mode</button>
@@ -915,7 +908,6 @@
           <!-- Drop Pudding Snack -->
           <div class="mode-item">
             <div class="mode-title">
-              <span class="kawaii-icon-wrap" id="pudding-title-icon"></span>
               <span>Pudding Snack</span>
             </div>
             <button class="feature-btn" id="drop-snack-btn">Drop Snack</button>
@@ -924,7 +916,6 @@
           <!-- Hide Usagi / Do Not Disturb -->
           <div class="mode-item">
             <div class="mode-title">
-              <span class="kawaii-icon-wrap" id="hide-title-icon"></span>
               <span>Hide Usagi</span>
             </div>
             <button class="feature-btn" id="hide-usagi-toggle-btn">Hide Usagi</button>
@@ -948,7 +939,6 @@
           <div class="config-row">
             <div class="config-label">
               <span style="font-weight: 800; font-size: 12px">Buddy Nickname</span>
-              <span style="font-size: 11px; color: var(--text-muted)">Your preferred display name</span>
             </div>
             <input
               type="text"
@@ -964,7 +954,6 @@
           <div class="config-row">
             <div class="config-label">
               <span style="font-weight: 800; font-size: 12px">Birthday (DD / MM)</span>
-              <span style="font-size: 11px; color: var(--text-muted)">Usagi celebrates your special day! 🎂</span>
             </div>
             <div style="display: flex; align-items: center; gap: 6px">
               <select
@@ -1032,7 +1021,6 @@
           <div class="config-row">
             <div class="config-label">
               <span style="font-weight: 800; font-size: 12px">Holiday Region</span>
-              <span style="font-size: 11px; color: var(--text-muted)">Calendar public holiday countdowns</span>
             </div>
             <select
               id="buddy-country-select"
@@ -1067,7 +1055,6 @@
           <div class="config-row">
             <div class="config-label">
               <span style="font-weight: 800; font-size: 12px">Date Format</span>
-              <span style="font-size: 11px; color: var(--text-muted)">Display across quests & calendar</span>
             </div>
             <button class="feature-btn" id="config-date-format-btn" style="width: 160px">
               DD/MM (15/11)
@@ -1078,7 +1065,6 @@
           <div class="config-row">
             <div class="config-label">
               <span style="font-weight: 800; font-size: 12px">Week Starts On</span>
-              <span style="font-size: 11px; color: var(--text-muted)">Calendar grid header order</span>
             </div>
             <button class="feature-btn" id="config-week-start-btn" style="width: 160px">
               Monday (Mo–Su)
@@ -1089,7 +1075,6 @@
           <div class="config-row">
             <div class="config-label">
               <span style="font-weight: 800; font-size: 12px">Sticky Note Text Size</span>
-              <span style="font-size: 11px; color: var(--text-muted)">Font scaling on sticky window</span>
             </div>
             <button class="feature-btn" id="config-font-scale-btn" style="width: 160px">
               Medium (A+)
@@ -1100,7 +1085,6 @@
           <div class="config-row">
             <div class="config-label">
               <span style="font-weight: 800; font-size: 12px">Sticky Window Size</span>
-              <span style="font-size: 11px; color: var(--text-muted)">Compact / Medium / Large preset</span>
             </div>
             <button class="feature-btn" id="config-sticky-size-btn" style="width: 160px">
               Compact (350×480)
@@ -1111,10 +1095,9 @@
           <div class="config-row">
             <div class="config-label">
               <span style="font-weight: 800; font-size: 12px">Sticky Window Pin</span>
-              <span style="font-size: 11px; color: var(--text-muted)">Float above all apps or stay on desktop</span>
             </div>
             <button class="feature-btn" id="config-sticky-pin-btn" style="width: 160px">
-              🖥️ Desktop Widget
+              Desktop Widget
             </button>
           </div>
         </div>
@@ -1158,18 +1141,12 @@
         >
           <div class="config-label">
             <span style="font-weight: 800; font-size: 12px">Outfit Rotation</span>
-            <span style="font-size: 11px; color: var(--text-muted)">Auto-change costume every 30m or fix</span>
           </div>
           <button class="feature-btn" id="fix-appearance-toggle-btn" style="width: 160px">
-            🔄 Auto-Change
+            Auto-Change
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- App Footer -->
-    <div class="app-footer">
-      💡 Close this window anytime (✕) — Usagi stays happily floating on your desktop!
     </div>
 
     <script type="module" src="./dashboard.js"></script>

@@ -47,24 +47,6 @@ let isGhostLocked = false;
 
 // Populate static kawaii icons
 function initStaticIcons(): void {
-  const chipTomato = document.getElementById('chip-tomato-icon');
-  if (chipTomato) chipTomato.innerHTML = getKawaiiIcon('tomato', 12);
-
-  const chipBolt = document.getElementById('chip-bolt-icon');
-  if (chipBolt) chipBolt.innerHTML = getKawaiiIcon('bolt', 12);
-
-  const chipWave = document.getElementById('chip-wave-icon');
-  if (chipWave) chipWave.innerHTML = getKawaiiIcon('wave', 12);
-
-  const chipCoffee1 = document.getElementById('chip-coffee-icon-1');
-  if (chipCoffee1) chipCoffee1.innerHTML = getKawaiiIcon('coffee', 12);
-
-  const chipCoffee2 = document.getElementById('chip-coffee-icon-2');
-  if (chipCoffee2) chipCoffee2.innerHTML = getKawaiiIcon('coffee', 12);
-
-  const chipTest = document.getElementById('chip-test-icon');
-  if (chipTest) chipTest.innerHTML = getKawaiiIcon('sparkle', 12);
-
   const dashboardIcon = document.getElementById('tray-dashboard-icon');
   if (dashboardIcon) dashboardIcon.innerHTML = getKawaiiIcon('dashboard', 16);
 
