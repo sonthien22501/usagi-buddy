@@ -33,7 +33,13 @@ export type KawaiiIconId =
   | 'door-quit'
   | 'plus'
   | 'check'
-  | 'sparkle';
+  | 'sparkle'
+  | 'calendar'
+  | 'cake'
+  | 'party'
+  | 'globe'
+  | 'chevron-left'
+  | 'chevron-right';
 
 export const KAWAII_ICONS: Record<KawaiiIconId, string> = {
   sun: `<svg class="kawaii-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -236,6 +242,48 @@ export const KAWAII_ICONS: Record<KawaiiIconId, string> = {
 
   sparkle: `<svg class="kawaii-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M12 2c.5 4 4 7.5 8 8-4 .5-7.5 4-8 8-.5-4-4-7.5-8-8 4-.5 7.5-4 8-8z" fill="#ffe699" />
+</svg>`,
+
+  calendar: `<svg class="kawaii-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="4" width="18" height="18" rx="4" fill="#fff0c2" />
+  <line x1="3" y1="9" x2="21" y2="9" />
+  <line x1="8" y1="2" x2="8" y2="5" />
+  <line x1="16" y1="2" x2="16" y2="5" />
+  <circle cx="8" cy="14" r="1" fill="var(--accent-strawberry)" stroke="none" />
+  <circle cx="12" cy="14" r="1" fill="#ffe699" stroke="none" />
+  <circle cx="16" cy="14" r="1" fill="currentColor" stroke="none" />
+</svg>`,
+
+  cake: `<svg class="kawaii-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4 14h16v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6z" fill="#ffd1dc" />
+  <path d="M4 14c1.3-1 2.7-1 4 0s2.7 1 4 0 2.7-1 4 0 2.7 1 4 0" fill="none" />
+  <path d="M12 4v4" />
+  <circle cx="12" cy="3" r="1" fill="#ffe699" stroke="none" />
+  <line x1="4" y1="18" x2="20" y2="18" />
+</svg>`,
+
+  party: `<svg class="kawaii-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 21l8-18 10 10L3 21z" fill="#ffe699" />
+  <path d="M6 14l5 5" />
+  <path d="M11 9l5 5" />
+  <circle cx="19" cy="5" r="1.5" fill="var(--accent-strawberry)" stroke="none" />
+  <circle cx="15" cy="2" r="1" fill="#a0e7e5" stroke="none" />
+  <circle cx="21" cy="11" r="1" fill="#ffd1dc" stroke="none" />
+</svg>`,
+
+  globe: `<svg class="kawaii-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="9" fill="#a0e7e5" />
+  <line x1="3" y1="12" x2="21" y2="12" />
+  <path d="M12 3a15 15 0 0 0 0 18" />
+  <path d="M12 3a15 15 0 0 1 0 18" />
+</svg>`,
+
+  'chevron-left': `<svg class="kawaii-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="15 18 9 12 15 6" />
+</svg>`,
+
+  'chevron-right': `<svg class="kawaii-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="9 18 15 12 9 6" />
 </svg>`,
 };
 

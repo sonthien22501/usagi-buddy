@@ -61,6 +61,16 @@ import {
   parseRemindersJson,
   serializeRemindersJson,
 } from '../core/reminderStore';
+import {
+  BuddyProfile,
+  HolidayEvent,
+  buildCalendarEvents,
+  createDefaultBuddyProfile,
+  getStaticFallbackHolidays,
+  normalizeNagerHolidays,
+  parseCalendarProfileJson,
+  serializeCalendarProfileJson,
+} from '../core/calendarStore';
 import { computeTrayPopoverPosition } from '../core/trayPositioner';
 
 let mainWindow: BrowserWindow | null = null;
@@ -83,6 +93,8 @@ let usagiHidden = false;
 let pomodoroState: PomodoroState = createPomodoroTimer();
 let wellnessState: WellnessState = createWellnessState();
 let reminderState: ReminderState = createInitialReminderState();
+let calendarProfile: BuddyProfile = createDefaultBuddyProfile();
+let calendarHolidays: HolidayEvent[] = [];
 
 let pomodoroInterval: NodeJS.Timeout | null = null;
 let wellnessInterval: NodeJS.Timeout | null = null;
@@ -150,6 +162,119 @@ function getRemindersFilePath(): string {
     return path.join(app.getPath('userData'), 'usagi-reminders.json');
   } catch {
     return path.resolve(__dirname, '../../usagi-reminders.json');
+  }
+}
+
+function getCalendarFilePath(): string {
+  try {
+    return path.join(app.getPath('userData'), 'usagi-calendar.json');
+  } catch {
+    return path.resolve(__dirname, '../../usagi-calendar.json');
+  }
+}
+
+function loadCalendarFromDisk(): void {
+  try {
+    const p = getCalendarFilePath();
+    if (fs.existsSync(p)) {
+      const raw = fs.readFileSync(p, 'utf-8');
+      const state = parseCalendarProfileJson(raw);
+      calendarProfile = state.profile;
+      calendarHolidays = state.cachedHolidays;
+    }
+  } catch (err) {
+    console.warn('Failed to load calendar from disk:', err);
+    calendarProfile = createDefaultBuddyProfile();
+    calendarHolidays = [];
+  }
+
+  // If no cached holidays yet, load fallbacks immediately
+  if (calendarHolidays.length === 0) {
+    const year = new Date().getFullYear();
+    calendarHolidays = [
+      ...getStaticFallbackHolidays(calendarProfile.countryCode, year),
+      ...getStaticFallbackHolidays(calendarProfile.countryCode, year + 1),
+    ];
+  }
+}
+
+function saveCalendarToDisk(): void {
+  try {
+    const p = getCalendarFilePath();
+    fs.writeFileSync(p, serializeCalendarProfileJson(calendarProfile, calendarHolidays), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to save calendar to disk:', err);
+  }
+}
+
+async function refreshHolidaysFromNager(countryCode: string, year: number): Promise<void> {
+  const years = [year, year + 1];
+  let fetchedEvents: HolidayEvent[] = [];
+
+  for (const y of years) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${y}/${countryCode}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const json = await res.json();
+        const norm = normalizeNagerHolidays(json, countryCode);
+        fetchedEvents = [...fetchedEvents, ...norm];
+      }
+    } catch {
+      // Offline fallback
+    }
+  }
+
+  const fallbackThisYear = getStaticFallbackHolidays(countryCode, year);
+  const fallbackNextYear = getStaticFallbackHolidays(countryCode, year + 1);
+  const combined = [...fetchedEvents, ...fallbackThisYear, ...fallbackNextYear];
+
+  const seen = new Set<string>();
+  const unique: HolidayEvent[] = [];
+  for (const ev of combined) {
+    const key = `${ev.date}__${ev.name}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(ev);
+    }
+  }
+
+  calendarHolidays = unique;
+  saveCalendarToDisk();
+  broadcastCalendarState();
+}
+
+function getActiveCalendarEvents(): HolidayEvent[] {
+  const currentYear = new Date().getFullYear();
+  return buildCalendarEvents(calendarHolidays, calendarProfile, currentYear);
+}
+
+function broadcastCalendarState(): void {
+  broadcastToAllWindows('calendar-state-changed', {
+    profile: calendarProfile,
+    events: getActiveCalendarEvents(),
+  });
+}
+
+function checkBirthdayGreeting(): void {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentDay = now.getDate();
+  if (
+    calendarProfile.birthdayMonth === currentMonth &&
+    calendarProfile.birthdayDay === currentDay
+  ) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('wellness-update', {
+        mood: 'active',
+        message: `🎂 Happy Birthday, ${calendarProfile.nickname || 'Buddy'}! Una~!! ✨`,
+        soundEvent: 'welcome-back',
+      });
+    }
   }
 }
 
@@ -237,6 +362,10 @@ function sendFullStateToWindow(win: BrowserWindow | null): void {
   win.webContents.send('play-mode-toggle', playModeEnabled);
   win.webContents.send('costume-changed', activeCostume, costumeSelection);
   win.webContents.send('reminder-state-changed', reminderState);
+  win.webContents.send('calendar-state-changed', {
+    profile: calendarProfile,
+    events: getActiveCalendarEvents(),
+  });
   win.webContents.send('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
   win.webContents.send('usagi-hidden-toggle', usagiHidden);
 }
@@ -292,8 +421,8 @@ function createStickyWindow(): void {
 
   const primaryDisplay = screen.getPrimaryDisplay();
   const { workArea } = primaryDisplay;
-  const width = 300;
-  const height = 360;
+  const width = 310;
+  const height = 430;
   const x = Math.max(0, workArea.x + workArea.width - width - 24);
   const y = Math.max(0, workArea.y + 48);
 
@@ -324,6 +453,10 @@ function createStickyWindow(): void {
   stickyWindow.webContents.on('did-finish-load', () => {
     if (stickyWindow && !stickyWindow.isDestroyed()) {
       stickyWindow.webContents.send('reminder-state-changed', reminderState);
+      stickyWindow.webContents.send('calendar-state-changed', {
+        profile: calendarProfile,
+        events: getActiveCalendarEvents(),
+      });
     }
   });
 
@@ -719,6 +852,7 @@ function setupCursorTrackingTicker(): void {
 app.whenReady().then(() => {
   loadSettingsFromDisk();
   loadRemindersFromDisk();
+  loadCalendarFromDisk();
   createMainWindow();
   createStickyWindow();
   createTrayWindow();
@@ -726,6 +860,8 @@ app.whenReady().then(() => {
   setupPomodoroTicker();
   setupWellnessCoachTicker();
   setupCursorTrackingTicker();
+  checkBirthdayGreeting();
+  refreshHolidaysFromNager(calendarProfile.countryCode, new Date().getFullYear()).catch(() => {});
 
   globalShortcut.register('CommandOrControl+Shift+G', () => {
     toggleGhostMode();
@@ -831,8 +967,53 @@ app.whenReady().then(() => {
 
   ipcMain.handle('get-reminder-state', () => reminderState);
 
-  ipcMain.on('add-reminder', (_e, text: string) => {
-    reminderState = addReminderItem(reminderState, text);
+  ipcMain.handle('get-calendar-state', () => ({
+    profile: calendarProfile,
+    events: getActiveCalendarEvents(),
+  }));
+
+  ipcMain.on('update-buddy-profile', (_e, partialProfile: Partial<BuddyProfile>) => {
+    if (typeof partialProfile !== 'object' || partialProfile === null) return;
+    const oldCountry = calendarProfile.countryCode;
+    calendarProfile = {
+      ...calendarProfile,
+      ...(typeof partialProfile.nickname === 'string'
+        ? { nickname: partialProfile.nickname.trim().slice(0, 32) || 'Buddy' }
+        : {}),
+      ...(partialProfile.birthdayMonth !== undefined
+        ? { birthdayMonth: partialProfile.birthdayMonth }
+        : {}),
+      ...(partialProfile.birthdayDay !== undefined
+        ? { birthdayDay: partialProfile.birthdayDay }
+        : {}),
+      ...(typeof partialProfile.countryCode === 'string' && partialProfile.countryCode.length === 2
+        ? { countryCode: partialProfile.countryCode.toUpperCase() }
+        : {}),
+    };
+
+    saveCalendarToDisk();
+    broadcastCalendarState();
+    checkBirthdayGreeting();
+
+    if (calendarProfile.countryCode !== oldCountry) {
+      refreshHolidaysFromNager(calendarProfile.countryCode, new Date().getFullYear()).catch(
+        () => {}
+      );
+    }
+  });
+
+  ipcMain.on('add-reminder', (_e, payload: string | { text: string; dueDate?: string }) => {
+    if (typeof payload === 'string') {
+      reminderState = addReminderItem(reminderState, payload);
+    } else if (payload && typeof payload === 'object' && typeof payload.text === 'string') {
+      reminderState = addReminderItem(
+        reminderState,
+        payload.text,
+        Date.now(),
+        undefined,
+        payload.dueDate
+      );
+    }
     saveRemindersToDisk();
     broadcastReminderState();
   });

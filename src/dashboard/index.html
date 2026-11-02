@@ -621,6 +621,135 @@
         color: #e63946;
       }
 
+      /* Calendar & Quick Date Styles */
+      .cal-nav-btn {
+        background: var(--card-inner);
+        border: 1.5px solid var(--border-color);
+        color: var(--text-color);
+        border-radius: 6px;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: transform 0.08s ease, background 0.12s ease;
+      }
+      .cal-nav-btn:hover {
+        background: var(--badge-bg);
+      }
+      .cal-nav-btn:active {
+        transform: scale(0.92);
+      }
+      .cal-day-cell {
+        min-height: 28px;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        position: relative;
+        border: 1.5px solid transparent;
+        background: var(--card-bg);
+        color: var(--text-color);
+        transition: background 0.12s ease, border-color 0.12s ease;
+        padding: 2px 0;
+      }
+      .cal-day-cell:hover {
+        background: var(--card-inner);
+      }
+      .cal-day-cell.not-current-month {
+        opacity: 0.35;
+      }
+      .cal-day-cell.today {
+        border-color: #e6a15c !important;
+        font-weight: 900;
+        box-shadow: inset 0 0 0 1px #e6a15c;
+      }
+      .cal-day-cell.selected {
+        background: var(--badge-bg) !important;
+        border-color: var(--accent-strawberry) !important;
+      }
+      .cal-dots {
+        display: flex;
+        gap: 2px;
+        align-items: center;
+        justify-content: center;
+        height: 5px;
+        margin-top: 1px;
+      }
+      .dot-quest {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #d97706;
+      }
+      .dot-holiday {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #ff758f;
+      }
+      .dot-bday {
+        font-size: 8px;
+        line-height: 1;
+        color: #f59e0b;
+      }
+      .chip-date-btn {
+        background: var(--card-inner);
+        border: 1.5px solid var(--border-color);
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-color);
+        cursor: pointer;
+        transition: background 0.12s, border-color 0.12s;
+      }
+      .chip-date-btn:hover {
+        background: var(--badge-bg);
+      }
+      .chip-date-btn.active {
+        background: var(--accent-strawberry);
+        color: #ffffff;
+      }
+      .quest-due-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 1px 5px;
+        font-size: 10px;
+        font-weight: 800;
+        border-radius: 4px;
+        background: var(--badge-bg);
+        color: var(--badge-text);
+        border: 1px solid var(--border-color);
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+      .upcoming-item-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 5px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+      }
+      .upcoming-badge {
+        font-size: 9px;
+        font-weight: 800;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: var(--accent-strawberry);
+        color: #ffffff;
+      }
+
       .app-footer {
         text-align: center;
         font-size: 11px;
@@ -647,22 +776,100 @@
       <button id="theme-toggle-btn" class="theme-btn">🌙 Night</button>
     </div>
 
-    <!-- 1. Desktop Sticky Reminders Card -->
+    <!-- 1. Desktop Sticky Reminders & Cozy Calendar Card -->
     <div class="card" id="sticky-reminders-card">
       <div class="card-header">
         <div class="card-title">
           <span class="kawaii-icon-wrap" id="sticky-card-icon"></span>
-          <span>Desktop Sticky Reminders</span>
+          <span>Cozy Calendar & Quests</span>
         </div>
         <button class="btn" id="toggle-sticky-window-btn">Hide Note</button>
       </div>
 
+      <!-- Buddy Profile Bar -->
+      <div class="buddy-profile-bar" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; background: var(--card-inner); border-radius: 10px; margin-bottom: 12px; font-size: 11px; font-weight: 700;">
+        <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 110px;">
+          <span class="kawaii-icon-wrap" id="buddy-profile-icon"></span>
+          <input type="text" id="buddy-nickname-input" placeholder="Buddy Nickname" maxlength="24" style="width: 100%; border: 1.5px solid var(--border-color); border-radius: 6px; padding: 4px 6px; font-size: 11px; background: var(--input-bg); color: var(--text-color);" />
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span class="kawaii-icon-wrap" id="buddy-cake-icon"></span>
+          <select id="buddy-bday-month" style="border: 1.5px solid var(--border-color); border-radius: 6px; padding: 3px 4px; font-size: 11px; background: var(--input-bg); color: var(--text-color);">
+            <option value="">Month</option>
+            <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option>
+            <option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option>
+            <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+          </select>
+          <select id="buddy-bday-day" style="border: 1.5px solid var(--border-color); border-radius: 6px; padding: 3px 4px; font-size: 11px; background: var(--input-bg); color: var(--text-color);">
+            <option value="">Day</option>
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+            <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+            <option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option>
+            <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+            <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option>
+            <option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
+            <option value="31">31</option>
+          </select>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span class="kawaii-icon-wrap" id="buddy-globe-icon"></span>
+          <select id="buddy-country-select" style="border: 1.5px solid var(--border-color); border-radius: 6px; padding: 3px 4px; font-size: 11px; background: var(--input-bg); color: var(--text-color);">
+            <option value="VN">Vietnam 🇻🇳</option>
+            <option value="US">United States 🇺🇸</option>
+            <option value="GB">United Kingdom 🇬🇧</option>
+            <option value="DE">Germany 🇩🇪</option>
+            <option value="FR">France 🇫🇷</option>
+            <option value="ES">Spain 🇪🇸</option>
+            <option value="JP">Japan 🇯🇵</option>
+            <option value="KR">South Korea 🇰🇷</option>
+            <option value="AU">Australia 🇦🇺</option>
+            <option value="CA">Canada 🇨🇦</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Mini Calendar Widget -->
+      <div class="calendar-widget" style="margin-bottom: 12px; border: 1.5px solid var(--border-color); border-radius: 12px; padding: 10px; background: var(--card-bg);">
+        <div class="cal-nav-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <button class="cal-nav-btn" id="cal-prev-btn" title="Previous Month">‹</button>
+          <span id="cal-month-title" style="font-weight: 800; font-size: 13px; color: var(--text-color);">November 2026</span>
+          <div style="display: flex; gap: 4px;">
+            <button class="cal-nav-btn" id="cal-today-btn" style="font-size: 10px; padding: 2px 8px; width: auto; font-weight: 700;">Today</button>
+            <button class="cal-nav-btn" id="cal-next-btn" title="Next Month">›</button>
+          </div>
+        </div>
+        <div class="cal-weekdays-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 10px; font-weight: 800; color: var(--text-muted); margin-bottom: 4px;">
+          <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+        </div>
+        <div id="cal-days-grid" class="cal-days-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;">
+          <!-- 42 day cells -->
+        </div>
+        <div id="cal-selected-banner" style="display: none; margin-top: 8px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; background: var(--card-inner); border: 1px dashed var(--border-color); justify-content: space-between; align-items: center;">
+          <span id="cal-selected-info"></span>
+          <button id="cal-clear-filter-btn" style="background: transparent; border: none; font-size: 11px; cursor: pointer; color: var(--accent-strawberry); font-weight: 700;">✕ All Dates</button>
+        </div>
+        <div id="cal-event-banner" style="display: none; margin-top: 6px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; background: #ffe699; color: #5c3a21; border: 1px solid var(--border-color);">
+        </div>
+      </div>
+
+      <!-- Upcoming Holidays & Quests Countdowns -->
+      <div id="upcoming-events-container" style="margin-bottom: 12px; background: var(--card-inner); border-radius: 10px; padding: 8px 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 11px; font-weight: 800; color: var(--text-color);">
+          <span>Upcoming Holidays & Quests</span>
+          <span style="font-size: 10px; opacity: 0.7;">Next up</span>
+        </div>
+        <div id="upcoming-events-list" style="display: flex; flex-direction: column; gap: 4px;">
+          <!-- Upcoming items -->
+        </div>
+      </div>
+
+      <!-- Quest Input & Quick Chips -->
       <div class="input-group">
         <input
           type="text"
           class="number-input"
           id="dashboard-quest-input"
-          placeholder="Add task / reminder..."
+          placeholder="Add task / reminder (e.g. '@tomorrow', '@+3d')..."
           maxlength="120"
         />
         <button
@@ -672,6 +879,13 @@
         >
           +
         </button>
+      </div>
+
+      <div class="quick-date-chips" style="display: flex; gap: 6px; margin-top: 6px; margin-bottom: 8px; flex-wrap: wrap;">
+        <button class="chip-date-btn" data-date-chip="today">📅 Today</button>
+        <button class="chip-date-btn" data-date-chip="tomorrow">🌤️ Tomorrow</button>
+        <button class="chip-date-btn" data-date-chip="+3d">⚡ +3 Days</button>
+        <button class="chip-date-btn" id="chip-clear-date" style="display: none;">✕ Clear Date</button>
       </div>
 
       <div id="dashboard-quest-list" class="quest-dashboard-list">

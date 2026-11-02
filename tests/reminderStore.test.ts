@@ -9,6 +9,7 @@ import {
   clearCompletedReminders,
   parseRemindersJson,
   serializeRemindersJson,
+  extractDueDateToken,
 } from '../src/core/reminderStore';
 
 describe('reminderStore', () => {
@@ -147,5 +148,84 @@ describe('reminderStore', () => {
     expect(parsedPartial.theme).toBe('night');
     expect(parsedPartial.items.length).toBe(1);
     expect(parsedPartial.items[0].text).toBe('Valid task');
+  });
+
+  describe('extractDueDateToken', () => {
+    const fixedNow = new Date(2026, 10, 2); // 2026-11-02 (month index 10 is November)
+
+    it('parses @today token and cleans text', () => {
+      const res = extractDueDateToken('Submit report @today', undefined, fixedNow);
+      expect(res).toEqual({
+        cleanText: 'Submit report',
+        dueDate: '2026-11-02',
+      });
+    });
+
+    it('parses @tomorrow token and cleans text', () => {
+      const res = extractDueDateToken('Buy cake @tomorrow', undefined, fixedNow);
+      expect(res).toEqual({
+        cleanText: 'Buy cake',
+        dueDate: '2026-11-03',
+      });
+    });
+
+    it('parses @+Nd token and cleans text', () => {
+      const res = extractDueDateToken('Trip @+5d', undefined, fixedNow);
+      expect(res).toEqual({
+        cleanText: 'Trip',
+        dueDate: '2026-11-07',
+      });
+    });
+
+    it('parses explicit @YYYY-MM-DD token and cleans text', () => {
+      const res = extractDueDateToken('Exam @2026-12-15', undefined, fixedNow);
+      expect(res).toEqual({
+        cleanText: 'Exam',
+        dueDate: '2026-12-15',
+      });
+    });
+
+    it('falls back to defaultDateStr when no inline token is provided', () => {
+      const res = extractDueDateToken('Read chapter 4', '2026-11-20', fixedNow);
+      expect(res).toEqual({
+        cleanText: 'Read chapter 4',
+        dueDate: '2026-11-20',
+      });
+    });
+
+    it('leaves dueDate undefined when no token or default is provided', () => {
+      const res = extractDueDateToken('Simple reminder', undefined, fixedNow);
+      expect(res).toEqual({
+        cleanText: 'Simple reminder',
+        dueDate: undefined,
+      });
+    });
+  });
+
+  describe('Date-linked reminder items', () => {
+    it('stores explicit dueDate or parses inline @tomorrow token in addReminderItem', () => {
+      let state = createInitialReminderState();
+      state = addReminderItem(state, 'Study math', 1000, 'item-1', '2026-11-05');
+      const added = state.items[state.items.length - 1];
+      expect(added.id).toBe('item-1');
+      expect(added.text).toBe('Study math');
+      expect(added.dueDate).toBe('2026-11-05');
+
+      // Test inline parsing within addReminderItem
+      const fixedNowMs = new Date(2026, 10, 2).getTime();
+      state = addReminderItem(state, 'Buy flowers @tomorrow', fixedNowMs);
+      const addedInline = state.items[state.items.length - 1];
+      expect(addedInline.text).toBe('Buy flowers');
+      expect(addedInline.dueDate).toBe('2026-11-03');
+    });
+
+    it('preserves dueDate through JSON serialization and deserialization', () => {
+      let state = createInitialReminderState();
+      state = addReminderItem(state, 'Doctor appointment', 1000, 'item-doc', '2026-11-12');
+      const json = serializeRemindersJson(state);
+      const restored = parseRemindersJson(json);
+      const restoredItem = restored.items.find((i) => i.id === 'item-doc');
+      expect(restoredItem?.dueDate).toBe('2026-11-12');
+    });
   });
 });

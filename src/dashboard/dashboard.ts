@@ -3,6 +3,14 @@ import { VolumeConfig } from '../core/soundManager';
 import { CostumeId, OutfitSelection, getCostumeDefinition } from '../core/costumeManager';
 import { ReminderState } from '../core/reminderStore';
 import { getKawaiiIcon, renderIconLabel } from '../core/kawaiiIcons';
+import {
+  BuddyProfile,
+  HolidayEvent,
+  buildMonthCalendarGrid,
+  getUpcomingCountdownItems,
+  formatDateYMD,
+  daysBetweenYMD,
+} from '../core/calendarStore';
 
 const themeToggleBtn = document.getElementById('theme-toggle-btn') as HTMLButtonElement | null;
 
@@ -23,6 +31,35 @@ const dashboardQuestCounter = document.getElementById(
 const dashboardClearDoneBtn = document.getElementById(
   'dashboard-clear-done-btn'
 ) as HTMLButtonElement | null;
+
+// Buddy Profile elements
+const buddyNicknameInput = document.getElementById(
+  'buddy-nickname-input'
+) as HTMLInputElement | null;
+const buddyBdayMonth = document.getElementById('buddy-bday-month') as HTMLSelectElement | null;
+const buddyBdayDay = document.getElementById('buddy-bday-day') as HTMLSelectElement | null;
+const buddyCountrySelect = document.getElementById(
+  'buddy-country-select'
+) as HTMLSelectElement | null;
+const buddyProfileIcon = document.getElementById('buddy-profile-icon') as HTMLSpanElement | null;
+const buddyCakeIcon = document.getElementById('buddy-cake-icon') as HTMLSpanElement | null;
+const buddyGlobeIcon = document.getElementById('buddy-globe-icon') as HTMLSpanElement | null;
+
+// Calendar widget elements
+const calPrevBtn = document.getElementById('cal-prev-btn') as HTMLButtonElement | null;
+const calNextBtn = document.getElementById('cal-next-btn') as HTMLButtonElement | null;
+const calTodayBtn = document.getElementById('cal-today-btn') as HTMLButtonElement | null;
+const calMonthTitle = document.getElementById('cal-month-title') as HTMLSpanElement | null;
+const calDaysGrid = document.getElementById('cal-days-grid') as HTMLDivElement | null;
+const calSelectedBanner = document.getElementById('cal-selected-banner') as HTMLDivElement | null;
+const calSelectedInfo = document.getElementById('cal-selected-info') as HTMLSpanElement | null;
+const calClearFilterBtn = document.getElementById(
+  'cal-clear-filter-btn'
+) as HTMLButtonElement | null;
+const calEventBanner = document.getElementById('cal-event-banner') as HTMLDivElement | null;
+const upcomingEventsList = document.getElementById('upcoming-events-list') as HTMLDivElement | null;
+const chipClearDate = document.getElementById('chip-clear-date') as HTMLButtonElement | null;
+const chipDateButtons = document.querySelectorAll<HTMLButtonElement>('.chip-date-btn');
 
 // Volume elements
 const volumeSlider = document.getElementById('volume-slider') as HTMLInputElement | null;
@@ -76,6 +113,17 @@ let currentReminderState: ReminderState = {
   stickyVisible: true,
   theme: 'custard',
 };
+let currentProfile: BuddyProfile = {
+  nickname: 'Buddy',
+  birthdayMonth: null,
+  birthdayDay: null,
+  countryCode: 'US',
+};
+let currentEvents: HolidayEvent[] = [];
+let currentCalendarYear = new Date().getFullYear();
+let currentCalendarMonth = new Date().getMonth() + 1;
+let selectedDateStr: string | null = null;
+let activeQuickDueDate: string | null = null;
 let isMuted = false;
 let isStationary = false;
 let isPlayMode = false;
@@ -102,7 +150,203 @@ if (themeToggleBtn) {
   });
 }
 
-// 2. Desktop Sticky Reminders
+// 2. Desktop Sticky Reminders & Calendar
+function getTodayYMD(): string {
+  const now = new Date();
+  return formatDateYMD(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}
+
+function formatDueBadge(dueDateStr: string, todayYMD: string): string {
+  const diff = daysBetweenYMD(todayYMD, dueDateStr);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tmrw';
+  if (diff === -1) return 'Yesterday';
+  if (diff < -1) return `Overdue (${dueDateStr.slice(5)})`;
+  return dueDateStr.slice(5).replace('-', '/');
+}
+
+function renderBuddyProfile(profile: BuddyProfile): void {
+  currentProfile = profile;
+  if (buddyNicknameInput && document.activeElement !== buddyNicknameInput) {
+    buddyNicknameInput.value = profile.nickname || '';
+  }
+  if (buddyBdayMonth) {
+    buddyBdayMonth.value = profile.birthdayMonth ? String(profile.birthdayMonth) : '';
+  }
+  if (buddyBdayDay) {
+    buddyBdayDay.value = profile.birthdayDay ? String(profile.birthdayDay) : '';
+  }
+  if (buddyCountrySelect) {
+    buddyCountrySelect.value = profile.countryCode || 'US';
+  }
+}
+
+function renderUpcomingFeed(): void {
+  if (!upcomingEventsList) return;
+  upcomingEventsList.innerHTML = '';
+  const todayYMD = getTodayYMD();
+  const upcoming = getUpcomingCountdownItems(
+    currentEvents,
+    currentReminderState.items,
+    todayYMD,
+    4
+  );
+
+  if (upcoming.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.fontSize = '11px';
+    empty.style.color = 'var(--text-muted)';
+    empty.style.textAlign = 'center';
+    empty.style.padding = '4px 0';
+    empty.textContent = 'No upcoming holidays or due quests~';
+    upcomingEventsList.appendChild(empty);
+    return;
+  }
+
+  for (const item of upcoming) {
+    const row = document.createElement('div');
+    row.className = 'upcoming-item-row';
+
+    const left = document.createElement('div');
+    left.style.display = 'flex';
+    left.style.alignItems = 'center';
+    left.style.gap = '6px';
+    left.style.overflow = 'hidden';
+
+    const icon = document.createElement('span');
+    icon.textContent = item.type === 'birthday' ? '🎂' : item.type === 'holiday' ? '🎉' : '🍮';
+
+    const title = document.createElement('span');
+    title.style.fontWeight = '700';
+    title.style.textOverflow = 'ellipsis';
+    title.style.whiteSpace = 'nowrap';
+    title.style.overflow = 'hidden';
+    title.textContent = item.title;
+
+    left.appendChild(icon);
+    left.appendChild(title);
+
+    const badge = document.createElement('span');
+    badge.className = 'upcoming-badge';
+    badge.textContent = item.badgeText;
+
+    row.appendChild(left);
+    row.appendChild(badge);
+    upcomingEventsList.appendChild(row);
+  }
+}
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+function renderCalendar(): void {
+  if (!calDaysGrid || !calMonthTitle) return;
+  const todayYMD = getTodayYMD();
+  calMonthTitle.textContent = `${MONTH_NAMES[currentCalendarMonth - 1]} ${currentCalendarYear}`;
+
+  const cells = buildMonthCalendarGrid(
+    currentCalendarYear,
+    currentCalendarMonth,
+    todayYMD,
+    selectedDateStr,
+    currentEvents,
+    currentReminderState.items
+  );
+
+  calDaysGrid.innerHTML = '';
+
+  for (const cell of cells) {
+    const btn = document.createElement('button');
+    btn.className = `cal-day-cell ${cell.isCurrentMonth ? '' : 'not-current-month'} ${cell.isToday ? 'today' : ''} ${cell.isSelected ? 'selected' : ''}`;
+    btn.title = cell.dateStr;
+
+    const numSpan = document.createElement('span');
+    numSpan.textContent = String(cell.dayOfMonth);
+    btn.appendChild(numSpan);
+
+    const dotsContainer = document.createElement('div');
+    dotsContainer.className = 'cal-dots';
+
+    if (cell.hasBirthday) {
+      const bday = document.createElement('span');
+      bday.className = 'dot-bday';
+      bday.textContent = '★';
+      dotsContainer.appendChild(bday);
+    }
+    if (cell.holidays.some((h) => h.type !== 'birthday')) {
+      const hDot = document.createElement('span');
+      hDot.className = 'dot-holiday';
+      dotsContainer.appendChild(hDot);
+    }
+    if (cell.questsDue.length > 0) {
+      const qDot = document.createElement('span');
+      qDot.className = 'dot-quest';
+      dotsContainer.appendChild(qDot);
+    }
+
+    btn.appendChild(dotsContainer);
+
+    btn.addEventListener('click', () => {
+      if (selectedDateStr === cell.dateStr) {
+        selectedDateStr = null;
+      } else {
+        selectedDateStr = cell.dateStr;
+        activeQuickDueDate = cell.dateStr;
+      }
+      renderCalendar();
+      updateReminderUI(currentReminderState);
+    });
+
+    calDaysGrid.appendChild(btn);
+  }
+
+  if (selectedDateStr) {
+    if (calSelectedBanner && calSelectedInfo) {
+      calSelectedBanner.style.display = 'flex';
+      calSelectedInfo.textContent = `📅 Filtering & adding to: ${selectedDateStr}`;
+    }
+    if (chipClearDate) {
+      chipClearDate.style.display = 'inline-block';
+      chipClearDate.textContent = `✕ Clear (${selectedDateStr.slice(5)})`;
+    }
+
+    const dayEvents = currentEvents.filter((e) => e.date === selectedDateStr);
+    if (calEventBanner) {
+      if (dayEvents.length > 0) {
+        calEventBanner.style.display = 'block';
+        calEventBanner.innerHTML = dayEvents
+          .map(
+            (e) =>
+              `${e.type === 'birthday' ? '🎂' : '🎉'} ${e.name} ${e.localName && e.localName !== e.name ? `(${e.localName})` : ''}`
+          )
+          .join('<br>');
+      } else {
+        calEventBanner.style.display = 'none';
+      }
+    }
+  } else {
+    if (calSelectedBanner) calSelectedBanner.style.display = 'none';
+    if (chipClearDate && !activeQuickDueDate) {
+      chipClearDate.style.display = 'none';
+    }
+    if (calEventBanner) calEventBanner.style.display = 'none';
+  }
+
+  renderUpcomingFeed();
+}
+
 function updateReminderUI(state: ReminderState): void {
   currentReminderState = state;
   updateThemeUI(state.theme);
@@ -115,19 +359,27 @@ function updateReminderUI(state: ReminderState): void {
     );
   }
 
+  renderCalendar();
+
   if (!dashboardQuestList) return;
   dashboardQuestList.innerHTML = '';
 
-  if (state.items.length === 0) {
+  const itemsToRender = selectedDateStr
+    ? state.items.filter((it) => it.dueDate === selectedDateStr)
+    : state.items;
+
+  if (itemsToRender.length === 0) {
     const empty = document.createElement('div');
     empty.style.textAlign = 'center';
     empty.style.padding = '12px 0';
     empty.style.fontSize = '12px';
     empty.style.opacity = '0.7';
-    empty.textContent = 'No active quests! Relax with Usagi~';
+    empty.textContent = selectedDateStr
+      ? `No quests due on ${selectedDateStr}. Click [+] to add one!`
+      : 'No active quests! Relax with Usagi~';
     dashboardQuestList.appendChild(empty);
   } else {
-    for (const item of state.items) {
+    for (const item of itemsToRender) {
       const itemRow = document.createElement('div');
       itemRow.className = `quest-dashboard-item ${item.completed ? 'completed' : ''}`;
       itemRow.addEventListener('click', (e) => {
@@ -142,6 +394,14 @@ function updateReminderUI(state: ReminderState): void {
       const questText = document.createElement('span');
       questText.className = 'quest-text';
       questText.textContent = item.text;
+
+      if (item.dueDate) {
+        const badge = document.createElement('span');
+        badge.className = 'quest-due-badge';
+        badge.textContent = formatDueBadge(item.dueDate, getTodayYMD());
+        questText.appendChild(badge);
+      }
+
       const comfyLine = document.createElement('span');
       comfyLine.className = 'comfy-line';
       questText.appendChild(comfyLine);
@@ -163,7 +423,9 @@ function updateReminderUI(state: ReminderState): void {
 
   const completed = state.items.filter((it) => it.completed).length;
   if (dashboardQuestCounter) {
-    dashboardQuestCounter.textContent = `${completed}/${state.items.length} completed`;
+    dashboardQuestCounter.textContent = selectedDateStr
+      ? `${itemsToRender.filter((it) => it.completed).length}/${itemsToRender.length} due on ${selectedDateStr}`
+      : `${completed}/${state.items.length} completed`;
   }
 }
 
@@ -171,8 +433,14 @@ function handleAddQuest(): void {
   if (!dashboardQuestInput) return;
   const val = dashboardQuestInput.value.trim();
   if (val && window.usagiAPI) {
-    window.usagiAPI.addReminder(val);
+    const targetDueDate = activeQuickDueDate || selectedDateStr || undefined;
+    window.usagiAPI.addReminder(val, targetDueDate);
     dashboardQuestInput.value = '';
+    if (!selectedDateStr) {
+      activeQuickDueDate = null;
+      chipDateButtons.forEach((b) => b.classList.remove('active'));
+      if (chipClearDate) chipClearDate.style.display = 'none';
+    }
   }
 }
 
@@ -187,6 +455,117 @@ if (dashboardQuestInput) {
     }
   });
 }
+
+// Quick Date Chips
+chipDateButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const chipType = btn.getAttribute('data-date-chip');
+    const now = new Date();
+    if (chipType === 'today') {
+      activeQuickDueDate = getTodayYMD();
+    } else if (chipType === 'tomorrow') {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      activeQuickDueDate = formatDateYMD(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    } else if (chipType === '+3d') {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 3);
+      activeQuickDueDate = formatDateYMD(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    }
+
+    chipDateButtons.forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (chipClearDate) {
+      chipClearDate.style.display = 'inline-block';
+      chipClearDate.textContent = `✕ Clear (${activeQuickDueDate?.slice(5)})`;
+    }
+  });
+});
+
+if (chipClearDate) {
+  chipClearDate.addEventListener('click', () => {
+    activeQuickDueDate = null;
+    selectedDateStr = null;
+    chipDateButtons.forEach((b) => b.classList.remove('active'));
+    chipClearDate.style.display = 'none';
+    renderCalendar();
+    updateReminderUI(currentReminderState);
+  });
+}
+
+if (calClearFilterBtn) {
+  calClearFilterBtn.addEventListener('click', () => {
+    selectedDateStr = null;
+    activeQuickDueDate = null;
+    chipDateButtons.forEach((b) => b.classList.remove('active'));
+    if (chipClearDate) chipClearDate.style.display = 'none';
+    renderCalendar();
+    updateReminderUI(currentReminderState);
+  });
+}
+
+if (calPrevBtn) {
+  calPrevBtn.addEventListener('click', () => {
+    currentCalendarMonth--;
+    if (currentCalendarMonth < 1) {
+      currentCalendarMonth = 12;
+      currentCalendarYear--;
+    }
+    renderCalendar();
+  });
+}
+
+if (calNextBtn) {
+  calNextBtn.addEventListener('click', () => {
+    currentCalendarMonth++;
+    if (currentCalendarMonth > 12) {
+      currentCalendarMonth = 1;
+      currentCalendarYear++;
+    }
+    renderCalendar();
+  });
+}
+
+if (calTodayBtn) {
+  calTodayBtn.addEventListener('click', () => {
+    const now = new Date();
+    currentCalendarYear = now.getFullYear();
+    currentCalendarMonth = now.getMonth() + 1;
+    selectedDateStr = getTodayYMD();
+    activeQuickDueDate = selectedDateStr;
+    renderCalendar();
+    updateReminderUI(currentReminderState);
+  });
+}
+
+// Buddy Profile Listeners
+if (buddyNicknameInput) {
+  buddyNicknameInput.addEventListener('change', () => {
+    window.usagiAPI?.updateBuddyProfile({ nickname: buddyNicknameInput.value.trim() });
+  });
+}
+if (buddyBdayMonth) {
+  buddyBdayMonth.addEventListener('change', () => {
+    const val = buddyBdayMonth.value ? parseInt(buddyBdayMonth.value, 10) : null;
+    window.usagiAPI?.updateBuddyProfile({ birthdayMonth: val });
+  });
+}
+if (buddyBdayDay) {
+  buddyBdayDay.addEventListener('change', () => {
+    const val = buddyBdayDay.value ? parseInt(buddyBdayDay.value, 10) : null;
+    window.usagiAPI?.updateBuddyProfile({ birthdayDay: val });
+  });
+}
+if (buddyCountrySelect) {
+  buddyCountrySelect.addEventListener('change', () => {
+    window.usagiAPI?.updateBuddyProfile({ countryCode: buddyCountrySelect.value });
+  });
+}
+
+// Set up Kawaii Icons for Profile & Calendar
+if (buddyProfileIcon) buddyProfileIcon.innerHTML = getKawaiiIcon('usagi', 14);
+if (buddyCakeIcon) buddyCakeIcon.innerHTML = getKawaiiIcon('cake', 14);
+if (buddyGlobeIcon) buddyGlobeIcon.innerHTML = getKawaiiIcon('globe', 14);
+if (calPrevBtn) calPrevBtn.innerHTML = getKawaiiIcon('chevron-left', 12);
+if (calNextBtn) calNextBtn.innerHTML = getKawaiiIcon('chevron-right', 12);
 
 if (dashboardClearDoneBtn) {
   dashboardClearDoneBtn.addEventListener('click', () => {
@@ -615,6 +994,13 @@ if (window.usagiAPI) {
     updateReminderUI(state);
   });
 
+  window.usagiAPI.onCalendarStateChanged((payload) => {
+    currentEvents = payload.events;
+    renderBuddyProfile(payload.profile);
+    renderCalendar();
+    updateReminderUI(currentReminderState);
+  });
+
   window.usagiAPI.onFixedAppearanceChanged((fixed) => {
     updateFixedAppearanceUI(fixed);
   });
@@ -630,5 +1016,19 @@ if (window.usagiAPI) {
     })
     .catch((err) => {
       console.warn('Failed to fetch initial reminder state in dashboard:', err);
+    });
+
+  window.usagiAPI
+    .getCalendarState()
+    .then((payload) => {
+      if (payload) {
+        currentEvents = payload.events;
+        renderBuddyProfile(payload.profile);
+        renderCalendar();
+        updateReminderUI(currentReminderState);
+      }
+    })
+    .catch((err) => {
+      console.warn('Failed to fetch initial calendar state in dashboard:', err);
     });
 }
