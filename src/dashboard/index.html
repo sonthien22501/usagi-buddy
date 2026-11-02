@@ -581,97 +581,6 @@
         color: #e63946;
       }
 
-      .quest-dashboard-item.focus-active {
-        border-color: #f59e0b;
-        box-shadow:
-          0 0 0 1.5px #f59e0b,
-          0 2px 6px rgba(245, 158, 11, 0.25);
-        background: #fffdf0;
-      }
-
-      .quest-dashboard-item .quest-focus-btn {
-        background: transparent;
-        border: 1px solid transparent;
-        border-radius: 4px;
-        padding: 1px 3px;
-        font-size: 12px;
-        cursor: pointer;
-        opacity: 0.65;
-        transition: all 0.15s ease;
-      }
-
-      .quest-dashboard-item .quest-focus-btn:hover {
-        opacity: 1;
-        transform: scale(1.1);
-      }
-
-      .quest-dashboard-item .quest-focus-btn.active {
-        opacity: 1;
-        background: #fee2e2;
-        border-color: #ef4444;
-      }
-
-      .quest-dashboard-item .quest-pomo-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        font-size: 10px;
-        font-weight: 700;
-        padding: 1px 5px;
-        border-radius: 999px;
-        background: #fee2e2;
-        color: #991b1b;
-        border: 1px solid #fca5a5;
-        margin-left: 5px;
-      }
-
-      .quest-dashboard-item .subtask-toggle-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        font-size: 10px;
-        font-weight: 700;
-        padding: 1px 5px;
-        border-radius: 999px;
-        background: var(--card-bg);
-        color: var(--text-color);
-        border: 1px solid var(--border-color);
-        cursor: pointer;
-        margin-left: 5px;
-      }
-
-      .dash-subtasks-panel {
-        margin-left: 20px;
-        padding: 4px 6px;
-        background: var(--card-bg);
-        border-left: 2px solid var(--border-color);
-        border-radius: 0 0 6px 6px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        font-size: 11px;
-      }
-
-      .dash-subtask-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .dash-subtask-item.completed {
-        text-decoration: line-through;
-        opacity: 0.6;
-      }
-
-      .dash-subtask-input {
-        font-size: 11px;
-        padding: 2px 6px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: var(--card-inner);
-        outline: none;
-      }
-
       /* Calendar & Quick Date Styles */
       .cal-nav-btn {
         background: var(--card-inner);
@@ -902,21 +811,7 @@
         </div>
       </div>
 
-      <!-- 2. Quests & Focus Targets Card -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="kawaii-icon-wrap" id="quests-card-icon"></span>
-            <span>Quests & Focus Targets</span>
-          </div>
-          <span class="badge" id="dash-quest-counter">0 quests</span>
-        </div>
-        <div class="quest-dashboard-list" id="dash-quest-list">
-          <!-- Rendered dynamically -->
-        </div>
-      </div>
-
-      <!-- 3. Wardrobe & Outfits Card -->
+      <!-- 2. Wardrobe & Outfits Card -->
       <div class="card">
         <div class="card-header">
           <div class="card-title">

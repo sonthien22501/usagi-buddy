@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ReminderItem,
   ReminderState,
+  QuestRecurrence,
   createInitialReminderState,
   addReminderItem,
   toggleReminderItem,
@@ -24,12 +25,7 @@ import {
   MIN_STICKY_HEIGHT,
   MAX_STICKY_HEIGHT,
   StickyTabId,
-  addSubtask,
-  toggleSubtask,
-  deleteSubtask,
-  setActiveFocusQuest,
-  incrementQuestPomodoro,
-  extractPomodoroToken,
+  computeNextRecurringDueDate,
   updateReminderDueDate,
 } from '../src/core/reminderStore';
 
@@ -642,235 +638,163 @@ describe('reminderStore', () => {
     });
   });
 
-  describe('Quest-Linked Pomodoro and Inline Token Parsing (#10)', () => {
-    const fixedNowMs = new Date(2026, 10, 2).getTime();
+  describe('Natural Language Recurring Quests (#11, #13 distilled)', () => {
+    // Fixed now: Monday 2026-11-02
+    const fixedNow = new Date(2026, 10, 2);
+    const fixedNowMs = fixedNow.getTime();
 
-    it('extracts ~Np and ~Npom estimate tokens and clamps between 1 and 20', () => {
-      expect(extractPomodoroToken('Finish report ~3p')).toEqual({
-        cleanText: 'Finish report',
-        estimatedPomodoros: 3,
-      });
-      expect(extractPomodoroToken('Deep study ~5pom')).toEqual({
-        cleanText: 'Deep study',
-        estimatedPomodoros: 5,
-      });
-      // Clamping bounds: 0 -> 1, 35 -> 20
-      expect(extractPomodoroToken('Quick check ~0p')).toEqual({
-        cleanText: 'Quick check',
-        estimatedPomodoros: 1,
-      });
-      expect(extractPomodoroToken('Mega grind ~35p')).toEqual({
-        cleanText: 'Mega grind',
-        estimatedPomodoros: 20,
-      });
-      expect(extractPomodoroToken('No estimate task')).toEqual({
-        cleanText: 'No estimate task',
-      });
+    it('extracts "every day", "daily", "@daily" recurrence and sets initial dueDate to today', () => {
+      const res1 = extractDueDateToken('Drink 2L water every day', undefined, fixedNow);
+      expect(res1.cleanText).toBe('Drink 2L water');
+      expect(res1.repeat).toEqual({ type: 'daily' });
+      expect(res1.dueDate).toBe('2026-11-02');
+
+      const res2 = extractDueDateToken('Team sync @daily', undefined, fixedNow);
+      expect(res2.cleanText).toBe('Team sync');
+      expect(res2.repeat).toEqual({ type: 'daily' });
+      expect(res2.dueDate).toBe('2026-11-02');
+
+      const res3 = extractDueDateToken('Đi chợ mỗi ngày', undefined, fixedNow);
+      expect(res3.cleanText).toBe('Đi chợ');
+      expect(res3.repeat).toEqual({ type: 'daily' });
     });
 
-    it('parses inline date and pomodoro tokens in any order in addReminderItem', () => {
+    it('extracts "every weekday", "weekdays", "@weekdays" recurrence and sets initial dueDate', () => {
+      // On Monday 2026-11-02, next weekday is today (2026-11-02)
+      const res = extractDueDateToken('Review pull requests every weekday', undefined, fixedNow);
+      expect(res.cleanText).toBe('Review pull requests');
+      expect(res.repeat).toEqual({ type: 'weekdays' });
+      expect(res.dueDate).toBe('2026-11-02');
+
+      // If reference date is Saturday 2026-11-07, initial dueDate is Monday 2026-11-09
+      const saturdayDate = new Date(2026, 10, 7);
+      const resSat = extractDueDateToken('Review PRs @weekdays', undefined, saturdayDate);
+      expect(resSat.dueDate).toBe('2026-11-09');
+    });
+
+    it('extracts "every <Weekday>" recurrence and calculates upcoming occurrence', () => {
+      // On Monday 2026-11-02:
+      // "every Tuesday" -> Tuesday is tomorrow (2026-11-03), dayOfWeek = 2
+      const resTue = extractDueDateToken('Go to English class every Tuesday', undefined, fixedNow);
+      expect(resTue.cleanText).toBe('Go to English class');
+      expect(resTue.repeat).toEqual({ type: 'weekly', dayOfWeek: 2 });
+      expect(resTue.dueDate).toBe('2026-11-03');
+
+      // "every Monday" on Monday -> today (2026-11-02), dayOfWeek = 1
+      const resMon = extractDueDateToken('Team retro every mon', undefined, fixedNow);
+      expect(resMon.cleanText).toBe('Team retro');
+      expect(resMon.repeat).toEqual({ type: 'weekly', dayOfWeek: 1 });
+      expect(resMon.dueDate).toBe('2026-11-02');
+
+      // Multilingual Vietnamese: "Học đàn mỗi thứ bảy" -> Saturday 2026-11-07, dayOfWeek = 6
+      const resSat = extractDueDateToken('Học đàn mỗi thứ bảy', undefined, fixedNow);
+      expect(resSat.cleanText).toBe('Học đàn');
+      expect(resSat.repeat).toEqual({ type: 'weekly', dayOfWeek: 6 });
+      expect(resSat.dueDate).toBe('2026-11-07');
+    });
+
+    it('adds recurring reminder item with repeat property preserved', () => {
       let state = createInitialReminderState();
-      state = addReminderItem(state, 'Study math ~3p @tomorrow', fixedNowMs);
-      const item1 = state.items[state.items.length - 1];
-      expect(item1.text).toBe('Study math');
-      expect(item1.dueDate).toBe('2026-11-03');
-      expect(item1.estimatedPomodoros).toBe(3);
-      expect(item1.completedPomodoros).toBe(0);
-
-      // Reversed token order
-      state = addReminderItem(state, '@today ~2pom Read paper', fixedNowMs);
-      const item2 = state.items[state.items.length - 1];
-      expect(item2.text).toBe('Read paper');
-      expect(item2.dueDate).toBe('2026-11-02');
-      expect(item2.estimatedPomodoros).toBe(2);
+      state = addReminderItem(state, 'Water bonsai every day', fixedNowMs);
+      const added = state.items[state.items.length - 1];
+      expect(added.text).toBe('Water bonsai');
+      expect(added.repeat).toEqual({ type: 'daily' });
+      expect(added.dueDate).toBe('2026-11-02');
+      expect(added.completed).toBe(false);
     });
 
-    it('manages activeFocusQuestId and toggles off on same quest id', () => {
-      let state = createInitialReminderState();
-      const firstId = state.items[0].id;
-
-      // Set active focus quest
-      state = setActiveFocusQuest(state, firstId);
-      expect(state.activeFocusQuestId).toBe(firstId);
-
-      // Toggle off when clicking the same quest again
-      state = setActiveFocusQuest(state, firstId);
-      expect(state.activeFocusQuestId).toBeNull();
-
-      // Set again, then explicitly set to null
-      state = setActiveFocusQuest(state, firstId);
-      expect(state.activeFocusQuestId).toBe(firstId);
-      state = setActiveFocusQuest(state, null);
-      expect(state.activeFocusQuestId).toBeNull();
-
-      // Cannot focus a completed task or invalid task
-      state.items[0].completed = true;
-      state = setActiveFocusQuest(state, firstId);
-      expect(state.activeFocusQuestId).toBeNull();
-      state = setActiveFocusQuest(state, 'non-existent-quest');
-      expect(state.activeFocusQuestId).toBeNull();
-    });
-
-    it('automatically resets activeFocusQuestId on complete, delete, or clear', () => {
-      let state = createInitialReminderState();
-      const firstId = state.items[0].id;
-      state = setActiveFocusQuest(state, firstId);
-      expect(state.activeFocusQuestId).toBe(firstId);
-
-      // Complete the focused quest -> activeFocusQuestId resets to null
-      const res = toggleReminderItem(state, firstId);
-      state = res.state;
-      expect(state.activeFocusQuestId).toBeNull();
-
-      // Set second quest as active
-      const secondId = state.items[1].id;
-      state = setActiveFocusQuest(state, secondId);
-      expect(state.activeFocusQuestId).toBe(secondId);
-
-      // Delete the focused quest -> activeFocusQuestId resets to null
-      state = deleteReminderItem(state, secondId);
-      expect(state.activeFocusQuestId).toBeNull();
-
-      // Clear completed: if completed was focused, it resets
-      const thirdId = state.items[0].id;
-      state = setActiveFocusQuest(state, thirdId);
-      state.items[0].completed = true; // force completed
-      state = clearCompletedReminders(state);
-      expect(state.activeFocusQuestId).toBeNull();
-    });
-
-    it('increments quest pomodoro counter and indicates targetReached', () => {
-      let state = createInitialReminderState();
-      const questId = state.items[0].id;
-      state.items[0].estimatedPomodoros = 2;
-      state.items[0].completedPomodoros = 0;
-
-      // 1st pomodoro
-      const res1 = incrementQuestPomodoro(state, questId);
-      expect(res1.targetReached).toBe(false);
-      expect(res1.state.items[0].completedPomodoros).toBe(1);
-
-      // 2nd pomodoro (reaches target 2)
-      const res2 = incrementQuestPomodoro(res1.state, questId);
-      expect(res2.targetReached).toBe(true);
-      expect(res2.questText).toContain('Drink a glass of water');
-      expect(res2.state.items[0].completedPomodoros).toBe(2);
-
-      // Invalid quest id
-      const resInvalid = incrementQuestPomodoro(state, null);
-      expect(resInvalid.targetReached).toBe(false);
-      expect(resInvalid.state).toBe(state);
-    });
-  });
-
-  describe('Sub-Quest Operations (#13)', () => {
-    it('adds subtask with trimming, character limit, and max 15 subtasks constraint', () => {
-      let state = createInitialReminderState();
-      const questId = state.items[0].id;
-
-      // Add subtask
-      state = addSubtask(state, questId, '  Gather ingredients  ');
-      expect(state.items[0].subtasks).toHaveLength(1);
-      expect(state.items[0].subtasks?.[0].text).toBe('Gather ingredients');
-      expect(state.items[0].subtasks?.[0].completed).toBe(false);
-      expect(state.items[0].subtasks?.[0].id).toBeTruthy();
-
-      // Ignores empty / whitespace
-      const countBefore = state.items[0].subtasks?.length ?? 0;
-      state = addSubtask(state, questId, '   ');
-      expect(state.items[0].subtasks?.length).toBe(countBefore);
-
-      // Truncates at 80 characters
-      const longStep = 'S'.repeat(100);
-      state = addSubtask(state, questId, longStep);
-      const subtasks = state.items[0].subtasks ?? [];
-      expect(subtasks[subtasks.length - 1].text.length).toBe(80);
-
-      // Max 15 subtasks per quest
-      while ((state.items[0].subtasks?.length ?? 0) < 15) {
-        state = addSubtask(state, questId, `Step ${state.items[0].subtasks?.length}`);
-      }
-      expect(state.items[0].subtasks?.length).toBe(15);
-      state = addSubtask(state, questId, 'Step 16 should be rejected');
-      expect(state.items[0].subtasks?.length).toBe(15);
-    });
-
-    it('toggles and deletes subtasks by id', () => {
-      let state = createInitialReminderState();
-      const questId = state.items[0].id;
-      state = addSubtask(state, questId, 'Step 1');
-      state = addSubtask(state, questId, 'Step 2');
-      const sub1 = state.items[0].subtasks![0].id;
-      const sub2 = state.items[0].subtasks![1].id;
-
-      // Toggle step 1
-      state = toggleSubtask(state, questId, sub1);
-      expect(state.items[0].subtasks![0].completed).toBe(true);
-      expect(state.items[0].subtasks![1].completed).toBe(false);
-
-      // Toggle back
-      state = toggleSubtask(state, questId, sub1);
-      expect(state.items[0].subtasks![0].completed).toBe(false);
-
-      // Delete step 1
-      state = deleteSubtask(state, questId, sub1);
-      expect(state.items[0].subtasks).toHaveLength(1);
-      expect(state.items[0].subtasks![0].id).toBe(sub2);
-    });
-  });
-
-  describe('Backward-Compatible JSON Serialization with Extended Fields', () => {
-    it('deserializes legacy JSON safely defaulting new fields', () => {
-      const legacyJson = JSON.stringify({
-        theme: 'custard',
-        stickyVisible: true,
-        items: [
-          {
-            id: 'legacy-q1',
-            text: 'Legacy quest without new properties',
-            completed: false,
-            createdAtMs: 12345,
-          },
-        ],
+    describe('computeNextRecurringDueDate', () => {
+      it('computes daily next due date (+1 day)', () => {
+        const next = computeNextRecurringDueDate({ type: 'daily' }, '2026-11-02', fixedNow);
+        expect(next).toBe('2026-11-03');
       });
 
-      const parsed = parseRemindersJson(legacyJson);
-      expect(parsed.activeFocusQuestId).toBeNull();
-      expect(parsed.items).toHaveLength(1);
-      expect(parsed.items[0].subtasks).toEqual([]);
-      expect(parsed.items[0].completedPomodoros).toBe(0);
-      expect(parsed.items[0].estimatedPomodoros).toBeUndefined();
-      expect(parsed.items[0].notifiedStages).toEqual([]);
+      it('computes weekdays next due date, rolling Friday to Monday (+3 days)', () => {
+        // Monday -> Tuesday
+        expect(computeNextRecurringDueDate({ type: 'weekdays' }, '2026-11-02', fixedNow)).toBe(
+          '2026-11-03'
+        );
+        // Friday 2026-11-06 -> Monday 2026-11-09
+        expect(computeNextRecurringDueDate({ type: 'weekdays' }, '2026-11-06', fixedNow)).toBe(
+          '2026-11-09'
+        );
+      });
+
+      it('computes weekly next due date (+7 days to next same weekday)', () => {
+        // Tuesday 2026-11-03 -> Tuesday 2026-11-10
+        expect(
+          computeNextRecurringDueDate({ type: 'weekly', dayOfWeek: 2 }, '2026-11-03', fixedNow)
+        ).toBe('2026-11-10');
+      });
+
+      it('rolls overdue recurring quests forward from today so they land in the future', () => {
+        // Overdue daily task with dueDate 2026-10-25 when today is 2026-11-02 -> next due is tomorrow (2026-11-03)
+        const next = computeNextRecurringDueDate({ type: 'daily' }, '2026-10-25', fixedNow);
+        expect(next).toBe('2026-11-03');
+      });
     });
 
-    it('round-trips extended fields through JSON correctly', () => {
-      let state = createInitialReminderState();
-      const qId = state.items[0].id;
-      state = setActiveFocusQuest(state, qId);
-      state = addSubtask(state, qId, 'Sub-quest alpha');
-      state.items[0].estimatedPomodoros = 4;
-      state.items[0].completedPomodoros = 2;
-      state.items[0].notifiedStages = ['evening-before'];
+    describe('Smart Rollover on Completion', () => {
+      it('completes recurring quest with celebration trigger while rolling over dueDate and keeping completed: false', () => {
+        let state = createInitialReminderState();
+        state = addReminderItem(state, 'Feed bunny every day', fixedNowMs);
+        const item = state.items[state.items.length - 1];
+        expect(item.dueDate).toBe('2026-11-02');
 
-      const json = serializeRemindersJson(state);
-      const restored = parseRemindersJson(json);
+        // Toggle completion
+        const result = toggleReminderItem(state, item.id, fixedNow);
+        // Celebrates completion
+        expect(result.newlyCompleted).not.toBeNull();
+        expect(result.newlyCompleted?.text).toBe('Feed bunny');
 
-      expect(restored.activeFocusQuestId).toBe(qId);
-      expect(restored.items[0].estimatedPomodoros).toBe(4);
-      expect(restored.items[0].completedPomodoros).toBe(2);
-      expect(restored.items[0].notifiedStages).toEqual(['evening-before']);
-      expect(restored.items[0].subtasks).toHaveLength(1);
-      expect(restored.items[0].subtasks![0].text).toBe('Sub-quest alpha');
+        // State remains active for next day
+        const updatedItem = result.state.items.find((i) => i.id === item.id);
+        expect(updatedItem?.completed).toBe(false);
+        expect(updatedItem?.dueDate).toBe('2026-11-03');
+        expect(updatedItem?.notifiedStages).toEqual([]);
+      });
+
+      it('toggles non-recurring quests normally (false -> true)', () => {
+        let state = createInitialReminderState();
+        state = addReminderItem(state, 'Buy new pencil', fixedNowMs);
+        const item = state.items[state.items.length - 1];
+
+        const result = toggleReminderItem(state, item.id, fixedNow);
+        expect(result.newlyCompleted).not.toBeNull();
+        const updatedItem = result.state.items.find((i) => i.id === item.id);
+        expect(updatedItem?.completed).toBe(true);
+      });
     });
 
-    it('resets notifiedStages when updateReminderDueDate is called', () => {
-      let state = createInitialReminderState();
-      state.items[0].dueDate = '2026-11-02';
-      state.items[0].notifiedStages = ['evening-before', 'due-day'];
+    describe('JSON Serialization and Deserialization', () => {
+      it('round-trips recurring quests through JSON cleanly', () => {
+        let state = createInitialReminderState();
+        state = addReminderItem(state, 'Yoga every Tuesday', fixedNowMs);
 
-      state = updateReminderDueDate(state, state.items[0].id, '2026-11-05');
-      expect(state.items[0].dueDate).toBe('2026-11-05');
-      expect(state.items[0].notifiedStages).toEqual([]);
+        const json = serializeRemindersJson(state);
+        const restored = parseRemindersJson(json);
+        const restoredItem = restored.items.find((i) => i.text === 'Yoga');
+        expect(restoredItem?.repeat).toEqual({ type: 'weekly', dayOfWeek: 2 });
+        expect(restoredItem?.dueDate).toBe('2026-11-03');
+      });
+
+      it('safely deserializes legacy JSON without repeat field', () => {
+        const legacy = JSON.stringify({
+          items: [{ id: '1', text: 'Classic task', completed: false, createdAtMs: 1 }],
+        });
+        const restored = parseRemindersJson(legacy);
+        expect(restored.items[0].repeat).toBeUndefined();
+      });
+
+      it('resets notifiedStages on updateReminderDueDate', () => {
+        let state = createInitialReminderState();
+        state.items[0].dueDate = '2026-11-02';
+        state.items[0].notifiedStages = ['evening-before', 'due-day'];
+
+        state = updateReminderDueDate(state, state.items[0].id, '2026-11-05');
+        expect(state.items[0].dueDate).toBe('2026-11-05');
+        expect(state.items[0].notifiedStages).toEqual([]);
+      });
     });
   });
 });

@@ -1,6 +1,8 @@
 /**
  * Smart Multi-Stage Deadline Engine (#11)
- * Pure, zero-dependency scheduler evaluated inside the 5-second wellness coach ticker
+ * Honest Date-Only Combined Daily Digest:
+ * - At most 1 combined summary bubble per digest window (Morning Today Digest >= 08:00, Evening Preview >= 19:00)
+ * - Evaluated inside the 5-second wellness coach ticker when Usagi is visible (!usagiHidden)
  */
 
 import {
@@ -12,11 +14,10 @@ import {
 import { daysBetweenYMD } from './calendarStore';
 
 export interface DeadlineAlertEvent {
-  questId: string;
-  questText: string;
   stage: DeadlineAlertStage;
   message: string;
   soundEvent: 'wellness-reminder';
+  questIds: string[];
 }
 
 export interface DeadlineEvaluationResult {
@@ -31,70 +32,107 @@ export function evaluateDeadlineAlerts(
 ): DeadlineEvaluationResult {
   const todayYMD = formatLocalDateYMD(now);
   const hour = now.getHours();
-  const alerts: DeadlineAlertEvent[] = [];
 
-  let stateChanged = false;
-  const nextItems: ReminderItem[] = state.items.map((item) => {
-    if (item.completed || !item.dueDate) {
-      return item;
+  // 1. Morning / First-Open Today Digest ('due-day', hour >= 8):
+  // Collects all uncompleted quests with diffDays === 0 or diffDays < 0 without 'due-day'
+  if (hour >= 8) {
+    const todayItems: ReminderItem[] = [];
+    for (const item of state.items) {
+      if (!item.completed && item.dueDate) {
+        const diff = daysBetweenYMD(todayYMD, item.dueDate);
+        const notified = item.notifiedStages ?? [];
+        if (diff <= 0 && !notified.includes('due-day')) {
+          todayItems.push(item);
+        }
+      }
     }
 
-    const notified = item.notifiedStages ?? [];
-    const diffDays = daysBetweenYMD(todayYMD, item.dueDate);
+    if (todayItems.length > 0) {
+      const todayIds = new Set(todayItems.map((i) => i.id));
+      const count = todayItems.length;
+      let message = '';
+      if (count === 1) {
+        message = `☀️ Today's quest: ${todayItems[0].text}! Ganbatte~`;
+      } else {
+        const names = todayItems.slice(0, 2).map((i) => i.text);
+        message = `☀️ Today you have ${count} quests: ${names.join(', ')}${count > 2 ? '...' : ''}~`;
+      }
 
-    // 1. Stage 'evening-before': diffDays === 1 && hour >= eveningHour && !notified.includes('evening-before')
-    if (diffDays === 1 && hour >= eveningHour && !notified.includes('evening-before')) {
-      alerts.push({
-        questId: item.id,
-        questText: item.text,
-        stage: 'evening-before',
-        message: `🌙 Huhhhh? Tomorrow's quest: ${item.text}~`,
-        soundEvent: 'wellness-reminder',
+      const nextItems = state.items.map((item) => {
+        if (todayIds.has(item.id)) {
+          return {
+            ...item,
+            notifiedStages: [...(item.notifiedStages ?? []), 'due-day' as DeadlineAlertStage],
+          };
+        }
+        return item;
       });
-      stateChanged = true;
+
       return {
-        ...item,
-        notifiedStages: [...notified, 'evening-before'],
+        state: { ...state, items: nextItems },
+        alerts: [
+          {
+            stage: 'due-day',
+            message,
+            soundEvent: 'wellness-reminder',
+            questIds: Array.from(todayIds),
+          },
+        ],
       };
     }
+  }
 
-    // 2. Stage 'due-day': diffDays === 0 && hour >= 9 && !notified.includes('due-day')
-    if (diffDays === 0 && hour >= 9 && !notified.includes('due-day')) {
-      alerts.push({
-        questId: item.id,
-        questText: item.text,
-        stage: 'due-day',
-        message: `⏰ Today's quest is due: ${item.text}! Yaha~`,
-        soundEvent: 'wellness-reminder',
-      });
-      stateChanged = true;
-      return {
-        ...item,
-        notifiedStages: [...notified, 'due-day'],
-      };
+  // 2. Cozy Evening Preview ('evening-before', hour >= eveningHour, default 19:00):
+  // Collects all uncompleted quests with diffDays === 1 without 'evening-before'
+  if (hour >= eveningHour) {
+    const tomorrowItems: ReminderItem[] = [];
+    for (const item of state.items) {
+      if (!item.completed && item.dueDate) {
+        const diff = daysBetweenYMD(todayYMD, item.dueDate);
+        const notified = item.notifiedStages ?? [];
+        if (diff === 1 && !notified.includes('evening-before')) {
+          tomorrowItems.push(item);
+        }
+      }
     }
 
-    // 3. Stage 'overdue': diffDays < 0 && !notified.includes('overdue')
-    if (diffDays < 0 && !notified.includes('overdue')) {
-      alerts.push({
-        questId: item.id,
-        questText: item.text,
-        stage: 'overdue',
-        message: `📝 Overdue quest waiting: ${item.text}~`,
-        soundEvent: 'wellness-reminder',
+    if (tomorrowItems.length > 0) {
+      const tomorrowIds = new Set(tomorrowItems.map((i) => i.id));
+      const count = tomorrowItems.length;
+      let message = '';
+      if (count === 1) {
+        message = `🌙 Tomorrow's quest: ${tomorrowItems[0].text}~`;
+      } else {
+        const names = tomorrowItems.slice(0, 2).map((i) => i.text);
+        message = `🌙 Tomorrow you have ${count} quests: ${names.join(', ')}${count > 2 ? '...' : ''}~`;
+      }
+
+      const nextItems = state.items.map((item) => {
+        if (tomorrowIds.has(item.id)) {
+          return {
+            ...item,
+            notifiedStages: [
+              ...(item.notifiedStages ?? []),
+              'evening-before' as DeadlineAlertStage,
+            ],
+          };
+        }
+        return item;
       });
-      stateChanged = true;
+
       return {
-        ...item,
-        notifiedStages: [...notified, 'overdue'],
+        state: { ...state, items: nextItems },
+        alerts: [
+          {
+            stage: 'evening-before',
+            message,
+            soundEvent: 'wellness-reminder',
+            questIds: Array.from(tomorrowIds),
+          },
+        ],
       };
     }
+  }
 
-    return item;
-  });
-
-  return {
-    state: stateChanged ? { ...state, items: nextItems } : state,
-    alerts,
-  };
+  return { state, alerts: [] };
 }

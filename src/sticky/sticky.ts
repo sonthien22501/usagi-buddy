@@ -39,7 +39,6 @@ let currentCalendarMonth = new Date().getMonth() + 1;
 let selectedDateStr: string | null = null;
 let activeQuickDueDate: string | null = null;
 let activeTab: 'quests' | 'calendar' | 'schedule' = 'quests';
-const expandedQuestIds = new Set<string>();
 
 let currentScheduleState: ScheduleState = createInitialScheduleState();
 let selectedScheduleDay: number = new Date().getDay(); // 0..6
@@ -592,31 +591,13 @@ function render(state: ReminderState): void {
     questList.appendChild(empty);
   } else {
     for (const item of itemsToRender) {
-      const containerEl = document.createElement('div');
-      containerEl.className = 'quest-container';
-
       const itemEl = document.createElement('div');
-      itemEl.className = `quest-item ${item.completed ? 'completed' : ''} ${
-        state.activeFocusQuestId === item.id ? 'focus-active' : ''
-      }`;
+      itemEl.className = `quest-item ${item.completed ? 'completed' : ''}`;
       itemEl.dataset.id = item.id;
 
       itemEl.addEventListener('click', (e) => {
-        if (
-          (e.target as HTMLElement).closest('.quest-delete, .quest-focus-btn, .subtask-toggle-btn')
-        )
-          return;
+        if ((e.target as HTMLElement).closest('.quest-delete')) return;
         window.usagiAPI?.toggleReminder(item.id);
-      });
-
-      const focusBtn = document.createElement('button');
-      focusBtn.className = `quest-focus-btn ${state.activeFocusQuestId === item.id ? 'active' : ''}`;
-      focusBtn.textContent = '🍅';
-      focusBtn.title =
-        state.activeFocusQuestId === item.id ? 'Unfocus quest' : 'Focus on this quest';
-      focusBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        window.usagiAPI?.setFocusQuest(item.id);
       });
 
       const bullet = document.createElement('span');
@@ -630,40 +611,10 @@ function render(state: ReminderState): void {
       if (item.dueDate) {
         const badge = document.createElement('span');
         badge.className = 'quest-due-badge';
-        badge.textContent = formatReminderDueBadge(item.dueDate, getTodayYMD(), fmt);
+        const baseBadge = formatReminderDueBadge(item.dueDate, getTodayYMD(), fmt);
+        badge.textContent = item.repeat ? `↻ ${baseBadge}` : baseBadge;
         text.appendChild(badge);
       }
-
-      if ((item.completedPomodoros && item.completedPomodoros > 0) || item.estimatedPomodoros) {
-        const pomoPill = document.createElement('span');
-        pomoPill.className = 'quest-pomo-pill';
-        const c = item.completedPomodoros ?? 0;
-        pomoPill.textContent = item.estimatedPomodoros
-          ? `🍅 ${c}/${item.estimatedPomodoros}`
-          : `🍅 ${c}`;
-        text.appendChild(pomoPill);
-      }
-
-      const subtasks = item.subtasks ?? [];
-      const subtaskBtn = document.createElement('button');
-      subtaskBtn.className = 'subtask-toggle-btn';
-      if (subtasks.length > 0) {
-        const done = subtasks.filter((s) => s.completed).length;
-        subtaskBtn.textContent = `[${done}/${subtasks.length}]`;
-      } else {
-        subtaskBtn.textContent = '+ step';
-      }
-      subtaskBtn.title = expandedQuestIds.has(item.id) ? 'Collapse subtasks' : 'Expand subtasks';
-      subtaskBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (expandedQuestIds.has(item.id)) {
-          expandedQuestIds.delete(item.id);
-        } else {
-          expandedQuestIds.add(item.id);
-        }
-        render(currentState);
-      });
-      text.appendChild(subtaskBtn);
 
       const comfyLine = document.createElement('span');
       comfyLine.className = 'comfy-line';
@@ -678,73 +629,10 @@ function render(state: ReminderState): void {
         window.usagiAPI?.deleteReminder(item.id);
       });
 
-      itemEl.appendChild(focusBtn);
       itemEl.appendChild(bullet);
       itemEl.appendChild(text);
       itemEl.appendChild(delBtn);
-      containerEl.appendChild(itemEl);
-
-      if (expandedQuestIds.has(item.id)) {
-        const panel = document.createElement('div');
-        panel.className = 'subtasks-panel';
-
-        for (const sub of subtasks) {
-          const subRow = document.createElement('div');
-          subRow.className = `subtask-item ${sub.completed ? 'completed' : ''}`;
-
-          const chk = document.createElement('input');
-          chk.type = 'checkbox';
-          chk.className = 'subtask-check';
-          chk.checked = sub.completed;
-          chk.addEventListener('change', (e) => {
-            e.stopPropagation();
-            window.usagiAPI?.toggleSubtask(item.id, sub.id);
-          });
-
-          const subTxt = document.createElement('span');
-          subTxt.className = 'subtask-text';
-          subTxt.textContent = sub.text;
-
-          const subDel = document.createElement('button');
-          subDel.className = 'subtask-del-btn';
-          subDel.textContent = '✕';
-          subDel.title = 'Delete step';
-          subDel.addEventListener('click', (e) => {
-            e.stopPropagation();
-            window.usagiAPI?.deleteSubtask(item.id, sub.id);
-          });
-
-          subRow.appendChild(chk);
-          subRow.appendChild(subTxt);
-          subRow.appendChild(subDel);
-          panel.appendChild(subRow);
-        }
-
-        const addRow = document.createElement('div');
-        addRow.className = 'subtask-add-row';
-
-        const subInput = document.createElement('input');
-        subInput.type = 'text';
-        subInput.className = 'subtask-input';
-        subInput.placeholder = 'Add step... (Enter)';
-        subInput.maxLength = 80;
-        subInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            const val = subInput.value.trim();
-            if (val) {
-              window.usagiAPI?.addSubtask(item.id, val);
-              subInput.value = '';
-            }
-          }
-        });
-
-        addRow.appendChild(subInput);
-        panel.appendChild(addRow);
-        containerEl.appendChild(panel);
-      }
-
-      questList.appendChild(containerEl);
+      questList.appendChild(itemEl);
     }
   }
 

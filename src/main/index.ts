@@ -65,11 +65,6 @@ import {
   parseRemindersJson,
   serializeRemindersJson,
   clampStickyDimensions,
-  setActiveFocusQuest,
-  incrementQuestPomodoro,
-  addSubtask,
-  toggleSubtask,
-  deleteSubtask,
 } from '../core/reminderStore';
 import { evaluateDeadlineAlerts } from '../core/deadlineScheduler';
 import {
@@ -749,13 +744,7 @@ function updateTrayMenu(): void {
   if (!tray) return;
 
   const timeStr = formatPomodoroTime(pomodoroState.remainingMs);
-  let titleText = ghostLocked ? `👻 ${timeStr}` : timeStr;
-  if (reminderState.activeFocusQuestId) {
-    const focusItem = reminderState.items.find((i) => i.id === reminderState.activeFocusQuestId);
-    if (focusItem) {
-      titleText = `🍅 ${titleText}`;
-    }
-  }
+  const titleText = ghostLocked ? `👻 ${timeStr}` : timeStr;
   tray.setTitle(titleText);
   tray.setToolTip(`Usagi Float — ${pomodoroState.phase.toUpperCase()} (${timeStr})`);
 }
@@ -937,20 +926,6 @@ function setupPomodoroTicker(): void {
         mainWindow.webContents.send('trigger-giant-alarm');
         wellnessState = recordPomodoroCompleted(wellnessState);
         saveSettingsToDisk();
-
-        if (reminderState.activeFocusQuestId) {
-          const pomoRes = incrementQuestPomodoro(reminderState, reminderState.activeFocusQuestId);
-          reminderState = pomoRes.state;
-          saveRemindersToDisk();
-          broadcastReminderState();
-          if (pomoRes.targetReached && !usagiHidden) {
-            mainWindow.webContents.send('wellness-update', {
-              mood: wellnessState.mood,
-              message: `🍅 Target reached for: ${pomoRes.questText}! Yaha~`,
-              soundEvent: 'wellness-reminder',
-            });
-          }
-        }
       }
     }
     updateTrayMenu();
@@ -1014,12 +989,12 @@ function setupWellnessCoachTicker(): void {
     }
 
     // Evaluate Smart Multi-Stage Deadline Engine (#11)
-    const deadlineResult = evaluateDeadlineAlerts(reminderState, new Date());
-    if (deadlineResult.alerts.length > 0) {
-      reminderState = deadlineResult.state;
-      saveRemindersToDisk();
-      broadcastReminderState();
-      if (mainWindow && !mainWindow.isDestroyed() && !usagiHidden) {
+    if (!usagiHidden && mainWindow && !mainWindow.isDestroyed()) {
+      const deadlineResult = evaluateDeadlineAlerts(reminderState, new Date());
+      if (deadlineResult.alerts.length > 0) {
+        reminderState = deadlineResult.state;
+        saveRemindersToDisk();
+        broadcastReminderState();
         mainWindow.webContents.send('wellness-update', {
           mood: wellnessState.mood,
           message: deadlineResult.alerts[0].message,
@@ -1331,41 +1306,6 @@ app.whenReady().then(() => {
     reminderState = clearCompletedReminders(reminderState);
     saveRemindersToDisk();
     broadcastReminderState();
-  });
-
-  ipcMain.on('set-focus-quest', (_e, questId: string | null) => {
-    reminderState = setActiveFocusQuest(reminderState, questId);
-    if (reminderState.activeFocusQuestId && pomodoroState.phase !== 'running') {
-      pomodoroState = startPomodoro(pomodoroState);
-      broadcastPomodoroState();
-    }
-    saveRemindersToDisk();
-    broadcastReminderState();
-    updateTrayMenu();
-  });
-
-  ipcMain.on('add-subtask', (_e, payload: { questId: string; text: string }) => {
-    if (payload && typeof payload.questId === 'string' && typeof payload.text === 'string') {
-      reminderState = addSubtask(reminderState, payload.questId, payload.text);
-      saveRemindersToDisk();
-      broadcastReminderState();
-    }
-  });
-
-  ipcMain.on('toggle-subtask', (_e, payload: { questId: string; subtaskId: string }) => {
-    if (payload && typeof payload.questId === 'string' && typeof payload.subtaskId === 'string') {
-      reminderState = toggleSubtask(reminderState, payload.questId, payload.subtaskId);
-      saveRemindersToDisk();
-      broadcastReminderState();
-    }
-  });
-
-  ipcMain.on('delete-subtask', (_e, payload: { questId: string; subtaskId: string }) => {
-    if (payload && typeof payload.questId === 'string' && typeof payload.subtaskId === 'string') {
-      reminderState = deleteSubtask(reminderState, payload.questId, payload.subtaskId);
-      saveRemindersToDisk();
-      broadcastReminderState();
-    }
   });
 
   ipcMain.on('cycle-sticky-font-scale', () => {
