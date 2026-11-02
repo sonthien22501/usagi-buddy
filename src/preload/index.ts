@@ -5,6 +5,7 @@ import { PomodoroState } from '../core/pomodoroTimer';
 import { VolumeConfig } from '../core/soundManager';
 import { ReminderState } from '../core/reminderStore';
 import { BuddyProfile, HolidayEvent } from '../core/calendarStore';
+import { ScheduleState, NewScheduleEntryInput } from '../core/scheduleStore';
 
 export interface CalendarStatePayload {
   profile: BuddyProfile;
@@ -59,6 +60,11 @@ export interface UsagiAPI {
   deleteReminder: (id: string) => void;
   clearCompletedReminders: () => void;
   cycleStickyFontScale: () => void;
+  resizeStickyWindow: (width: number, height: number) => void;
+  getScheduleState: () => Promise<ScheduleState>;
+  onScheduleStateChanged: (callback: (state: ScheduleState) => void) => () => void;
+  addScheduleEntry: (entry: NewScheduleEntryInput) => void;
+  deleteScheduleEntry: (id: string) => void;
   toggleStickyWindow: () => void;
   onTaskCelebration: (callback: (taskText: string) => void) => () => void;
   toggleFixedAppearance: () => void;
@@ -226,6 +232,21 @@ const api: UsagiAPI = {
   },
   cycleStickyFontScale: () => {
     ipcRenderer.send('cycle-sticky-font-scale');
+  },
+  resizeStickyWindow: (width: number, height: number) => {
+    ipcRenderer.send('resize-sticky-window', width, height);
+  },
+  getScheduleState: () => ipcRenderer.invoke('get-schedule-state'),
+  onScheduleStateChanged: (callback: (state: ScheduleState) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, state: ScheduleState) => callback(state);
+    ipcRenderer.on('schedule-state-changed', handler);
+    return () => ipcRenderer.removeListener('schedule-state-changed', handler);
+  },
+  addScheduleEntry: (entry: NewScheduleEntryInput) => {
+    ipcRenderer.send('add-schedule-entry', entry);
+  },
+  deleteScheduleEntry: (id: string) => {
+    ipcRenderer.send('delete-schedule-entry', id);
   },
   toggleStickyWindow: () => {
     ipcRenderer.send('toggle-sticky-window');

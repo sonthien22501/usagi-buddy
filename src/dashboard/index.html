@@ -595,7 +595,9 @@
         font-size: 13px;
         font-weight: 800;
         cursor: pointer;
-        transition: transform 0.08s ease, background 0.12s ease;
+        transition:
+          transform 0.08s ease,
+          background 0.12s ease;
       }
       .cal-nav-btn:hover {
         background: var(--badge-bg);
@@ -617,7 +619,9 @@
         border: 1.5px solid transparent;
         background: var(--card-bg);
         color: var(--text-color);
-        transition: background 0.12s ease, border-color 0.12s ease;
+        transition:
+          background 0.12s ease,
+          border-color 0.12s ease;
         padding: 2px 0;
       }
       .cal-day-cell:hover {
@@ -669,7 +673,9 @@
         font-weight: 700;
         color: var(--text-color);
         cursor: pointer;
-        transition: background 0.12s, border-color 0.12s;
+        transition:
+          background 0.12s,
+          border-color 0.12s;
       }
       .chip-date-btn:hover {
         background: var(--badge-bg);
@@ -710,6 +716,66 @@
         color: #ffffff;
       }
 
+      .sched-entry-card {
+        background: var(--card-bg);
+        border: 1.5px solid var(--border-color);
+        border-radius: 8px;
+        padding: 6px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 12px;
+        position: relative;
+        transition: background 0.15s ease;
+      }
+      .sched-entry-card:hover {
+        background: var(--card-inner);
+      }
+      .sched-time-pill {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: var(--card-inner);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        white-space: nowrap;
+      }
+      .sched-title {
+        font-weight: 700;
+        color: var(--text-color);
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .sched-location {
+        font-size: 10px;
+        color: var(--text-muted);
+        background: var(--card-inner);
+        border-radius: 4px;
+        padding: 2px 5px;
+        white-space: nowrap;
+      }
+      .sched-delete-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 12px;
+        padding: 2px 4px;
+        border-radius: 4px;
+        opacity: 0.6;
+        transition:
+          opacity 0.15s,
+          color 0.15s;
+      }
+      .sched-delete-btn:hover {
+        opacity: 1;
+        color: #e63946;
+      }
+
       .app-footer {
         text-align: center;
         font-size: 11px;
@@ -746,33 +812,124 @@
       </div>
 
       <!-- Buddy Profile Bar -->
-      <div class="buddy-profile-bar" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; background: var(--card-inner); border-radius: 10px; margin-bottom: 12px; font-size: 11px; font-weight: 700;">
-        <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 110px;">
+      <div
+        class="buddy-profile-bar"
+        style="
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          padding: 8px 10px;
+          background: var(--card-inner);
+          border-radius: 10px;
+          margin-bottom: 12px;
+          font-size: 11px;
+          font-weight: 700;
+        "
+      >
+        <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 110px">
           <span class="kawaii-icon-wrap" id="buddy-profile-icon"></span>
-          <input type="text" id="buddy-nickname-input" placeholder="Buddy Nickname" maxlength="24" style="width: 100%; border: 1.5px solid var(--border-color); border-radius: 6px; padding: 4px 6px; font-size: 11px; background: var(--input-bg); color: var(--text-color);" />
+          <input
+            type="text"
+            id="buddy-nickname-input"
+            placeholder="Buddy Nickname"
+            maxlength="24"
+            style="
+              width: 100%;
+              border: 1.5px solid var(--border-color);
+              border-radius: 6px;
+              padding: 4px 6px;
+              font-size: 11px;
+              background: var(--input-bg);
+              color: var(--text-color);
+            "
+          />
         </div>
-        <div style="display: flex; align-items: center; gap: 4px;">
+        <div style="display: flex; align-items: center; gap: 4px">
           <span class="kawaii-icon-wrap" id="buddy-cake-icon"></span>
-          <select id="buddy-bday-month" style="border: 1.5px solid var(--border-color); border-radius: 6px; padding: 3px 4px; font-size: 11px; background: var(--input-bg); color: var(--text-color);">
+          <select
+            id="buddy-bday-month"
+            style="
+              border: 1.5px solid var(--border-color);
+              border-radius: 6px;
+              padding: 3px 4px;
+              font-size: 11px;
+              background: var(--input-bg);
+              color: var(--text-color);
+            "
+          >
             <option value="">Month</option>
-            <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option>
-            <option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option>
-            <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+            <option value="1">Jan</option>
+            <option value="2">Feb</option>
+            <option value="3">Mar</option>
+            <option value="4">Apr</option>
+            <option value="5">May</option>
+            <option value="6">Jun</option>
+            <option value="7">Jul</option>
+            <option value="8">Aug</option>
+            <option value="9">Sep</option>
+            <option value="10">Oct</option>
+            <option value="11">Nov</option>
+            <option value="12">Dec</option>
           </select>
-          <select id="buddy-bday-day" style="border: 1.5px solid var(--border-color); border-radius: 6px; padding: 3px 4px; font-size: 11px; background: var(--input-bg); color: var(--text-color);">
+          <select
+            id="buddy-bday-day"
+            style="
+              border: 1.5px solid var(--border-color);
+              border-radius: 6px;
+              padding: 3px 4px;
+              font-size: 11px;
+              background: var(--input-bg);
+              color: var(--text-color);
+            "
+          >
             <option value="">Day</option>
-            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
-            <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
-            <option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option>
-            <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
-            <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option>
-            <option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="21">21</option>
+            <option value="22">22</option>
+            <option value="23">23</option>
+            <option value="24">24</option>
+            <option value="25">25</option>
+            <option value="26">26</option>
+            <option value="27">27</option>
+            <option value="28">28</option>
+            <option value="29">29</option>
+            <option value="30">30</option>
             <option value="31">31</option>
           </select>
         </div>
-        <div style="display: flex; align-items: center; gap: 4px;">
+        <div style="display: flex; align-items: center; gap: 4px">
           <span class="kawaii-icon-wrap" id="buddy-globe-icon"></span>
-          <select id="buddy-country-select" style="border: 1.5px solid var(--border-color); border-radius: 6px; padding: 3px 4px; font-size: 11px; background: var(--input-bg); color: var(--text-color);">
+          <select
+            id="buddy-country-select"
+            style="
+              border: 1.5px solid var(--border-color);
+              border-radius: 6px;
+              padding: 3px 4px;
+              font-size: 11px;
+              background: var(--input-bg);
+              color: var(--text-color);
+            "
+          >
             <option value="VN">Vietnam 🇻🇳</option>
             <option value="US">United States 🇺🇸</option>
             <option value="GB">United Kingdom 🇬🇧</option>
@@ -788,36 +945,141 @@
       </div>
 
       <!-- Mini Calendar Widget -->
-      <div class="calendar-widget" style="margin-bottom: 12px; border: 1.5px solid var(--border-color); border-radius: 12px; padding: 10px; background: var(--card-bg);">
-        <div class="cal-nav-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div
+        class="calendar-widget"
+        style="
+          margin-bottom: 12px;
+          border: 1.5px solid var(--border-color);
+          border-radius: 12px;
+          padding: 10px;
+          background: var(--card-bg);
+        "
+      >
+        <div
+          class="cal-nav-bar"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+          "
+        >
           <button class="cal-nav-btn" id="cal-prev-btn" title="Previous Month">‹</button>
-          <span id="cal-month-title" style="font-weight: 800; font-size: 13px; color: var(--text-color);">November 2026</span>
-          <div style="display: flex; gap: 4px;">
-            <button class="cal-nav-btn" id="cal-today-btn" style="font-size: 10px; padding: 2px 8px; width: auto; font-weight: 700;">Today</button>
+          <span
+            id="cal-month-title"
+            style="font-weight: 800; font-size: 13px; color: var(--text-color)"
+            >November 2026</span
+          >
+          <div style="display: flex; gap: 4px">
+            <button
+              class="cal-nav-btn"
+              id="cal-today-btn"
+              style="font-size: 10px; padding: 2px 8px; width: auto; font-weight: 700"
+            >
+              Today
+            </button>
             <button class="cal-nav-btn" id="cal-next-btn" title="Next Month">›</button>
           </div>
         </div>
-        <div class="cal-weekdays-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 10px; font-weight: 800; color: var(--text-muted); margin-bottom: 4px;">
-          <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+        <div
+          class="cal-weekdays-grid"
+          style="
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+          "
+        >
+          <div>Su</div>
+          <div>Mo</div>
+          <div>Tu</div>
+          <div>We</div>
+          <div>Th</div>
+          <div>Fr</div>
+          <div>Sa</div>
         </div>
-        <div id="cal-days-grid" class="cal-days-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;">
+        <div
+          id="cal-days-grid"
+          class="cal-days-grid"
+          style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px"
+        >
           <!-- 42 day cells -->
         </div>
-        <div id="cal-selected-banner" style="display: none; margin-top: 8px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; background: var(--card-inner); border: 1px dashed var(--border-color); justify-content: space-between; align-items: center;">
-          <span id="cal-selected-info"></span>
-          <button id="cal-clear-filter-btn" style="background: transparent; border: none; font-size: 11px; cursor: pointer; color: var(--accent-strawberry); font-weight: 700;">✕ All Dates</button>
-        </div>
-        <div id="cal-event-banner" style="display: none; margin-top: 6px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; background: #ffe699; color: #5c3a21; border: 1px solid var(--border-color);">
+        <div
+          id="cal-selected-banner"
+          style="
+            display: none;
+            margin-top: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            background: var(--card-inner);
+            border: 1.5px dashed var(--border-color);
+            flex-direction: column;
+            gap: 6px;
+          "
+        >
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span id="cal-selected-info" style="font-weight: 800; color: var(--text-color)"
+              >📅 Selected Date</span
+            >
+            <button
+              id="cal-clear-filter-btn"
+              style="
+                background: transparent;
+                border: none;
+                font-size: 11px;
+                cursor: pointer;
+                color: var(--accent-strawberry);
+                font-weight: 700;
+              "
+            >
+              ✕ Show All
+            </button>
+          </div>
+          <div
+            id="cal-selected-items-list"
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+              max-height: 120px;
+              overflow-y: auto;
+            "
+          >
+            <!-- Holidays and due quests on that day -->
+          </div>
         </div>
       </div>
 
       <!-- Upcoming Holidays & Quests Countdowns -->
-      <div id="upcoming-events-container" style="margin-bottom: 12px; background: var(--card-inner); border-radius: 10px; padding: 8px 10px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 11px; font-weight: 800; color: var(--text-color);">
+      <div
+        id="upcoming-events-container"
+        style="
+          margin-bottom: 12px;
+          background: var(--card-inner);
+          border-radius: 10px;
+          padding: 8px 10px;
+        "
+      >
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-color);
+          "
+        >
           <span>Upcoming Holidays & Quests</span>
-          <span style="font-size: 10px; opacity: 0.7;">Next up</span>
+          <span style="font-size: 10px; opacity: 0.7">Next up</span>
         </div>
-        <div id="upcoming-events-list" style="display: flex; flex-direction: column; gap: 4px;">
+        <div id="upcoming-events-list" style="display: flex; flex-direction: column; gap: 4px">
           <!-- Upcoming items -->
         </div>
       </div>
@@ -852,6 +1114,102 @@
           0/0 completed
         </span>
         <button class="btn" id="dashboard-clear-done-btn">Clear Done</button>
+      </div>
+    </div>
+
+    <!-- 1b. Weekly Study & Class Schedule Card -->
+    <div class="card" id="study-schedule-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="kawaii-icon-wrap" id="schedule-card-icon">📚</span>
+          <span>Weekly Study & Class Schedule</span>
+        </div>
+        <span class="badge" id="dash-sched-badge">TIMETABLE</span>
+      </div>
+
+      <!-- Now / Next Banner -->
+      <div
+        id="dash-sched-now-banner"
+        style="
+          padding: 8px 10px;
+          background: var(--card-inner);
+          border-radius: 8px;
+          border: 1.5px dashed var(--border-color);
+          font-size: 11px;
+          font-weight: 700;
+          margin-bottom: 10px;
+          color: var(--text-color);
+        "
+      >
+        <span id="dash-sched-now-text">⏳ Loading timetable...</span>
+      </div>
+
+      <!-- Weekday Selector Bar -->
+      <div class="preset-chips" id="dash-sched-days-bar" style="margin-bottom: 10px">
+        <button class="chip-btn" data-day="1">Mon</button>
+        <button class="chip-btn" data-day="2">Tue</button>
+        <button class="chip-btn" data-day="3">Wed</button>
+        <button class="chip-btn" data-day="4">Thu</button>
+        <button class="chip-btn" data-day="5">Fri</button>
+        <button class="chip-btn" data-day="6">Sat</button>
+        <button class="chip-btn" data-day="0">Sun</button>
+      </div>
+
+      <!-- Class List for selected day -->
+      <div id="dash-sched-list" class="quest-dashboard-list" style="margin-bottom: 10px">
+        <!-- Schedule cards -->
+      </div>
+
+      <!-- Add Class Form -->
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 10px;
+          background: var(--card-inner);
+          border-radius: 10px;
+          border: 1.5px solid var(--border-color);
+        "
+      >
+        <div style="display: flex; gap: 6px">
+          <input
+            type="time"
+            class="number-input"
+            id="dash-sched-start"
+            value="09:00"
+            style="width: 75px; height: 32px; font-size: 11px"
+          />
+          <span style="font-weight: 800; align-self: center; font-size: 11px">–</span>
+          <input
+            type="time"
+            class="number-input"
+            id="dash-sched-end"
+            value="10:30"
+            style="width: 75px; height: 32px; font-size: 11px"
+          />
+          <input
+            type="text"
+            class="number-input"
+            id="dash-sched-location"
+            placeholder="Room/Lab"
+            maxlength="30"
+            style="flex: 1; height: 32px; font-size: 11px"
+          />
+        </div>
+        <div style="display: flex; gap: 6px">
+          <input
+            type="text"
+            class="number-input"
+            id="dash-sched-title"
+            placeholder="Course / Study block title..."
+            maxlength="60"
+            style="flex: 1; height: 34px; font-size: 12px"
+          />
+          <button class="btn btn-primary" id="dash-add-sched-btn" style="width: 70px; height: 34px">
+            Add
+          </button>
+        </div>
       </div>
     </div>
 

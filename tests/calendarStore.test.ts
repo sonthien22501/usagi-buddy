@@ -9,6 +9,7 @@ import {
   buildCalendarEvents,
   buildMonthCalendarGrid,
   getUpcomingCountdownItems,
+  getSelectedDaySummary,
   parseCalendarProfileJson,
   serializeCalendarProfileJson,
   BuddyProfile,
@@ -366,6 +367,126 @@ describe('calendarStore', () => {
       expect(dates).toContain('2026-12-25');
       expect(dates).toContain('2027-01-31');
       expect(dates).not.toContain('2027-02-01');
+    });
+
+    it('separates selected date items by excluding excludeDateYMD from upcoming list', () => {
+      const todayStr = '2026-11-02';
+      const events: HolidayEvent[] = [
+        {
+          id: 'h1',
+          date: '2026-11-02',
+          name: 'Today Event',
+          localName: 'Today Event',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+        {
+          id: 'h2',
+          date: '2026-11-05',
+          name: 'Selected Day Holiday',
+          localName: 'Selected Day Holiday',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+        {
+          id: 'h3',
+          date: '2026-11-10',
+          name: 'Other Future Event',
+          localName: 'Other Future Event',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+      ];
+
+      const reminders: ReminderItem[] = [
+        {
+          id: 'q1',
+          text: 'Selected Day Quest',
+          completed: false,
+          createdAtMs: 1000,
+          dueDate: '2026-11-05',
+        },
+        {
+          id: 'q2',
+          text: 'Other Quest',
+          completed: false,
+          createdAtMs: 2000,
+          dueDate: '2026-11-08',
+        },
+      ];
+
+      const upcomingWithoutExclude = getUpcomingCountdownItems(events, reminders, todayStr, 10);
+      expect(upcomingWithoutExclude.some((i) => i.date === '2026-11-05')).toBe(true);
+
+      const upcomingWithExclude = getUpcomingCountdownItems(
+        events,
+        reminders,
+        todayStr,
+        10,
+        '2026-11-05'
+      );
+      expect(upcomingWithExclude.some((i) => i.date === '2026-11-05')).toBe(false);
+      expect(upcomingWithExclude.some((i) => i.title === 'Other Future Event')).toBe(true);
+      expect(upcomingWithExclude.some((i) => i.title === 'Other Quest')).toBe(true);
+    });
+  });
+
+  describe('getSelectedDaySummary', () => {
+    it('returns exact matching holidays and quests for a chosen day', () => {
+      const events: HolidayEvent[] = [
+        {
+          id: 'h1',
+          date: '2026-11-05',
+          name: 'Mid-Autumn Feast',
+          localName: 'Mid-Autumn Feast',
+          countryCode: 'VN',
+          type: 'public_holiday',
+        },
+        {
+          id: 'h2',
+          date: '2026-11-06',
+          name: 'Next Day Holiday',
+          localName: 'Next Day Holiday',
+          countryCode: 'VN',
+          type: 'public_holiday',
+        },
+      ];
+
+      const reminders: ReminderItem[] = [
+        {
+          id: 'q1',
+          text: 'Buy mooncakes',
+          completed: false,
+          createdAtMs: 1000,
+          dueDate: '2026-11-05',
+        },
+        {
+          id: 'q2',
+          text: 'Completed prep',
+          completed: true,
+          createdAtMs: 2000,
+          dueDate: '2026-11-05',
+        },
+        {
+          id: 'q3',
+          text: 'Future quest',
+          completed: false,
+          createdAtMs: 3000,
+          dueDate: '2026-11-20',
+        },
+      ];
+
+      const summary = getSelectedDaySummary(events, reminders, '2026-11-05');
+      expect(summary.dateStr).toBe('2026-11-05');
+      expect(summary.holidays.length).toBe(1);
+      expect(summary.holidays[0].name).toBe('Mid-Autumn Feast');
+      expect(summary.quests.length).toBe(2);
+      expect(summary.quests[0].text).toBe('Buy mooncakes');
+      expect(summary.quests[1].text).toBe('Completed prep');
+
+      const emptySummary = getSelectedDaySummary(events, reminders, '2026-11-15');
+      expect(emptySummary.holidays).toEqual([]);
+      expect(emptySummary.quests).toEqual([]);
     });
   });
 

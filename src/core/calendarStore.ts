@@ -39,6 +39,12 @@ export interface UpcomingCountdownItem {
   completed?: boolean;
 }
 
+export interface SelectedDaySummary {
+  dateStr: string;
+  holidays: HolidayEvent[];
+  quests: ReminderItem[];
+}
+
 export interface CalendarState {
   profile: BuddyProfile;
   cachedHolidays: HolidayEvent[];
@@ -477,17 +483,22 @@ export function buildMonthCalendarGrid(
 
 /**
  * Compute upcoming countdown items (holidays, birthdays, and incomplete quests) sorted by days until.
+ * Optional excludeDateYMD avoids duplicating items already displayed in a dedicated Selected Day card.
  */
 export function getUpcomingCountdownItems(
   events: HolidayEvent[],
   reminders: ReminderItem[],
   todayYMD: string,
-  limit = 5
+  limit = 5,
+  excludeDateYMD?: string | null
 ): UpcomingCountdownItem[] {
   const items: UpcomingCountdownItem[] = [];
   const maxDateYMD = getEndOfNextMonthYMD(todayYMD);
 
   for (const ev of events) {
+    if (excludeDateYMD && ev.date === excludeDateYMD) {
+      continue;
+    }
     const diff = daysBetweenYMD(todayYMD, ev.date);
     if (diff >= 0 && ev.date <= maxDateYMD) {
       items.push({
@@ -503,6 +514,9 @@ export function getUpcomingCountdownItems(
 
   for (const r of reminders) {
     if (r.dueDate && !r.completed) {
+      if (excludeDateYMD && r.dueDate === excludeDateYMD) {
+        continue;
+      }
       const diff = daysBetweenYMD(todayYMD, r.dueDate);
       if (diff >= 0 && r.dueDate <= maxDateYMD) {
         items.push({
@@ -528,6 +542,23 @@ export function getUpcomingCountdownItems(
   });
 
   return items.slice(0, limit);
+}
+
+/**
+ * Returns exact holidays and quests for a chosen day.
+ */
+export function getSelectedDaySummary(
+  events: HolidayEvent[],
+  reminders: ReminderItem[],
+  selectedYMD: string
+): SelectedDaySummary {
+  const holidays = events.filter((e) => e.date === selectedYMD);
+  const quests = reminders.filter((r) => r.dueDate === selectedYMD);
+  return {
+    dateStr: selectedYMD,
+    holidays,
+    quests,
+  };
 }
 
 export function createDefaultBuddyProfile(): BuddyProfile {

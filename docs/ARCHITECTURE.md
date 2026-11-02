@@ -81,8 +81,10 @@ usagi-buddy/
 - `ModeFlags`: `{ ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
 - `WardrobeRotationState`: `{ fixedAppearance: boolean, elapsedMs: number }`
-- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard' }`
+- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard', fontScale?: 'sm' | 'md' | 'lg' }`
 - `ReminderItem`: `{ id: string, text: string, completed: boolean, createdAtMs: number, dueDate?: string }`
+- `ScheduleEntry`: `{ id: string, title: string, dayOfWeek: number, startTime: string, endTime: string, location?: string }`
+- `ScheduleState`: `{ entries: ScheduleEntry[] }`
 - `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', nextReminderAtMs, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
 - `SoundEvent`: `'click-normal' | 'click-combo' | 'snack-eaten' | 'wellness-reminder' | 'welcome-back' | 'timer-complete'`
 - `VolumeConfig`: `{ master, buddy, alarm, equalizeLoudness }`

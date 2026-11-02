@@ -72,6 +72,15 @@ import {
   parseCalendarProfileJson,
   serializeCalendarProfileJson,
 } from '../core/calendarStore';
+import {
+  ScheduleState,
+  createInitialScheduleState,
+  addScheduleEntry,
+  deleteScheduleEntry,
+  parseScheduleJson,
+  serializeScheduleJson,
+  NewScheduleEntryInput,
+} from '../core/scheduleStore';
 import { computeTrayPopoverPosition } from '../core/trayPositioner';
 
 let mainWindow: BrowserWindow | null = null;
@@ -96,6 +105,7 @@ let wellnessState: WellnessState = createWellnessState();
 let reminderState: ReminderState = createInitialReminderState();
 let calendarProfile: BuddyProfile = createDefaultBuddyProfile();
 let calendarHolidays: HolidayEvent[] = [];
+let scheduleState: ScheduleState = createInitialScheduleState();
 
 let pomodoroInterval: NodeJS.Timeout | null = null;
 let wellnessInterval: NodeJS.Timeout | null = null;
@@ -307,6 +317,40 @@ function saveRemindersToDisk(): void {
   }
 }
 
+function getScheduleFilePath(): string {
+  try {
+    return path.join(app.getPath('userData'), 'usagi-schedule.json');
+  } catch {
+    return path.resolve(__dirname, '../../usagi-schedule.json');
+  }
+}
+
+function loadScheduleFromDisk(): void {
+  try {
+    const p = getScheduleFilePath();
+    if (fs.existsSync(p)) {
+      const raw = fs.readFileSync(p, 'utf-8');
+      scheduleState = parseScheduleJson(raw);
+    }
+  } catch (err) {
+    console.warn('Failed to load schedule from disk:', err);
+    scheduleState = createInitialScheduleState();
+  }
+}
+
+function saveScheduleToDisk(): void {
+  try {
+    const p = getScheduleFilePath();
+    fs.writeFileSync(p, serializeScheduleJson(scheduleState), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to save schedule to disk:', err);
+  }
+}
+
+function broadcastScheduleState(): void {
+  broadcastToAllWindows('schedule-state-changed', scheduleState);
+}
+
 function getScreenBounds(): ScreenBounds {
   const primaryDisplay = screen.getPrimaryDisplay();
   return {
@@ -373,6 +417,7 @@ function sendFullStateToWindow(win: BrowserWindow | null): void {
     profile: calendarProfile,
     events: getActiveCalendarEvents(),
   });
+  win.webContents.send('schedule-state-changed', scheduleState);
   win.webContents.send('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
   win.webContents.send('usagi-hidden-toggle', usagiHidden);
 }
@@ -440,8 +485,8 @@ function createStickyWindow(): void {
     height,
     minWidth: 290,
     minHeight: 380,
-    maxWidth: 620,
-    maxHeight: 860,
+    maxWidth: 640,
+    maxHeight: 880,
     frame: false,
     transparent: true,
     resizable: true,
@@ -468,6 +513,7 @@ function createStickyWindow(): void {
         profile: calendarProfile,
         events: getActiveCalendarEvents(),
       });
+      stickyWindow.webContents.send('schedule-state-changed', scheduleState);
     }
   });
 
@@ -865,6 +911,7 @@ app.whenReady().then(() => {
   loadSettingsFromDisk();
   loadRemindersFromDisk();
   loadCalendarFromDisk();
+  loadScheduleFromDisk();
   createMainWindow();
   createStickyWindow();
   createTrayWindow();
@@ -982,6 +1029,32 @@ app.whenReady().then(() => {
     profile: calendarProfile,
     events: getActiveCalendarEvents(),
   }));
+
+  ipcMain.handle('get-schedule-state', () => scheduleState);
+
+  ipcMain.on('add-schedule-entry', (_e, input: NewScheduleEntryInput) => {
+    try {
+      scheduleState = addScheduleEntry(scheduleState, input);
+      saveScheduleToDisk();
+      broadcastScheduleState();
+    } catch (err) {
+      console.warn('Failed to add schedule entry:', err);
+    }
+  });
+
+  ipcMain.on('delete-schedule-entry', (_e, id: string) => {
+    scheduleState = deleteScheduleEntry(scheduleState, id);
+    saveScheduleToDisk();
+    broadcastScheduleState();
+  });
+
+  ipcMain.on('resize-sticky-window', (_e, width: number, height: number) => {
+    if (stickyWindow && !stickyWindow.isDestroyed()) {
+      const clampedW = Math.max(290, Math.min(640, Math.round(width)));
+      const clampedH = Math.max(380, Math.min(880, Math.round(height)));
+      stickyWindow.setSize(clampedW, clampedH);
+    }
+  });
 
   ipcMain.on('update-buddy-profile', (_e, partialProfile: Partial<BuddyProfile>) => {
     if (typeof partialProfile !== 'object' || partialProfile === null) return;

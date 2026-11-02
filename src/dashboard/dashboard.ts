@@ -8,8 +8,15 @@ import {
   HolidayEvent,
   buildMonthCalendarGrid,
   getUpcomingCountdownItems,
+  getSelectedDaySummary,
   formatDateYMD,
 } from '../core/calendarStore';
+import {
+  ScheduleState,
+  createInitialScheduleState,
+  getEntriesForDay,
+  getCurrentAndNextSchedule,
+} from '../core/scheduleStore';
 
 // Sticky Reminders elements
 const toggleStickyWindowBtn = document.getElementById(
@@ -54,7 +61,20 @@ const calClearFilterBtn = document.getElementById(
   'cal-clear-filter-btn'
 ) as HTMLButtonElement | null;
 const calEventBanner = document.getElementById('cal-event-banner') as HTMLDivElement | null;
+const calSelectedItemsList = document.getElementById(
+  'cal-selected-items-list'
+) as HTMLDivElement | null;
 const upcomingEventsList = document.getElementById('upcoming-events-list') as HTMLDivElement | null;
+
+// Weekly Study Timetable elements
+const dashSchedNowText = document.getElementById('dash-sched-now-text') as HTMLSpanElement | null;
+const dashSchedDaysBar = document.getElementById('dash-sched-days-bar') as HTMLDivElement | null;
+const dashSchedList = document.getElementById('dash-sched-list') as HTMLDivElement | null;
+const dashSchedStart = document.getElementById('dash-sched-start') as HTMLInputElement | null;
+const dashSchedEnd = document.getElementById('dash-sched-end') as HTMLInputElement | null;
+const dashSchedLocation = document.getElementById('dash-sched-location') as HTMLInputElement | null;
+const dashSchedTitle = document.getElementById('dash-sched-title') as HTMLInputElement | null;
+const dashAddSchedBtn = document.getElementById('dash-add-sched-btn') as HTMLButtonElement | null;
 
 // Volume elements
 const volumeSlider = document.getElementById('volume-slider') as HTMLInputElement | null;
@@ -119,6 +139,8 @@ let currentCalendarYear = new Date().getFullYear();
 let currentCalendarMonth = new Date().getMonth() + 1;
 let selectedDateStr: string | null = null;
 let activeQuickDueDate: string | null = null;
+let currentScheduleState: ScheduleState = createInitialScheduleState();
+let dashSelectedScheduleDay: number = new Date().getDay();
 let isMuted = false;
 let isStationary = false;
 let isPlayMode = false;
@@ -156,7 +178,8 @@ function renderUpcomingFeed(): void {
     currentEvents,
     currentReminderState.items,
     todayYMD,
-    4
+    5,
+    selectedDateStr
   );
 
   if (upcoming.length === 0) {
@@ -165,7 +188,9 @@ function renderUpcomingFeed(): void {
     empty.style.color = 'var(--text-muted)';
     empty.style.textAlign = 'center';
     empty.style.padding = '4px 0';
-    empty.textContent = 'No upcoming holidays or due quests~';
+    empty.textContent = selectedDateStr
+      ? 'No other upcoming holidays or quests~'
+      : 'No upcoming holidays or due quests~';
     upcomingEventsList.appendChild(empty);
     return;
   }
@@ -282,31 +307,91 @@ function renderCalendar(): void {
   if (selectedDateStr) {
     if (calSelectedBanner && calSelectedInfo) {
       calSelectedBanner.style.display = 'flex';
-      calSelectedInfo.textContent = `📅 Filtering & adding to: ${selectedDateStr}`;
+      calSelectedInfo.textContent = `📅 Selected: ${selectedDateStr}`;
     }
 
-    const dayEvents = currentEvents.filter((e) => e.date === selectedDateStr);
-    if (calEventBanner) {
-      calEventBanner.textContent = '';
-      if (dayEvents.length > 0) {
-        calEventBanner.style.display = 'block';
-        for (const e of dayEvents) {
-          const item = document.createElement('div');
-          const prefix = e.type === 'birthday' ? '🎂 ' : '🎉 ';
-          const suffix = e.localName && e.localName !== e.name ? ` (${e.localName})` : '';
-          item.textContent = `${prefix}${e.name}${suffix}`;
-          calEventBanner.appendChild(item);
-        }
+    const summary = getSelectedDaySummary(
+      currentEvents,
+      currentReminderState.items,
+      selectedDateStr
+    );
+
+    if (calSelectedItemsList) {
+      calSelectedItemsList.innerHTML = '';
+      if (summary.holidays.length === 0 && summary.quests.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.fontSize = '10px';
+        empty.style.color = 'var(--text-muted)';
+        empty.style.fontStyle = 'italic';
+        empty.style.padding = '2px 0';
+        empty.textContent = 'No holidays or reminders on this date~';
+        calSelectedItemsList.appendChild(empty);
       } else {
-        calEventBanner.style.display = 'none';
+        for (const h of summary.holidays) {
+          const row = document.createElement('div');
+          row.className = 'upcoming-item-row';
+          row.style.padding = '3px 6px';
+
+          const left = document.createElement('div');
+          left.style.display = 'flex';
+          left.style.alignItems = 'center';
+          left.style.gap = '6px';
+          left.style.overflow = 'hidden';
+
+          const icon = document.createElement('span');
+          icon.textContent = h.type === 'birthday' ? '🎂' : '🎉';
+
+          const title = document.createElement('span');
+          title.style.fontWeight = '700';
+          title.textContent = h.name;
+
+          left.appendChild(icon);
+          left.appendChild(title);
+
+          const badge = document.createElement('span');
+          badge.className = 'upcoming-badge';
+          badge.textContent = h.type === 'birthday' ? 'Birthday' : 'Holiday';
+
+          row.appendChild(left);
+          row.appendChild(badge);
+          calSelectedItemsList.appendChild(row);
+        }
+
+        for (const q of summary.quests) {
+          const row = document.createElement('div');
+          row.className = 'upcoming-item-row';
+          row.style.padding = '3px 6px';
+          if (q.completed) row.style.opacity = '0.65';
+
+          const left = document.createElement('div');
+          left.style.display = 'flex';
+          left.style.alignItems = 'center';
+          left.style.gap = '6px';
+          left.style.overflow = 'hidden';
+
+          const icon = document.createElement('span');
+          icon.textContent = q.completed ? '🍮' : '✦';
+
+          const title = document.createElement('span');
+          title.style.fontWeight = '600';
+          title.textContent = q.text;
+
+          left.appendChild(icon);
+          left.appendChild(title);
+
+          const badge = document.createElement('span');
+          badge.className = 'upcoming-badge';
+          badge.style.background = q.completed ? 'var(--text-muted)' : 'var(--accent-strawberry)';
+          badge.textContent = q.completed ? 'Done' : 'Quest';
+
+          row.appendChild(left);
+          row.appendChild(badge);
+          calSelectedItemsList.appendChild(row);
+        }
       }
     }
   } else {
     if (calSelectedBanner) calSelectedBanner.style.display = 'none';
-    if (calEventBanner) {
-      calEventBanner.textContent = '';
-      calEventBanner.style.display = 'none';
-    }
   }
 
   renderUpcomingFeed();
@@ -481,6 +566,159 @@ if (buddyBdayDay) {
 if (buddyCountrySelect) {
   buddyCountrySelect.addEventListener('change', () => {
     window.usagiAPI?.updateBuddyProfile({ countryCode: buddyCountrySelect.value });
+  });
+}
+
+// Weekly Study Timetable in Dashboard
+function renderDashSchedule(): void {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const curHHMM = `${hh}:${mm}`;
+  const todayDay = now.getDay();
+
+  const { current, next } = getCurrentAndNextSchedule(
+    currentScheduleState.entries,
+    todayDay,
+    curHHMM
+  );
+
+  if (dashSchedNowText) {
+    dashSchedNowText.textContent = '';
+    if (current) {
+      const locStr = current.location ? ` • ${current.location}` : '';
+      const prefix = document.createElement('strong');
+      prefix.textContent = '🟢 Now: ';
+      dashSchedNowText.appendChild(prefix);
+      dashSchedNowText.appendChild(
+        document.createTextNode(
+          `${current.title} (${current.startTime}–${current.endTime})${locStr}`
+        )
+      );
+    } else if (next) {
+      const locStr = next.location ? ` • ${next.location}` : '';
+      const prefix = document.createElement('strong');
+      prefix.textContent = '⏳ Next: ';
+      dashSchedNowText.appendChild(prefix);
+      dashSchedNowText.appendChild(
+        document.createTextNode(`${next.title} at ${next.startTime}${locStr}`)
+      );
+    } else {
+      dashSchedNowText.textContent = '☕ No more classes right now today';
+    }
+  }
+
+  if (dashSchedDaysBar) {
+    const buttons = dashSchedDaysBar.querySelectorAll<HTMLButtonElement>('.chip-btn');
+    buttons.forEach((btn) => {
+      const dayNum = Number(btn.getAttribute('data-day'));
+      btn.classList.toggle('active', dayNum === dashSelectedScheduleDay);
+    });
+  }
+
+  if (!dashSchedList) return;
+  dashSchedList.innerHTML = '';
+  const entries = getEntriesForDay(currentScheduleState, dashSelectedScheduleDay);
+
+  if (entries.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.textAlign = 'center';
+    empty.style.padding = '12px 0';
+    empty.style.fontSize = '12px';
+    empty.style.opacity = '0.7';
+    empty.textContent = 'No classes scheduled for this day~';
+    dashSchedList.appendChild(empty);
+    return;
+  }
+
+  for (const entry of entries) {
+    const card = document.createElement('div');
+    card.className = 'sched-entry-card';
+
+    const left = document.createElement('div');
+    left.style.display = 'flex';
+    left.style.alignItems = 'center';
+    left.style.gap = '8px';
+    left.style.overflow = 'hidden';
+
+    const timePill = document.createElement('span');
+    timePill.className = 'sched-time-pill';
+    timePill.textContent = `${entry.startTime}–${entry.endTime}`;
+
+    const title = document.createElement('span');
+    title.className = 'sched-title';
+    title.textContent = entry.title;
+
+    left.appendChild(timePill);
+    left.appendChild(title);
+
+    if (entry.location) {
+      const loc = document.createElement('span');
+      loc.className = 'sched-location';
+      loc.textContent = entry.location;
+      left.appendChild(loc);
+    }
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'sched-delete-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = 'Delete class';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.usagiAPI?.deleteScheduleEntry(entry.id);
+    });
+
+    card.appendChild(left);
+    card.appendChild(delBtn);
+    dashSchedList.appendChild(card);
+  }
+}
+
+function handleDashAddSchedule(): void {
+  if (!dashSchedTitle || !dashSchedStart || !dashSchedEnd) return;
+  const title = dashSchedTitle.value.trim();
+  const startTime = dashSchedStart.value;
+  const endTime = dashSchedEnd.value;
+  const location = dashSchedLocation?.value.trim() || undefined;
+
+  if (!title) {
+    dashSchedTitle.focus();
+    return;
+  }
+  if (startTime >= endTime) {
+    alert('Start time must be earlier than end time!');
+    return;
+  }
+
+  window.usagiAPI?.addScheduleEntry({
+    title,
+    dayOfWeek: dashSelectedScheduleDay,
+    startTime,
+    endTime,
+    location,
+  });
+
+  dashSchedTitle.value = '';
+  if (dashSchedLocation) dashSchedLocation.value = '';
+}
+
+if (dashSchedDaysBar) {
+  dashSchedDaysBar.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement).closest('.chip-btn') as HTMLButtonElement | null;
+    if (target && target.hasAttribute('data-day')) {
+      dashSelectedScheduleDay = Number(target.getAttribute('data-day'));
+      renderDashSchedule();
+    }
+  });
+}
+
+if (dashAddSchedBtn) {
+  dashAddSchedBtn.addEventListener('click', handleDashAddSchedule);
+}
+
+if (dashSchedTitle) {
+  dashSchedTitle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleDashAddSchedule();
   });
 }
 
@@ -952,5 +1190,22 @@ if (window.usagiAPI) {
     })
     .catch((err) => {
       console.warn('Failed to fetch initial calendar state in dashboard:', err);
+    });
+
+  window.usagiAPI.onScheduleStateChanged((state) => {
+    currentScheduleState = state;
+    renderDashSchedule();
+  });
+
+  window.usagiAPI
+    .getScheduleState()
+    .then((state) => {
+      if (state) {
+        currentScheduleState = state;
+        renderDashSchedule();
+      }
+    })
+    .catch((err) => {
+      console.warn('Failed to fetch initial schedule state in dashboard:', err);
     });
 }
