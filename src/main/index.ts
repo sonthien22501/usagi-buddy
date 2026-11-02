@@ -52,10 +52,12 @@ import {
   parseRemindersJson,
   serializeRemindersJson,
 } from '../core/reminderStore';
+import { computeTrayPopoverPosition } from '../core/trayPositioner';
 
 let mainWindow: BrowserWindow | null = null;
 let dashboardWindow: BrowserWindow | null = null;
 let stickyWindow: BrowserWindow | null = null;
+let trayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let ghostLocked = false;
 let playModeEnabled = false;
@@ -122,6 +124,9 @@ function broadcastToAllWindows(channel: string, ...args: any[]): void {
   }
   if (stickyWindow && !stickyWindow.isDestroyed()) {
     stickyWindow.webContents.send(channel, ...args);
+  }
+  if (trayWindow && !trayWindow.isDestroyed()) {
+    trayWindow.webContents.send(channel, ...args);
   }
 }
 
@@ -282,6 +287,77 @@ function toggleStickyWindow(): void {
   }
 }
 
+function createTrayWindow(): void {
+  if (trayWindow && !trayWindow.isDestroyed()) {
+    return;
+  }
+
+  trayWindow = new BrowserWindow({
+    width: 320,
+    height: 490,
+    show: false,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    fullscreenable: false,
+    hasShadow: false,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  const htmlPath = path.join(__dirname, '../tray/index.html');
+  trayWindow.loadFile(htmlPath);
+
+  trayWindow.on('blur', () => {
+    if (trayWindow && !trayWindow.isDestroyed() && trayWindow.isVisible()) {
+      trayWindow.hide();
+    }
+  });
+
+  trayWindow.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault();
+      trayWindow?.hide();
+    }
+  });
+
+  trayWindow.webContents.on('did-finish-load', () => {
+    broadcastPomodoroState();
+    broadcastReminderState();
+    if (trayWindow && !trayWindow.isDestroyed()) {
+      trayWindow.webContents.send('usagi-hidden-toggle', usagiHidden);
+      trayWindow.webContents.send('ghost-mode-toggle', ghostLocked);
+    }
+  });
+}
+
+function toggleTrayWindow(): void {
+  if (!trayWindow || trayWindow.isDestroyed()) {
+    createTrayWindow();
+  }
+
+  if (trayWindow && trayWindow.isVisible()) {
+    trayWindow.hide();
+    return;
+  }
+
+  const trayBounds = tray ? tray.getBounds() : { x: 0, y: 0, width: 0, height: 0 };
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const workArea = primaryDisplay.workArea;
+  const pos = computeTrayPopoverPosition(trayBounds, workArea, { width: 320, height: 490 });
+
+  if (trayWindow) {
+    trayWindow.setPosition(pos.x, pos.y);
+    trayWindow.show();
+    trayWindow.focus();
+  }
+}
+
 function setCostume(selection: OutfitSelection): void {
   costumeSelection = selection;
   if (selection === 'random') {
@@ -300,96 +376,6 @@ function updateTrayMenu(): void {
   const titleText = ghostLocked ? `👻 ${timeStr}` : timeStr;
   tray.setTitle(titleText);
   tray.setToolTip(`Usagi Float — ${pomodoroState.phase.toUpperCase()} (${timeStr})`);
-
-  const isRunning = pomodoroState.phase === 'running';
-
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: `⏱️ Focus Timer: ${timeStr} (${pomodoroState.phase.toUpperCase()})`,
-      enabled: false,
-    },
-    {
-      label: isRunning ? '⏸️ Pause Timer' : '▶️ Start Timer',
-      click: () => {
-        if (isRunning) {
-          pomodoroState = pausePomodoro(pomodoroState);
-        } else {
-          pomodoroState = startPomodoro(pomodoroState);
-        }
-        updateTrayMenu();
-        broadcastPomodoroState();
-      },
-    },
-    {
-      label: '🔄 Reset Timer',
-      click: () => {
-        pomodoroState = resetPomodoro(pomodoroState);
-        updateTrayMenu();
-        broadcastPomodoroState();
-      },
-    },
-    {
-      label: '⏱️ Set Timer Duration',
-      submenu: [
-        {
-          label: '🍅 25-Min Pomodoro (5m Break)',
-          click: () => setPomodoroDuration(25 * 60_000),
-        },
-        {
-          label: '⚡ 52-Min Focus (17m Break)',
-          click: () => setPomodoroDuration(52 * 60_000),
-        },
-        {
-          label: '🌊 90-Min Ultradian (20m Break)',
-          click: () => setPomodoroDuration(90 * 60_000),
-        },
-        { type: 'separator' },
-        {
-          label: '☕ 5-Minute Short Break',
-          click: () => setPomodoroDuration(5 * 60_000),
-        },
-        {
-          label: '☕ 17-Minute 52/17 Rest Break',
-          click: () => setPomodoroDuration(17 * 60_000),
-        },
-        {
-          label: '☕ 20-Minute Deep Rest Break',
-          click: () => setPomodoroDuration(20 * 60_000),
-        },
-        {
-          label: '⚡ 1-Minute Quick Test',
-          click: () => setPomodoroDuration(60_000),
-        },
-        { type: 'separator' },
-        {
-          label: '✏️ Custom Duration... (Open Dashboard)',
-          click: () => createDashboardWindow(),
-        },
-      ],
-    },
-    { type: 'separator' },
-    {
-      label: '🎛️ Open Usagi Dashboard...',
-      click: () => createDashboardWindow(),
-    },
-    {
-      label: reminderState.stickyVisible ? '📝 Hide Sticky Quests' : '📝 Show Sticky Quests',
-      click: () => toggleStickyWindow(),
-    },
-    {
-      label: usagiHidden ? '🐰 Show Usagi Buddy' : '🙈 Hide Usagi Buddy',
-      click: () => toggleUsagiHidden(),
-    },
-    { type: 'separator' },
-    {
-      label: '🚪 Quit Usagi Float',
-      click: () => {
-        app.quit();
-      },
-    },
-  ]);
-
-  tray.setContextMenu(contextMenu);
 }
 
 function toggleGhostMode(): void {
@@ -514,6 +500,13 @@ function createSystemTray(): void {
 
   tray = new Tray(trayIcon);
   updateTrayMenu();
+
+  tray.on('click', () => {
+    toggleTrayWindow();
+  });
+  tray.on('right-click', () => {
+    toggleTrayWindow();
+  });
 }
 
 function setupPomodoroTicker(): void {
@@ -592,6 +585,7 @@ app.whenReady().then(() => {
   loadRemindersFromDisk();
   createMainWindow();
   createStickyWindow();
+  createTrayWindow();
   createSystemTray();
   setupPomodoroTicker();
   setupWellnessCoachTicker();
@@ -740,6 +734,23 @@ app.whenReady().then(() => {
 
   ipcMain.on('toggle-usagi-hidden', () => {
     toggleUsagiHidden();
+  });
+
+  ipcMain.on('open-dashboard-window', () => {
+    if (trayWindow && !trayWindow.isDestroyed()) {
+      trayWindow.hide();
+    }
+    createDashboardWindow();
+  });
+
+  ipcMain.on('quit-app', () => {
+    app.quit();
+  });
+
+  ipcMain.on('close-tray-popover', () => {
+    if (trayWindow && !trayWindow.isDestroyed()) {
+      trayWindow.hide();
+    }
   });
 
   screen.on('display-metrics-changed', () => {

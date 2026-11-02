@@ -2,10 +2,10 @@
 
 ## 1. System Overview & Tech Stack
 
-- **Product**: Cross-platform (macOS + Windows) frameless, transparent, desktop companion ("Usagi Float") featuring multi-window architecture: overlay buddy window, full-control dashboard window, and desktop-pinned sticky checklist window.
-- **Runtime & UI**: Electron + TypeScript + HTML5 2D Canvas (60 FPS kick-and-glide swimming, cursor keychain hug physics, per-pixel `setIgnoreMouseEvents(true, { forward: true })` hit-testing, Web Audio MP3 playback, Usagi Custard & Caramel Anime Theme with day/night modes).
-- **Bundler & Compiler**: `typescript` (`tsc --noEmit`) + `esbuild` (bundles main, preload, renderer, dashboard, sticky, and copies `.png` + `.mp3` assets).
-- **Test & Format**: `vitest` (11 test suites covering core physics, reminders, cursor hugs, alarm, and asset integrity) + `prettier`.
+- **Product**: Cross-platform (macOS + Windows) frameless, transparent, desktop companion ("Usagi Float") featuring multi-window architecture: overlay buddy window, full-control dashboard window, desktop-pinned sticky checklist window, and themed taskbar tray popover window.
+- **Runtime & UI**: Electron + TypeScript + HTML5 2D Canvas (60 FPS kick-and-glide swimming, cursor keychain hug physics, per-pixel `setIgnoreMouseEvents(true, { forward: true })` hit-testing, Web Audio MP3 playback, Usagi Custard & Caramel Anime Theme with day/night modes, and unified Kawaii SVG Icon System).
+- **Bundler & Compiler**: `typescript` (`tsc --noEmit`) + `esbuild` (bundles main, preload, renderer, dashboard, sticky, tray, and copies `.png` + `.mp3` assets).
+- **Test & Format**: `vitest` (12 test suites covering core physics, reminders, cursor hugs, alarm, kawaii icons, tray positioning, and asset integrity) + `prettier`.
 
 ## 2. Exact Commands (Law 1 & Law 2 Quiet Flags)
 
@@ -28,6 +28,8 @@ usagi-buddy/
 ├── src/
 │   ├── core/
 │   │   ├── alphaCropper.ts        # Alpha bounding-box scanner & auto-trimmer
+│   │   ├── kawaiiIcons.ts         # Unified Kawaii rounded SVG icon set with theme-adaptive fills
+│   │   ├── trayPositioner.ts      # Cross-platform tray popover anchor & screen boundary clamping
 │   │   ├── physicsEngine.ts       # 60fps kick-and-glide swimming, squash/stretch, cursor follow, combo spin
 │   │   ├── reminderStore.ts       # Desktop sticky reminders state machine, JSON disk persistence & task celebration detection
 │   │   ├── costumeManager.ts      # Multi-costume wardrobe selector, 30m auto-rotation, & fixed appearance mode
@@ -43,6 +45,9 @@ usagi-buddy/
 │   ├── sticky/
 │   │   ├── index.html             # Desktop-pinned frameless sticky note quest board
 │   │   └── sticky.ts              # Sticky note controller with theme toggle & task CRUD
+│   ├── tray/
+│   │   ├── index.html             # Custom Custard & Caramel anime taskbar dropdown popover
+│   │   └── tray.ts                # Tray popover controller synced with timer, theme, and quick actions
 │   ├── dashboard/
 │   │   ├── index.html             # Dedicated Usagi Buddy Dashboard GUI window (Custard & Caramel anime theme)
 │   │   └── dashboard.ts           # Dashboard controller (reminders sync, wardrobe grid, fixed appearance toggle, volume & timer)
@@ -93,3 +98,4 @@ usagi-buddy/
 - [x] M13: Usagi Wardrobe & Multi-Costume System (Classic, Study, Work/Vest, Sigma, Star, and Shuffle/Random on Click), combo-click rapid spin outfit morphing, dedicated Dashboard wardrobe grid, minimal background tray menu, and randomized Giant Usagi Chaos Alarms (`Usagi_Big.png` + `Usagi_Big2.png`) (`src/core/costumeManager.ts`, `src/dashboard/`, `src/main/index.ts`, `src/renderer/app.ts`)
 - [x] M14: Usagi Custard & Caramel Anime Theme (Day Custard default + Night cozy toggle), Desktop-Pinned Sticky Reminders Note (`src/sticky/`) with task celebration broadcast
 - [x] M15: Wardrobe 30m Auto-Rotation with Clean `🔄 Auto-Change` / `🔒 Appearance Fixed` toggle, and `🙈 Hide Usagi (Do Not Disturb)` mode across Tray and Dashboard
+- [x] M16: Custom Custard & Caramel Taskbar Tray Popover (`src/tray/`, `src/core/trayPositioner.ts`) & Unified Kawaii Rounded SVG Icon System (`src/core/kawaiiIcons.ts`) across Tray, Dashboard, and Sticky Note

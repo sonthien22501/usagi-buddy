@@ -1,4 +1,5 @@
 import { ReminderItem, ReminderState } from '../core/reminderStore';
+import { getKawaiiIcon } from '../core/kawaiiIcons';
 
 let currentState: ReminderState = {
   items: [],
@@ -14,12 +15,17 @@ const clearDoneBtn = document.getElementById('clearDoneBtn') as HTMLButtonElemen
 const themeToggleBtn = document.getElementById('themeToggleBtn') as HTMLButtonElement | null;
 const minimizeBtn = document.getElementById('minimizeBtn') as HTMLButtonElement | null;
 
+const stickyHeaderIcon = document.querySelector('.header-title .icon') as HTMLSpanElement | null;
+if (stickyHeaderIcon) {
+  stickyHeaderIcon.innerHTML = getKawaiiIcon('pudding', 16);
+}
+
 function render(state: ReminderState): void {
   currentState = state;
   document.body.setAttribute('data-theme', state.theme);
 
   if (themeToggleBtn) {
-    themeToggleBtn.textContent = state.theme === 'custard' ? '🌙' : '☀️';
+    themeToggleBtn.innerHTML = getKawaiiIcon(state.theme === 'custard' ? 'moon' : 'sun', 14);
     themeToggleBtn.title =
       state.theme === 'custard' ? 'Switch to Night Mode' : 'Switch to Custard Day';
   }
@@ -32,7 +38,9 @@ function render(state: ReminderState): void {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
     empty.innerHTML = `
-      <div class="emoji">✨ 🐰 ✨</div>
+      <div class="emoji" style="display: flex; justify-content: center; gap: 6px; align-items: center; margin-bottom: 6px;">
+        ${getKawaiiIcon('sparkle', 16)} ${getKawaiiIcon('usagi', 24)} ${getKawaiiIcon('sparkle', 16)}
+      </div>
       <div>All quests completed!</div>
       <div>Usagi is super proud of you~</div>
     `;

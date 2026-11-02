@@ -2,6 +2,7 @@ import { formatPomodoroTime, parseCustomDuration, PomodoroState } from '../core/
 import { VolumeConfig } from '../core/soundManager';
 import { CostumeId, OutfitSelection, getCostumeDefinition } from '../core/costumeManager';
 import { ReminderState } from '../core/reminderStore';
+import { getKawaiiIcon, renderIconLabel } from '../core/kawaiiIcons';
 
 const themeToggleBtn = document.getElementById('theme-toggle-btn') as HTMLButtonElement | null;
 
@@ -86,7 +87,11 @@ let isUsagiHidden = false;
 function updateThemeUI(theme: 'custard' | 'night'): void {
   document.body.setAttribute('data-theme', theme);
   if (themeToggleBtn) {
-    themeToggleBtn.textContent = theme === 'custard' ? '🌙 Night' : '☀️ Custard';
+    themeToggleBtn.innerHTML = renderIconLabel(
+      theme === 'custard' ? 'moon' : 'sun',
+      theme === 'custard' ? 'Night' : 'Custard',
+      13
+    );
   }
 }
 
@@ -103,7 +108,11 @@ function updateReminderUI(state: ReminderState): void {
   updateThemeUI(state.theme);
 
   if (toggleStickyWindowBtn) {
-    toggleStickyWindowBtn.textContent = state.stickyVisible ? '📝 Hide Note' : '📝 Show Note';
+    toggleStickyWindowBtn.innerHTML = renderIconLabel(
+      'note',
+      state.stickyVisible ? 'Hide Note' : 'Show Note',
+      13
+    );
   }
 
   if (!dashboardQuestList) return;
@@ -259,7 +268,11 @@ function updatePomodoroUI(state: PomodoroState): void {
   }
 
   if (pauseTimerBtn) {
-    pauseTimerBtn.textContent = state.phase === 'running' ? '⏸ Pause' : '▶ Resume';
+    pauseTimerBtn.innerHTML = renderIconLabel(
+      state.phase === 'running' ? 'pause' : 'play',
+      state.phase === 'running' ? 'Pause' : 'Resume',
+      13
+    );
   }
 }
 
@@ -307,11 +320,82 @@ if (resetTimerBtn) {
   });
 }
 
+// Static Icon Initialization
+function initDashboardIcons(): void {
+  const stickyCardIcon = document.getElementById('sticky-card-icon');
+  if (stickyCardIcon) stickyCardIcon.innerHTML = getKawaiiIcon('note', 16);
+
+  const volCardIcon = document.getElementById('volume-card-icon');
+  if (volCardIcon) volCardIcon.innerHTML = getKawaiiIcon('volume', 16);
+
+  const volLowIcon = document.getElementById('vol-low-icon');
+  if (volLowIcon) volLowIcon.innerHTML = getKawaiiIcon('volume-low', 14);
+
+  const volHighIcon = document.getElementById('vol-high-icon');
+  if (volHighIcon) volHighIcon.innerHTML = getKawaiiIcon('volume', 14);
+
+  if (testSoundBtn) testSoundBtn.innerHTML = renderIconLabel('music', 'Test Sound', 13);
+
+  const timerCardIcon = document.getElementById('timer-card-icon');
+  if (timerCardIcon) timerCardIcon.innerHTML = getKawaiiIcon('tomato', 16);
+
+  if (startTimerBtn) startTimerBtn.innerHTML = renderIconLabel('play', 'Start', 13);
+  if (resetTimerBtn) resetTimerBtn.innerHTML = renderIconLabel('reset', 'Reset', 13);
+
+  // Preset chips
+  const chip25 = document.querySelector('.chip-btn[data-min="25"]');
+  if (chip25) chip25.innerHTML = renderIconLabel('tomato', '25m Pomodoro', 13);
+  const chip52 = document.querySelector('.chip-btn[data-min="52"]');
+  if (chip52) chip52.innerHTML = renderIconLabel('bolt', '52m Rule (17m rest)', 13);
+  const chip90 = document.querySelector('.chip-btn[data-min="90"]');
+  if (chip90) chip90.innerHTML = renderIconLabel('wave', '90m Ultradian (20m rest)', 13);
+
+  // Wardrobe header & costume icons
+  const wardrobeCardIcon = document.getElementById('wardrobe-card-icon');
+  if (wardrobeCardIcon) wardrobeCardIcon.innerHTML = getKawaiiIcon('wardrobe', 16);
+
+  const classicIcon = document.getElementById('costume-icon-classic');
+  if (classicIcon) classicIcon.innerHTML = getKawaiiIcon('usagi', 20);
+  const studyIcon = document.getElementById('costume-icon-study');
+  if (studyIcon) studyIcon.innerHTML = getKawaiiIcon('book', 20);
+  const vestIcon = document.getElementById('costume-icon-vest');
+  if (vestIcon) vestIcon.innerHTML = getKawaiiIcon('tie', 20);
+  const sigmaIcon = document.getElementById('costume-icon-sigma');
+  if (sigmaIcon) sigmaIcon.innerHTML = getKawaiiIcon('shades', 20);
+  const starIcon = document.getElementById('costume-icon-star');
+  if (starIcon) starIcon.innerHTML = getKawaiiIcon('star', 20);
+  const randomIcon = document.getElementById('costume-icon-random');
+  if (randomIcon) randomIcon.innerHTML = getKawaiiIcon('dice', 20);
+
+  // Mode header & title icons
+  const modesCardIcon = document.getElementById('modes-card-icon');
+  if (modesCardIcon) modesCardIcon.innerHTML = getKawaiiIcon('gamepad', 16);
+
+  const pinTitleIcon = document.getElementById('pin-title-icon');
+  if (pinTitleIcon) pinTitleIcon.innerHTML = getKawaiiIcon('pin', 14);
+  const wandTitleIcon = document.getElementById('wand-title-icon');
+  if (wandTitleIcon) wandTitleIcon.innerHTML = getKawaiiIcon('wand', 14);
+  const ghostTitleIcon = document.getElementById('ghost-title-icon');
+  if (ghostTitleIcon) ghostTitleIcon.innerHTML = getKawaiiIcon('ghost', 14);
+  const puddingTitleIcon = document.getElementById('pudding-title-icon');
+  if (puddingTitleIcon) puddingTitleIcon.innerHTML = getKawaiiIcon('pudding', 14);
+  const hideTitleIcon = document.getElementById('hide-title-icon');
+  if (hideTitleIcon) hideTitleIcon.innerHTML = getKawaiiIcon('eye-hide', 14);
+
+  if (dropSnackBtn) dropSnackBtn.innerHTML = renderIconLabel('pudding', 'Drop Snack', 13);
+}
+
+initDashboardIcons();
+
 // 6. Companion Modes (Equal Identical Buttons)
 function updateStationaryUI(stationary: boolean): void {
   isStationary = stationary;
   if (stationaryToggleBtn) {
-    stationaryToggleBtn.textContent = stationary ? '📌 Stationary' : '📌 Pin Still';
+    stationaryToggleBtn.innerHTML = renderIconLabel(
+      'pin',
+      stationary ? 'Stationary' : 'Pin Still',
+      13
+    );
     if (stationary) {
       stationaryToggleBtn.classList.add('active');
     } else {
@@ -323,7 +407,11 @@ function updateStationaryUI(stationary: boolean): void {
 function updatePlayModeUI(enabled: boolean): void {
   isPlayMode = enabled;
   if (playModeToggleBtn) {
-    playModeToggleBtn.textContent = enabled ? '🪄 Following' : '🪄 Follow Mouse';
+    playModeToggleBtn.innerHTML = renderIconLabel(
+      'wand',
+      enabled ? 'Following' : 'Follow Mouse',
+      13
+    );
     if (enabled) {
       playModeToggleBtn.classList.add('active');
     } else {
@@ -335,7 +423,11 @@ function updatePlayModeUI(enabled: boolean): void {
 function updateGhostModeUI(locked: boolean): void {
   isGhostMode = locked;
   if (ghostModeToggleBtn) {
-    ghostModeToggleBtn.textContent = locked ? '👻 Pass-thru' : '👻 Ghost Mode';
+    ghostModeToggleBtn.innerHTML = renderIconLabel(
+      'ghost',
+      locked ? 'Pass-thru' : 'Ghost Mode',
+      13
+    );
     if (locked) {
       ghostModeToggleBtn.classList.add('active');
     } else {
@@ -373,10 +465,21 @@ function updateCostumeUI(costume: CostumeId, selection: OutfitSelection): void {
   if (costumeBadge) {
     if (selection === 'random') {
       const def = getCostumeDefinition(costume);
-      costumeBadge.textContent = `🎲 RANDOM (${def.label.toUpperCase()})`;
+      costumeBadge.innerHTML = renderIconLabel('dice', `RANDOM (${def.label.toUpperCase()})`, 12);
     } else {
       const def = getCostumeDefinition(costume);
-      costumeBadge.textContent = `${def.icon} ${def.label.toUpperCase()}`;
+      const iconId = (
+        def.id === 'classic'
+          ? 'usagi'
+          : def.id === 'study'
+            ? 'book'
+            : def.id === 'vest'
+              ? 'tie'
+              : def.id === 'sigma'
+                ? 'shades'
+                : 'star'
+      ) as any;
+      costumeBadge.innerHTML = renderIconLabel(iconId, def.label.toUpperCase(), 12);
     }
   }
 
@@ -403,7 +506,11 @@ costumeButtons.forEach((btn) => {
 function updateFixedAppearanceUI(fixed: boolean): void {
   isFixedAppearance = fixed;
   if (fixAppearanceToggleBtn) {
-    fixAppearanceToggleBtn.textContent = fixed ? '🔒 Appearance Fixed' : '🔄 Auto-Change';
+    fixAppearanceToggleBtn.innerHTML = renderIconLabel(
+      fixed ? 'lock' : 'rotate',
+      fixed ? 'Appearance Fixed' : 'Auto-Change',
+      13
+    );
     if (fixed) {
       fixAppearanceToggleBtn.classList.add('active');
     } else {
@@ -415,7 +522,11 @@ function updateFixedAppearanceUI(fixed: boolean): void {
 function updateUsagiHiddenUI(hidden: boolean): void {
   isUsagiHidden = hidden;
   if (hideUsagiToggleBtn) {
-    hideUsagiToggleBtn.textContent = hidden ? '🐰 Show Usagi' : '🙈 Hide Usagi';
+    hideUsagiToggleBtn.innerHTML = renderIconLabel(
+      hidden ? 'usagi' : 'eye-hide',
+      hidden ? 'Show Usagi' : 'Hide Usagi',
+      13
+    );
     if (hidden) {
       hideUsagiToggleBtn.classList.add('active');
     } else {
@@ -453,7 +564,11 @@ if (window.usagiAPI) {
   window.usagiAPI.onSoundMutedChanged((muted) => {
     isMuted = muted;
     if (muteToggleBtn) {
-      muteToggleBtn.textContent = muted ? '🔊 Unmute' : '🔇 Mute';
+      muteToggleBtn.innerHTML = renderIconLabel(
+        muted ? 'volume' : 'mute',
+        muted ? 'Unmute' : 'Mute',
+        13
+      );
       if (muted) {
         muteToggleBtn.classList.add('active');
       } else {

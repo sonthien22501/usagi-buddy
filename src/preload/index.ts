@@ -55,6 +55,9 @@ export interface UsagiAPI {
   onFixedAppearanceChanged: (callback: (fixed: boolean) => void) => () => void;
   toggleUsagiHidden: () => void;
   onUsagiHiddenChanged: (callback: (hidden: boolean) => void) => () => void;
+  openDashboardWindow: () => void;
+  quitApp: () => void;
+  closeTrayPopover: () => void;
 }
 
 const api: UsagiAPI = {
@@ -218,6 +221,15 @@ const api: UsagiAPI = {
     const handler = (_event: Electron.IpcRendererEvent, hidden: boolean) => callback(hidden);
     ipcRenderer.on('usagi-hidden-toggle', handler);
     return () => ipcRenderer.removeListener('usagi-hidden-toggle', handler);
+  },
+  openDashboardWindow: () => {
+    ipcRenderer.send('open-dashboard-window');
+  },
+  quitApp: () => {
+    ipcRenderer.send('quit-app');
+  },
+  closeTrayPopover: () => {
+    ipcRenderer.send('close-tray-popover');
   },
 };
 

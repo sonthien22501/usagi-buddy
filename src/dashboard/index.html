@@ -90,6 +90,20 @@
         border-radius: 4px;
       }
 
+      .kawaii-svg {
+        display: inline-block;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+
+      .kawaii-icon-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+
       .app-header {
         display: flex;
         align-items: center;
@@ -621,8 +635,11 @@
     <!-- 1. Desktop Sticky Reminders Card -->
     <div class="card" id="sticky-reminders-card">
       <div class="card-header">
-        <div class="card-title">📝 Desktop Sticky Reminders</div>
-        <button class="btn" id="toggle-sticky-window-btn">📝 Hide Note</button>
+        <div class="card-title">
+          <span class="kawaii-icon-wrap" id="sticky-card-icon"></span>
+          <span>Desktop Sticky Reminders</span>
+        </div>
+        <button class="btn" id="toggle-sticky-window-btn">Hide Note</button>
       </div>
 
       <div class="input-group">
@@ -653,11 +670,14 @@
     <!-- 2. Unified Volume Card -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🔊 Sound Volume</div>
+        <div class="card-title">
+          <span class="kawaii-icon-wrap" id="volume-card-icon"></span>
+          <span>Sound Volume</span>
+        </div>
         <span class="badge" id="volume-val-badge">80%</span>
       </div>
       <div class="slider-row">
-        <span style="font-size: 14px">🔈</span>
+        <span class="kawaii-icon-wrap" id="vol-low-icon"></span>
         <input
           type="range"
           class="volume-slider"
@@ -667,18 +687,21 @@
           value="80"
           step="1"
         />
-        <span style="font-size: 14px">🔊</span>
+        <span class="kawaii-icon-wrap" id="vol-high-icon"></span>
       </div>
       <div class="card-actions">
-        <button class="btn btn-action-pair" id="test-sound-btn">🎵 Test Sound</button>
-        <button class="btn btn-action-pair" id="mute-toggle-btn">🔇 Mute</button>
+        <button class="btn btn-action-pair" id="test-sound-btn">Test Sound</button>
+        <button class="btn btn-action-pair" id="mute-toggle-btn">Mute</button>
       </div>
     </div>
 
     <!-- 3. Pomodoro Focus Timer Card -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🍅 Custom Focus Timer</div>
+        <div class="card-title">
+          <span class="kawaii-icon-wrap" id="timer-card-icon"></span>
+          <span>Custom Focus Timer</span>
+        </div>
         <span class="badge" id="timer-badge">25:00 IDLE</span>
       </div>
 
@@ -694,21 +717,21 @@
           data-min="25"
           title="Pomodoro Technique: 25m work / 5m break (Beginners, high-friction tasks, or admin work)"
         >
-          🍅 25m Pomodoro
+          25m Pomodoro
         </button>
         <button
           class="chip-btn"
           data-min="52"
           title="52/17 Method: 52m work / 17m break (Deep reading, writing, coding, and sustained knowledge work)"
         >
-          ⚡ 52m Rule (17m rest)
+          52m Rule (17m rest)
         </button>
         <button
           class="chip-btn"
           data-min="90"
           title="Ultradian Rhythm: 90m work / 20m break (Complex problem-solving, marathon study sessions, or creative flow)"
         >
-          🌊 90m Ultradian (20m rest)
+          90m Ultradian (20m rest)
         </button>
       </div>
 
@@ -728,21 +751,24 @@
           +10m
         </button>
         <button class="btn btn-primary" id="start-timer-btn" style="width: 85px; height: 34px">
-          ▶ Start
+          Start
         </button>
       </div>
 
       <div class="card-actions" style="margin-top: 6px">
-        <button class="btn btn-action-pair" id="pause-timer-btn">⏸ Pause</button>
-        <button class="btn btn-action-pair" id="reset-timer-btn">🔄 Reset</button>
+        <button class="btn btn-action-pair" id="pause-timer-btn">Pause</button>
+        <button class="btn btn-action-pair" id="reset-timer-btn">Reset</button>
       </div>
     </div>
 
     <!-- 4. Usagi Wardrobe & Outfits Card -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">👗 Wardrobe & Outfits</div>
-        <span class="badge" id="costume-badge">🐰 CLASSIC</span>
+        <div class="card-title">
+          <span class="kawaii-icon-wrap" id="wardrobe-card-icon"></span>
+          <span>Wardrobe & Outfits</span>
+        </div>
+        <span class="badge" id="costume-badge">CLASSIC</span>
       </div>
       <div class="costume-grid">
         <button
@@ -750,15 +776,15 @@
           data-costume="classic"
           title="Classic swimming Usagi"
         >
-          <span class="costume-icon">🐰</span>
+          <span class="costume-icon" id="costume-icon-classic"></span>
           <span class="costume-name">Classic</span>
         </button>
         <button class="costume-card-btn" data-costume="study" title="Study Mode with book & pencil">
-          <span class="costume-icon">📚</span>
+          <span class="costume-icon" id="costume-icon-study"></span>
           <span class="costume-name">Study</span>
         </button>
         <button class="costume-card-btn" data-costume="vest" title="Corporate suit & vest mode">
-          <span class="costume-icon">👔</span>
+          <span class="costume-icon" id="costume-icon-vest"></span>
           <span class="costume-name">Work</span>
         </button>
         <button
@@ -766,15 +792,15 @@
           data-costume="sigma"
           title="Sigma grindset with cool shades"
         >
-          <span class="costume-icon">🕶️</span>
+          <span class="costume-icon" id="costume-icon-sigma"></span>
           <span class="costume-name">Sigma</span>
         </button>
         <button class="costume-card-btn" data-costume="star" title="Sparkling magical star Usagi">
-          <span class="costume-icon">⭐</span>
+          <span class="costume-icon" id="costume-icon-star"></span>
           <span class="costume-name">Star</span>
         </button>
         <button class="costume-card-btn" data-costume="random" title="Surprise / Shuffle on click">
-          <span class="costume-icon">🎲</span>
+          <span class="costume-icon" id="costume-icon-random"></span>
           <span class="costume-name">Shuffle</span>
         </button>
       </div>
@@ -788,37 +814,55 @@
     <!-- 5. Companion Modes & Actions Card (Clean & Equal Buttons) -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🎮 Companion Modes & Actions</div>
+        <div class="card-title">
+          <span class="kawaii-icon-wrap" id="modes-card-icon"></span>
+          <span>Companion Modes & Actions</span>
+        </div>
       </div>
       <div class="mode-list">
         <!-- Stay Still -->
         <div class="mode-item">
-          <div class="mode-title">📌 Stay Still</div>
-          <button class="feature-btn" id="stationary-toggle-btn">📌 Pin Still</button>
+          <div class="mode-title">
+            <span class="kawaii-icon-wrap" id="pin-title-icon"></span>
+            <span>Stay Still</span>
+          </div>
+          <button class="feature-btn" id="stationary-toggle-btn">Pin Still</button>
         </div>
 
         <!-- Play Mode / Follow Cursor -->
         <div class="mode-item">
-          <div class="mode-title">🪄 Play Mode</div>
-          <button class="feature-btn" id="play-mode-toggle-btn">🪄 Follow Mouse</button>
+          <div class="mode-title">
+            <span class="kawaii-icon-wrap" id="wand-title-icon"></span>
+            <span>Play Mode</span>
+          </div>
+          <button class="feature-btn" id="play-mode-toggle-btn">Follow Mouse</button>
         </div>
 
         <!-- Ghost Mode / Click-Through -->
         <div class="mode-item">
-          <div class="mode-title">👻 Ghost Mode</div>
-          <button class="feature-btn" id="ghost-mode-toggle-btn">👻 Ghost Mode</button>
+          <div class="mode-title">
+            <span class="kawaii-icon-wrap" id="ghost-title-icon"></span>
+            <span>Ghost Mode</span>
+          </div>
+          <button class="feature-btn" id="ghost-mode-toggle-btn">Ghost Mode</button>
         </div>
 
         <!-- Drop Pudding Snack -->
         <div class="mode-item">
-          <div class="mode-title">🍮 Pudding Snack</div>
-          <button class="feature-btn" id="drop-snack-btn">🍮 Drop Snack</button>
+          <div class="mode-title">
+            <span class="kawaii-icon-wrap" id="pudding-title-icon"></span>
+            <span>Pudding Snack</span>
+          </div>
+          <button class="feature-btn" id="drop-snack-btn">Drop Snack</button>
         </div>
 
         <!-- Hide Usagi / Do Not Disturb -->
         <div class="mode-item">
-          <div class="mode-title">🙈 Hide Usagi</div>
-          <button class="feature-btn" id="hide-usagi-toggle-btn">🙈 Hide Usagi</button>
+          <div class="mode-title">
+            <span class="kawaii-icon-wrap" id="hide-title-icon"></span>
+            <span>Hide Usagi</span>
+          </div>
+          <button class="feature-btn" id="hide-usagi-toggle-btn">Hide Usagi</button>
         </div>
       </div>
     </div>
