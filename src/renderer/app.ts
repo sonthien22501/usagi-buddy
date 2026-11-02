@@ -389,7 +389,8 @@ function handlePointerUp(): void {
           currentCostumeId = pickRandomCostume(currentCostumeId);
           ensureCostumeLoaded(currentCostumeId);
           window.usagiAPI?.setCostume(
-            currentCostumeSelection === 'random' ? 'random' : currentCostumeId
+            currentCostumeSelection === 'random' ? 'random' : currentCostumeId,
+            true
           );
         }
         const soundEvent: SoundEvent = 'click-combo';
@@ -673,7 +674,8 @@ if (window.usagiAPI) {
         currentCostumeId = pickRandomCostume(currentCostumeId);
         ensureCostumeLoaded(currentCostumeId);
         window.usagiAPI?.setCostume(
-          currentCostumeSelection === 'random' ? 'random' : currentCostumeId
+          currentCostumeSelection === 'random' ? 'random' : currentCostumeId,
+          true
         );
       }
       const soundEvent: SoundEvent = 'click-combo';

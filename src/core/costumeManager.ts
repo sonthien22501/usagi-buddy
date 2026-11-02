@@ -170,7 +170,8 @@ export function pickRandomGiantAlarmSprite(
 export function resolveOutfitSelectionChange(
   selection: OutfitSelection | string,
   currentCostume: CostumeId,
-  randomFn: () => number = Math.random
+  randomFn: () => number = Math.random,
+  preserveFixedAppearance?: boolean
 ): { costumeSelection: OutfitSelection; activeCostume: CostumeId; fixedAppearance: boolean } {
   if (selection === 'random') {
     const activeCostume = pickRandomCostume(currentCostume, randomFn);
@@ -185,6 +186,6 @@ export function resolveOutfitSelectionChange(
   return {
     costumeSelection: activeCostume,
     activeCostume,
-    fixedAppearance: true,
+    fixedAppearance: typeof preserveFixedAppearance === 'boolean' ? preserveFixedAppearance : true,
   };
 }

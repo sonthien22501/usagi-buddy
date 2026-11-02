@@ -3,6 +3,7 @@ import {
   ALL_COSTUME_IDS,
   COSTUME_AUTO_ROTATE_INTERVAL_MS,
   COSTUME_DEFINITIONS,
+  CostumeId,
   GIANT_ALARM_SPRITES,
   WardrobeRotationState,
   createWardrobeRotationState,
@@ -179,6 +180,40 @@ describe('costumeManager', () => {
       expect(res.fixedAppearance).toBe(false);
       expect(res.activeCostume).not.toBe('classic');
       expect(ALL_COSTUME_IDS).toContain(res.activeCostume);
+    });
+
+    it('preserves fixedAppearance when preserveFixedAppearance is provided (e.g. false during auto-rotation)', () => {
+      const res = resolveOutfitSelectionChange('vest', 'classic', Math.random, false);
+      expect(res).toEqual({
+        costumeSelection: 'vest',
+        activeCostume: 'vest',
+        fixedAppearance: false,
+      });
+
+      const resPreserveTrue = resolveOutfitSelectionChange('vest', 'classic', Math.random, true);
+      expect(resPreserveTrue).toEqual({
+        costumeSelection: 'vest',
+        activeCostume: 'vest',
+        fixedAppearance: true,
+      });
+    });
+
+    it('supports consecutive triple-click combo outfit rotations without locking fixedAppearance', () => {
+      let active: CostumeId = 'classic';
+      let fixedAppearance = false;
+
+      const comboSequence = ['study', 'vest', 'star'] as const;
+      for (const nextCostume of comboSequence) {
+        const res = resolveOutfitSelectionChange(nextCostume, active, Math.random, fixedAppearance);
+        expect(res.fixedAppearance).toBe(false);
+        expect(res.activeCostume).toBe(nextCostume);
+        expect(res.costumeSelection).toBe(nextCostume);
+        active = res.activeCostume;
+        fixedAppearance = res.fixedAppearance;
+      }
+
+      expect(active).toBe('star');
+      expect(fixedAppearance).toBe(false);
     });
   });
 });

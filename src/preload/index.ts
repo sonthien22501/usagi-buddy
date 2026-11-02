@@ -53,7 +53,7 @@ export interface UsagiAPI {
   triggerGiantAlarmNow: () => void;
   triggerTestSound: () => void;
   onTestSound: (callback: () => void) => () => void;
-  setCostume: (costume: OutfitSelection) => void;
+  setCostume: (costume: OutfitSelection, preserveFixedAppearance?: boolean) => void;
   onCostumeChanged: (
     callback: (costume: CostumeId, selection: OutfitSelection) => void
   ) => () => void;
@@ -200,8 +200,8 @@ const api: UsagiAPI = {
     ipcRenderer.on('test-sound', handler);
     return () => ipcRenderer.removeListener('test-sound', handler);
   },
-  setCostume: (costume: OutfitSelection) => {
-    ipcRenderer.send('set-costume', costume);
+  setCostume: (costume: OutfitSelection, preserveFixedAppearance?: boolean) => {
+    ipcRenderer.send('set-costume', costume, preserveFixedAppearance);
   },
   onCostumeChanged: (callback: (costume: CostumeId, selection: OutfitSelection) => void) => {
     const handler = (
