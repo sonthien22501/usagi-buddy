@@ -215,14 +215,17 @@ async function refreshHolidaysFromNager(countryCode: string, year: number): Prom
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${y}/${countryCode}`, {
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (res.ok) {
-        const json = await res.json();
-        const norm = normalizeNagerHolidays(json, countryCode);
-        fetchedEvents = [...fetchedEvents, ...norm];
+      try {
+        const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${y}/${countryCode}`, {
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const norm = normalizeNagerHolidays(json, countryCode);
+          fetchedEvents = [...fetchedEvents, ...norm];
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
     } catch {
       // Offline fallback

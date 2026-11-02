@@ -632,9 +632,8 @@ if (window.usagiAPI) {
     if (payload.soundEvent) {
       const text = playSound(payload.soundEvent);
       if (text) {
-        // Reminder keeps the full payload message (already contains the voice word); other events use the returned voice text
-        state.speechBubble =
-          payload.soundEvent === 'wellness-reminder' && payload.message ? payload.message : text;
+        // Preserve payload message if provided; otherwise fallback to sound voice text
+        state.speechBubble = payload.message || text;
         if (payload.soundEvent === 'wellness-reminder') {
           state.speechTimerMs = 8000;
           state.sleeping = false;

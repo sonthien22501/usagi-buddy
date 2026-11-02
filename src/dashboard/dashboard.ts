@@ -280,11 +280,11 @@ function renderCalendar(): void {
     btn.addEventListener('click', () => {
       if (selectedDateStr === cell.dateStr) {
         selectedDateStr = null;
+        activeQuickDueDate = null;
       } else {
         selectedDateStr = cell.dateStr;
         activeQuickDueDate = cell.dateStr;
       }
-      renderCalendar();
       updateReminderUI(currentReminderState);
     });
 
@@ -470,7 +470,6 @@ if (chipClearDate) {
     selectedDateStr = null;
     chipDateButtons.forEach((b) => b.classList.remove('active'));
     chipClearDate.style.display = 'none';
-    renderCalendar();
     updateReminderUI(currentReminderState);
   });
 }
@@ -481,7 +480,6 @@ if (calClearFilterBtn) {
     activeQuickDueDate = null;
     chipDateButtons.forEach((b) => b.classList.remove('active'));
     if (chipClearDate) chipClearDate.style.display = 'none';
-    renderCalendar();
     updateReminderUI(currentReminderState);
   });
 }
@@ -515,7 +513,6 @@ if (calTodayBtn) {
     currentCalendarMonth = now.getMonth() + 1;
     selectedDateStr = getTodayYMD();
     activeQuickDueDate = selectedDateStr;
-    renderCalendar();
     updateReminderUI(currentReminderState);
   });
 }
@@ -981,7 +978,6 @@ if (window.usagiAPI) {
   window.usagiAPI.onCalendarStateChanged((payload) => {
     currentEvents = payload.events;
     renderBuddyProfile(payload.profile);
-    renderCalendar();
     updateReminderUI(currentReminderState);
   });
 
@@ -1008,7 +1004,6 @@ if (window.usagiAPI) {
       if (payload) {
         currentEvents = payload.events;
         renderBuddyProfile(payload.profile);
-        renderCalendar();
         updateReminderUI(currentReminderState);
       }
     })

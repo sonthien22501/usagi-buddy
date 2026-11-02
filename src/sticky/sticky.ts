@@ -446,7 +446,6 @@ function init(): void {
     window.usagiAPI.onCalendarStateChanged((payload) => {
       currentEvents = payload.events;
       currentProfile = payload.profile;
-      renderCalendar();
       render(currentState);
     });
 
@@ -465,7 +464,6 @@ function init(): void {
         if (payload) {
           currentEvents = payload.events;
           currentProfile = payload.profile;
-          renderCalendar();
           render(currentState);
         }
       })
