@@ -571,6 +571,10 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onPlayModeChanged((enabled) => {
     playModeEnabled = enabled;
+    if (!enabled) {
+      cursorPos = null;
+      updateMouseIgnoreState();
+    }
   });
 
   window.usagiAPI.onCursorPositionUpdated((pos) => {

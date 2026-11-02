@@ -68,6 +68,7 @@ let dashboardWindow: BrowserWindow | null = null;
 let stickyWindow: BrowserWindow | null = null;
 let trayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+let lastTrayBlurMs = 0;
 let ghostLocked = false;
 let playModeEnabled = false;
 let soundMuted = false;
@@ -386,6 +387,7 @@ function createTrayWindow(): void {
 
   trayWindow.on('blur', () => {
     if (trayWindow && !trayWindow.isDestroyed() && trayWindow.isVisible()) {
+      lastTrayBlurMs = Date.now();
       trayWindow.hide();
     }
   });
@@ -412,9 +414,16 @@ function toggleTrayWindow(): void {
     return;
   }
 
+  if (Date.now() - lastTrayBlurMs < 200) {
+    return;
+  }
+
   const trayBounds = tray ? tray.getBounds() : { x: 0, y: 0, width: 0, height: 0 };
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const workArea = primaryDisplay.workArea;
+  const activeDisplay =
+    trayBounds.width > 0 && trayBounds.height > 0
+      ? screen.getDisplayMatching(trayBounds)
+      : screen.getPrimaryDisplay();
+  const workArea = activeDisplay.workArea;
   const pos = computeTrayPopoverPosition(trayBounds, workArea, { width: 320, height: 490 });
 
   if (trayWindow) {
