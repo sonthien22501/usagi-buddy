@@ -611,7 +611,8 @@ function render(state: ReminderState): void {
       if (item.dueDate) {
         const badge = document.createElement('span');
         badge.className = 'quest-due-badge';
-        badge.textContent = formatReminderDueBadge(item.dueDate, getTodayYMD(), fmt);
+        const baseBadge = formatReminderDueBadge(item.dueDate, getTodayYMD(), fmt);
+        badge.textContent = item.repeat ? `↻ ${baseBadge}` : baseBadge;
         text.appendChild(badge);
       }
 
@@ -623,7 +624,8 @@ function render(state: ReminderState): void {
       delBtn.className = 'quest-delete';
       delBtn.textContent = '✕';
       delBtn.title = 'Delete quest';
-      delBtn.addEventListener('click', () => {
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         window.usagiAPI?.deleteReminder(item.id);
       });
 

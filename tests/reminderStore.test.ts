@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ReminderItem,
   ReminderState,
+  QuestRecurrence,
   createInitialReminderState,
   addReminderItem,
   toggleReminderItem,
@@ -24,6 +25,8 @@ import {
   MIN_STICKY_HEIGHT,
   MAX_STICKY_HEIGHT,
   StickyTabId,
+  computeNextRecurringDueDate,
+  updateReminderDueDate,
 } from '../src/core/reminderStore';
 
 describe('reminderStore', () => {
@@ -632,6 +635,166 @@ describe('reminderStore', () => {
       const restored = parseRemindersJson(json);
       const restoredItem = restored.items.find((i) => i.id === 'item-doc');
       expect(restoredItem?.dueDate).toBe('2026-11-12');
+    });
+  });
+
+  describe('Natural Language Recurring Quests (#11, #13 distilled)', () => {
+    // Fixed now: Monday 2026-11-02
+    const fixedNow = new Date(2026, 10, 2);
+    const fixedNowMs = fixedNow.getTime();
+
+    it('extracts "every day", "daily", "@daily" recurrence and sets initial dueDate to today', () => {
+      const res1 = extractDueDateToken('Drink 2L water every day', undefined, fixedNow);
+      expect(res1.cleanText).toBe('Drink 2L water');
+      expect(res1.repeat).toEqual({ type: 'daily' });
+      expect(res1.dueDate).toBe('2026-11-02');
+
+      const res2 = extractDueDateToken('Team sync @daily', undefined, fixedNow);
+      expect(res2.cleanText).toBe('Team sync');
+      expect(res2.repeat).toEqual({ type: 'daily' });
+      expect(res2.dueDate).toBe('2026-11-02');
+
+      const res3 = extractDueDateToken('Đi chợ mỗi ngày', undefined, fixedNow);
+      expect(res3.cleanText).toBe('Đi chợ');
+      expect(res3.repeat).toEqual({ type: 'daily' });
+    });
+
+    it('extracts "every weekday", "weekdays", "@weekdays" recurrence and sets initial dueDate', () => {
+      // On Monday 2026-11-02, next weekday is today (2026-11-02)
+      const res = extractDueDateToken('Review pull requests every weekday', undefined, fixedNow);
+      expect(res.cleanText).toBe('Review pull requests');
+      expect(res.repeat).toEqual({ type: 'weekdays' });
+      expect(res.dueDate).toBe('2026-11-02');
+
+      // If reference date is Saturday 2026-11-07, initial dueDate is Monday 2026-11-09
+      const saturdayDate = new Date(2026, 10, 7);
+      const resSat = extractDueDateToken('Review PRs @weekdays', undefined, saturdayDate);
+      expect(resSat.dueDate).toBe('2026-11-09');
+    });
+
+    it('extracts "every <Weekday>" recurrence and calculates upcoming occurrence', () => {
+      // On Monday 2026-11-02:
+      // "every Tuesday" -> Tuesday is tomorrow (2026-11-03), dayOfWeek = 2
+      const resTue = extractDueDateToken('Go to English class every Tuesday', undefined, fixedNow);
+      expect(resTue.cleanText).toBe('Go to English class');
+      expect(resTue.repeat).toEqual({ type: 'weekly', dayOfWeek: 2 });
+      expect(resTue.dueDate).toBe('2026-11-03');
+
+      // "every Monday" on Monday -> today (2026-11-02), dayOfWeek = 1
+      const resMon = extractDueDateToken('Team retro every mon', undefined, fixedNow);
+      expect(resMon.cleanText).toBe('Team retro');
+      expect(resMon.repeat).toEqual({ type: 'weekly', dayOfWeek: 1 });
+      expect(resMon.dueDate).toBe('2026-11-02');
+
+      // Multilingual Vietnamese: "Học đàn mỗi thứ bảy" -> Saturday 2026-11-07, dayOfWeek = 6
+      const resSat = extractDueDateToken('Học đàn mỗi thứ bảy', undefined, fixedNow);
+      expect(resSat.cleanText).toBe('Học đàn');
+      expect(resSat.repeat).toEqual({ type: 'weekly', dayOfWeek: 6 });
+      expect(resSat.dueDate).toBe('2026-11-07');
+    });
+
+    it('adds recurring reminder item with repeat property preserved', () => {
+      let state = createInitialReminderState();
+      state = addReminderItem(state, 'Water bonsai every day', fixedNowMs);
+      const added = state.items[state.items.length - 1];
+      expect(added.text).toBe('Water bonsai');
+      expect(added.repeat).toEqual({ type: 'daily' });
+      expect(added.dueDate).toBe('2026-11-02');
+      expect(added.completed).toBe(false);
+    });
+
+    describe('computeNextRecurringDueDate', () => {
+      it('computes daily next due date (+1 day)', () => {
+        const next = computeNextRecurringDueDate({ type: 'daily' }, '2026-11-02', fixedNow);
+        expect(next).toBe('2026-11-03');
+      });
+
+      it('computes weekdays next due date, rolling Friday to Monday (+3 days)', () => {
+        // Monday -> Tuesday
+        expect(computeNextRecurringDueDate({ type: 'weekdays' }, '2026-11-02', fixedNow)).toBe(
+          '2026-11-03'
+        );
+        // Friday 2026-11-06 -> Monday 2026-11-09
+        expect(computeNextRecurringDueDate({ type: 'weekdays' }, '2026-11-06', fixedNow)).toBe(
+          '2026-11-09'
+        );
+      });
+
+      it('computes weekly next due date (+7 days to next same weekday)', () => {
+        // Tuesday 2026-11-03 -> Tuesday 2026-11-10
+        expect(
+          computeNextRecurringDueDate({ type: 'weekly', dayOfWeek: 2 }, '2026-11-03', fixedNow)
+        ).toBe('2026-11-10');
+      });
+
+      it('rolls overdue recurring quests forward from today so they land in the future', () => {
+        // Overdue daily task with dueDate 2026-10-25 when today is 2026-11-02 -> next due is tomorrow (2026-11-03)
+        const next = computeNextRecurringDueDate({ type: 'daily' }, '2026-10-25', fixedNow);
+        expect(next).toBe('2026-11-03');
+      });
+    });
+
+    describe('Smart Rollover on Completion', () => {
+      it('completes recurring quest with celebration trigger while rolling over dueDate and keeping completed: false', () => {
+        let state = createInitialReminderState();
+        state = addReminderItem(state, 'Feed bunny every day', fixedNowMs);
+        const item = state.items[state.items.length - 1];
+        expect(item.dueDate).toBe('2026-11-02');
+
+        // Toggle completion
+        const result = toggleReminderItem(state, item.id, fixedNow);
+        // Celebrates completion
+        expect(result.newlyCompleted).not.toBeNull();
+        expect(result.newlyCompleted?.text).toBe('Feed bunny');
+
+        // State remains active for next day
+        const updatedItem = result.state.items.find((i) => i.id === item.id);
+        expect(updatedItem?.completed).toBe(false);
+        expect(updatedItem?.dueDate).toBe('2026-11-03');
+        expect(updatedItem?.notifiedStages).toEqual([]);
+      });
+
+      it('toggles non-recurring quests normally (false -> true)', () => {
+        let state = createInitialReminderState();
+        state = addReminderItem(state, 'Buy new pencil', fixedNowMs);
+        const item = state.items[state.items.length - 1];
+
+        const result = toggleReminderItem(state, item.id, fixedNow);
+        expect(result.newlyCompleted).not.toBeNull();
+        const updatedItem = result.state.items.find((i) => i.id === item.id);
+        expect(updatedItem?.completed).toBe(true);
+      });
+    });
+
+    describe('JSON Serialization and Deserialization', () => {
+      it('round-trips recurring quests through JSON cleanly', () => {
+        let state = createInitialReminderState();
+        state = addReminderItem(state, 'Yoga every Tuesday', fixedNowMs);
+
+        const json = serializeRemindersJson(state);
+        const restored = parseRemindersJson(json);
+        const restoredItem = restored.items.find((i) => i.text === 'Yoga');
+        expect(restoredItem?.repeat).toEqual({ type: 'weekly', dayOfWeek: 2 });
+        expect(restoredItem?.dueDate).toBe('2026-11-03');
+      });
+
+      it('safely deserializes legacy JSON without repeat field', () => {
+        const legacy = JSON.stringify({
+          items: [{ id: '1', text: 'Classic task', completed: false, createdAtMs: 1 }],
+        });
+        const restored = parseRemindersJson(legacy);
+        expect(restored.items[0].repeat).toBeUndefined();
+      });
+
+      it('resets notifiedStages on updateReminderDueDate', () => {
+        let state = createInitialReminderState();
+        state.items[0].dueDate = '2026-11-02';
+        state.items[0].notifiedStages = ['evening-before', 'due-day'];
+
+        state = updateReminderDueDate(state, state.items[0].id, '2026-11-05');
+        expect(state.items[0].dueDate).toBe('2026-11-05');
+        expect(state.items[0].notifiedStages).toEqual([]);
+      });
     });
   });
 });

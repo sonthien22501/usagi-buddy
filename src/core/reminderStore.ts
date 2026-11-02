@@ -4,12 +4,21 @@
 
 import { daysBetweenYMD } from './calendarStore';
 
+export type DeadlineAlertStage = 'evening-before' | 'due-day' | 'overdue';
+
+export interface QuestRecurrence {
+  type: 'daily' | 'weekdays' | 'weekly';
+  dayOfWeek?: number; // 0 (Sun) .. 6 (Sat)
+}
+
 export interface ReminderItem {
   id: string;
   text: string;
   completed: boolean;
   createdAtMs: number;
   dueDate?: string; // YYYY-MM-DD
+  repeat?: QuestRecurrence;
+  notifiedStages?: DeadlineAlertStage[];
 }
 
 export type StickyFontScale = 'sm' | 'md' | 'lg';
@@ -56,6 +65,46 @@ export interface ReminderState {
 
 export const MAX_REMINDER_ITEMS = 30;
 export const MAX_REMINDER_TEXT_LENGTH = 120;
+
+export function computeNextRecurringDueDate(
+  repeat: QuestRecurrence,
+  currentDueDate: string,
+  referenceDate = new Date()
+): string {
+  const [cy, cm, cd] = currentDueDate.split('-').map(Number);
+  const current = new Date(cy, cm - 1, cd);
+  const ref = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate()
+  );
+
+  const base = current < ref ? ref : current;
+  const d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+
+  if (repeat.type === 'daily') {
+    d.setDate(d.getDate() + 1);
+    return formatLocalDateYMD(d);
+  }
+
+  if (repeat.type === 'weekdays') {
+    do {
+      d.setDate(d.getDate() + 1);
+    } while (d.getDay() === 0 || d.getDay() === 6);
+    return formatLocalDateYMD(d);
+  }
+
+  if (repeat.type === 'weekly') {
+    const targetDay = repeat.dayOfWeek !== undefined ? repeat.dayOfWeek : base.getDay();
+    d.setDate(d.getDate() + 1);
+    while (d.getDay() !== targetDay) {
+      d.setDate(d.getDate() + 1);
+    }
+    return formatLocalDateYMD(d);
+  }
+
+  return currentDueDate;
+}
 
 export function formatLocalDateYMD(d: Date): string {
   const y = d.getFullYear();
@@ -128,13 +177,26 @@ function applyExtractor(
   return { matched: false, text: str };
 }
 
+function parseRecurringDayOfWeek(token: string): number | undefined {
+  const t = token.toLowerCase().trim();
+  if (['sun', 'sunday', 'chủ nhật', 'cn'].includes(t)) return 0;
+  if (['mon', 'monday', 'thứ hai', 'thứ 2'].includes(t)) return 1;
+  if (['tue', 'tuesday', 'thứ ba', 'thứ 3'].includes(t)) return 2;
+  if (['wed', 'wednesday', 'thứ tư', 'thứ 4'].includes(t)) return 3;
+  if (['thu', 'thursday', 'thứ năm', 'thứ 5'].includes(t)) return 4;
+  if (['fri', 'friday', 'thứ sáu', 'thứ 6'].includes(t)) return 5;
+  if (['sat', 'saturday', 'thứ bảy', 'thứ 7'].includes(t)) return 6;
+  return undefined;
+}
+
 export function extractDueDateToken(
   rawText: string,
   defaultDateStr?: string,
   now = new Date(),
   format: DateFormatPreference = 'DD/MM'
-): { cleanText: string; dueDate?: string } {
+): { cleanText: string; dueDate?: string; repeat?: QuestRecurrence } {
   let dueDate: string | undefined = undefined;
+  let repeat: QuestRecurrence | undefined = undefined;
   let text = rawText.trim();
   let shouldCapitalize = false;
 
@@ -142,6 +204,66 @@ export function extractDueDateToken(
   if (initialCleanup.stripped) {
     text = initialCleanup.text;
     shouldCapitalize = true;
+  }
+
+  // Recurrence: Daily
+  const dailyRegex = /(?:^|\s)(?:@daily|every\s+day|daily|mỗi\s+ngày|hàng\s+ngày)(?:\s+|$)/i;
+  const matchDaily = text.match(dailyRegex);
+  if (matchDaily) {
+    repeat = { type: 'daily' };
+    dueDate = formatLocalDateYMD(now);
+    text = text.replace(dailyRegex, ' ');
+    shouldCapitalize = true;
+  }
+
+  // Recurrence: Weekdays
+  const weekdaysRegex =
+    /(?:^|\s)(?:@weekdays?|every\s+weekday|weekdays|mỗi\s+ngày\s+trong\s+tuần)(?:\s+|$)/i;
+  const matchWeekdays = text.match(weekdaysRegex);
+  if (!repeat && matchWeekdays) {
+    repeat = { type: 'weekdays' };
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    while (d.getDay() === 0 || d.getDay() === 6) {
+      d.setDate(d.getDate() + 1);
+    }
+    dueDate = formatLocalDateYMD(d);
+    text = text.replace(weekdaysRegex, ' ');
+    shouldCapitalize = true;
+  }
+
+  // Recurrence: Weekly (Day of Week)
+  const weeklyEnRegex =
+    /(?:^|\s)every\s+(sunday|sun|monday|mon|tuesday|tue|wednesday|wed|thursday|thu|friday|fri|saturday|sat)(?:\s+|$)/i;
+  const matchWeeklyEn = text.match(weeklyEnRegex);
+  if (!repeat && matchWeeklyEn) {
+    const dow = parseRecurringDayOfWeek(matchWeeklyEn[1]);
+    if (dow !== undefined) {
+      repeat = { type: 'weekly', dayOfWeek: dow };
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      while (d.getDay() !== dow) {
+        d.setDate(d.getDate() + 1);
+      }
+      dueDate = formatLocalDateYMD(d);
+      text = text.replace(weeklyEnRegex, ' ');
+      shouldCapitalize = true;
+    }
+  }
+
+  const weeklyViRegex =
+    /(?:^|\s)(?:mỗi|hàng\s+tuần\s+vào)\s+(thứ\s+[2-7]|thứ\s+hai|thứ\s+ba|thứ\s+tư|thứ\s+năm|thứ\s+sáu|thứ\s+bảy|chủ\s+nhật|cn)(?:\s+|$)/i;
+  const matchWeeklyVi = text.match(weeklyViRegex);
+  if (!repeat && matchWeeklyVi) {
+    const dow = parseRecurringDayOfWeek(matchWeeklyVi[1]);
+    if (dow !== undefined) {
+      repeat = { type: 'weekly', dayOfWeek: dow };
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      while (d.getDay() !== dow) {
+        d.setDate(d.getDate() + 1);
+      }
+      dueDate = formatLocalDateYMD(d);
+      text = text.replace(weeklyViRegex, ' ');
+      shouldCapitalize = true;
+    }
   }
 
   const todayRegex = /(?:^|\s)@today\b/i;
@@ -370,7 +492,7 @@ export function extractDueDateToken(
   if (shouldCapitalize && cleanText.length > 0) {
     cleanText = cleanText.charAt(0).toLocaleUpperCase() + cleanText.slice(1);
   }
-  return { cleanText, dueDate };
+  return { cleanText, ...(dueDate ? { dueDate } : {}), ...(repeat ? { repeat } : {}) };
 }
 
 export function formatDisplayDate(
@@ -410,18 +532,21 @@ export const DEFAULT_STARTER_ITEMS: ReminderItem[] = [
     text: 'Drink a glass of water 💧',
     completed: false,
     createdAtMs: 1729900000000,
+    notifiedStages: [],
   },
   {
     id: 'starter-pomodoro',
     text: '25m Focus Session with Usagi 🍮',
     completed: false,
     createdAtMs: 1729900001000,
+    notifiedStages: [],
   },
   {
     id: 'starter-stretch',
     text: 'Stretch shoulders & eyes ✨',
     completed: false,
     createdAtMs: 1729900002000,
+    notifiedStages: [],
   },
 ];
 
@@ -464,7 +589,7 @@ export function addReminderItem(
     }
   }
 
-  const { cleanText, dueDate } = extractDueDateToken(
+  const { cleanText, dueDate, repeat } = extractDueDateToken(
     text,
     fallbackDueDate,
     nowDate,
@@ -480,7 +605,9 @@ export function addReminderItem(
     text: truncated,
     completed: false,
     createdAtMs: nowMs,
+    notifiedStages: [],
     ...(dueDate ? { dueDate } : {}),
+    ...(repeat ? { repeat } : {}),
   };
 
   return {
@@ -491,7 +618,8 @@ export function addReminderItem(
 
 export function toggleReminderItem(
   state: ReminderState,
-  id: string
+  id: string,
+  now = new Date()
 ): { state: ReminderState; newlyCompleted: ReminderItem | null } {
   let newlyCompleted: ReminderItem | null = null;
   let changed = false;
@@ -499,6 +627,17 @@ export function toggleReminderItem(
   const nextItems = state.items.map((item) => {
     if (item.id === id) {
       changed = true;
+      if (item.repeat) {
+        newlyCompleted = { ...item, completed: true };
+        const baseDue = item.dueDate || formatLocalDateYMD(now);
+        const nextDueDate = computeNextRecurringDueDate(item.repeat, baseDue, now);
+        return {
+          ...item,
+          completed: false,
+          dueDate: nextDueDate,
+          notifiedStages: [],
+        };
+      }
       const nextCompleted = !item.completed;
       if (nextCompleted) {
         newlyCompleted = { ...item, completed: true };
@@ -532,6 +671,26 @@ export function clearCompletedReminders(state: ReminderState): ReminderState {
   return {
     ...state,
     items: state.items.filter((item) => !item.completed),
+  };
+}
+
+export function updateReminderDueDate(
+  state: ReminderState,
+  id: string,
+  dueDate?: string
+): ReminderState {
+  return {
+    ...state,
+    items: state.items.map((item) => {
+      if (item.id === id) {
+        return {
+          ...item,
+          dueDate,
+          notifiedStages: [],
+        };
+      }
+      return item;
+    }),
   };
 }
 
@@ -692,9 +851,23 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
           text: String(item.text).slice(0, MAX_REMINDER_TEXT_LENGTH),
           completed: Boolean(item.completed),
           createdAtMs: Number(item.createdAtMs) || 0,
+          notifiedStages: [],
         };
         if (typeof item.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.dueDate)) {
           validItem.dueDate = item.dueDate;
+        }
+        if (
+          item.repeat &&
+          typeof item.repeat === 'object' &&
+          ['daily', 'weekdays', 'weekly'].includes((item.repeat as any).type)
+        ) {
+          validItem.repeat = item.repeat as QuestRecurrence;
+        }
+        if (Array.isArray(item.notifiedStages)) {
+          const allowed: DeadlineAlertStage[] = ['evening-before', 'due-day', 'overdue'];
+          validItem.notifiedStages = item.notifiedStages.filter((st): st is DeadlineAlertStage =>
+            allowed.includes(st as DeadlineAlertStage)
+          );
         }
         validItems.push(validItem);
       }

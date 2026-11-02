@@ -66,6 +66,7 @@ import {
   serializeRemindersJson,
   clampStickyDimensions,
 } from '../core/reminderStore';
+import { evaluateDeadlineAlerts } from '../core/deadlineScheduler';
 import {
   BuddyProfile,
   HolidayEvent,
@@ -983,6 +984,21 @@ function setupWellnessCoachTicker(): void {
         mainWindow.webContents.send('wellness-update', {
           mood: 'active',
           message: 'Yaha! Welcome back~',
+        });
+      }
+    }
+
+    // Evaluate Smart Multi-Stage Deadline Engine (#11)
+    if (!usagiHidden && mainWindow && !mainWindow.isDestroyed()) {
+      const deadlineResult = evaluateDeadlineAlerts(reminderState, new Date());
+      if (deadlineResult.alerts.length > 0) {
+        reminderState = deadlineResult.state;
+        saveRemindersToDisk();
+        broadcastReminderState();
+        mainWindow.webContents.send('wellness-update', {
+          mood: wellnessState.mood,
+          message: deadlineResult.alerts[0].message,
+          soundEvent: deadlineResult.alerts[0].soundEvent,
         });
       }
     }
