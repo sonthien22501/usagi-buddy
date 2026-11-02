@@ -24,6 +24,13 @@ import {
   MIN_STICKY_HEIGHT,
   MAX_STICKY_HEIGHT,
   StickyTabId,
+  addSubtask,
+  toggleSubtask,
+  deleteSubtask,
+  setActiveFocusQuest,
+  incrementQuestPomodoro,
+  extractPomodoroToken,
+  updateReminderDueDate,
 } from '../src/core/reminderStore';
 
 describe('reminderStore', () => {
@@ -632,6 +639,238 @@ describe('reminderStore', () => {
       const restored = parseRemindersJson(json);
       const restoredItem = restored.items.find((i) => i.id === 'item-doc');
       expect(restoredItem?.dueDate).toBe('2026-11-12');
+    });
+  });
+
+  describe('Quest-Linked Pomodoro and Inline Token Parsing (#10)', () => {
+    const fixedNowMs = new Date(2026, 10, 2).getTime();
+
+    it('extracts ~Np and ~Npom estimate tokens and clamps between 1 and 20', () => {
+      expect(extractPomodoroToken('Finish report ~3p')).toEqual({
+        cleanText: 'Finish report',
+        estimatedPomodoros: 3,
+      });
+      expect(extractPomodoroToken('Deep study ~5pom')).toEqual({
+        cleanText: 'Deep study',
+        estimatedPomodoros: 5,
+      });
+      // Clamping bounds: 0 -> 1, 35 -> 20
+      expect(extractPomodoroToken('Quick check ~0p')).toEqual({
+        cleanText: 'Quick check',
+        estimatedPomodoros: 1,
+      });
+      expect(extractPomodoroToken('Mega grind ~35p')).toEqual({
+        cleanText: 'Mega grind',
+        estimatedPomodoros: 20,
+      });
+      expect(extractPomodoroToken('No estimate task')).toEqual({
+        cleanText: 'No estimate task',
+      });
+    });
+
+    it('parses inline date and pomodoro tokens in any order in addReminderItem', () => {
+      let state = createInitialReminderState();
+      state = addReminderItem(state, 'Study math ~3p @tomorrow', fixedNowMs);
+      const item1 = state.items[state.items.length - 1];
+      expect(item1.text).toBe('Study math');
+      expect(item1.dueDate).toBe('2026-11-03');
+      expect(item1.estimatedPomodoros).toBe(3);
+      expect(item1.completedPomodoros).toBe(0);
+
+      // Reversed token order
+      state = addReminderItem(state, '@today ~2pom Read paper', fixedNowMs);
+      const item2 = state.items[state.items.length - 1];
+      expect(item2.text).toBe('Read paper');
+      expect(item2.dueDate).toBe('2026-11-02');
+      expect(item2.estimatedPomodoros).toBe(2);
+    });
+
+    it('manages activeFocusQuestId and toggles off on same quest id', () => {
+      let state = createInitialReminderState();
+      const firstId = state.items[0].id;
+
+      // Set active focus quest
+      state = setActiveFocusQuest(state, firstId);
+      expect(state.activeFocusQuestId).toBe(firstId);
+
+      // Toggle off when clicking the same quest again
+      state = setActiveFocusQuest(state, firstId);
+      expect(state.activeFocusQuestId).toBeNull();
+
+      // Set again, then explicitly set to null
+      state = setActiveFocusQuest(state, firstId);
+      expect(state.activeFocusQuestId).toBe(firstId);
+      state = setActiveFocusQuest(state, null);
+      expect(state.activeFocusQuestId).toBeNull();
+
+      // Cannot focus a completed task or invalid task
+      state.items[0].completed = true;
+      state = setActiveFocusQuest(state, firstId);
+      expect(state.activeFocusQuestId).toBeNull();
+      state = setActiveFocusQuest(state, 'non-existent-quest');
+      expect(state.activeFocusQuestId).toBeNull();
+    });
+
+    it('automatically resets activeFocusQuestId on complete, delete, or clear', () => {
+      let state = createInitialReminderState();
+      const firstId = state.items[0].id;
+      state = setActiveFocusQuest(state, firstId);
+      expect(state.activeFocusQuestId).toBe(firstId);
+
+      // Complete the focused quest -> activeFocusQuestId resets to null
+      const res = toggleReminderItem(state, firstId);
+      state = res.state;
+      expect(state.activeFocusQuestId).toBeNull();
+
+      // Set second quest as active
+      const secondId = state.items[1].id;
+      state = setActiveFocusQuest(state, secondId);
+      expect(state.activeFocusQuestId).toBe(secondId);
+
+      // Delete the focused quest -> activeFocusQuestId resets to null
+      state = deleteReminderItem(state, secondId);
+      expect(state.activeFocusQuestId).toBeNull();
+
+      // Clear completed: if completed was focused, it resets
+      const thirdId = state.items[0].id;
+      state = setActiveFocusQuest(state, thirdId);
+      state.items[0].completed = true; // force completed
+      state = clearCompletedReminders(state);
+      expect(state.activeFocusQuestId).toBeNull();
+    });
+
+    it('increments quest pomodoro counter and indicates targetReached', () => {
+      let state = createInitialReminderState();
+      const questId = state.items[0].id;
+      state.items[0].estimatedPomodoros = 2;
+      state.items[0].completedPomodoros = 0;
+
+      // 1st pomodoro
+      const res1 = incrementQuestPomodoro(state, questId);
+      expect(res1.targetReached).toBe(false);
+      expect(res1.state.items[0].completedPomodoros).toBe(1);
+
+      // 2nd pomodoro (reaches target 2)
+      const res2 = incrementQuestPomodoro(res1.state, questId);
+      expect(res2.targetReached).toBe(true);
+      expect(res2.questText).toContain('Drink a glass of water');
+      expect(res2.state.items[0].completedPomodoros).toBe(2);
+
+      // Invalid quest id
+      const resInvalid = incrementQuestPomodoro(state, null);
+      expect(resInvalid.targetReached).toBe(false);
+      expect(resInvalid.state).toBe(state);
+    });
+  });
+
+  describe('Sub-Quest Operations (#13)', () => {
+    it('adds subtask with trimming, character limit, and max 15 subtasks constraint', () => {
+      let state = createInitialReminderState();
+      const questId = state.items[0].id;
+
+      // Add subtask
+      state = addSubtask(state, questId, '  Gather ingredients  ');
+      expect(state.items[0].subtasks).toHaveLength(1);
+      expect(state.items[0].subtasks?.[0].text).toBe('Gather ingredients');
+      expect(state.items[0].subtasks?.[0].completed).toBe(false);
+      expect(state.items[0].subtasks?.[0].id).toBeTruthy();
+
+      // Ignores empty / whitespace
+      const countBefore = state.items[0].subtasks?.length ?? 0;
+      state = addSubtask(state, questId, '   ');
+      expect(state.items[0].subtasks?.length).toBe(countBefore);
+
+      // Truncates at 80 characters
+      const longStep = 'S'.repeat(100);
+      state = addSubtask(state, questId, longStep);
+      const subtasks = state.items[0].subtasks ?? [];
+      expect(subtasks[subtasks.length - 1].text.length).toBe(80);
+
+      // Max 15 subtasks per quest
+      while ((state.items[0].subtasks?.length ?? 0) < 15) {
+        state = addSubtask(state, questId, `Step ${state.items[0].subtasks?.length}`);
+      }
+      expect(state.items[0].subtasks?.length).toBe(15);
+      state = addSubtask(state, questId, 'Step 16 should be rejected');
+      expect(state.items[0].subtasks?.length).toBe(15);
+    });
+
+    it('toggles and deletes subtasks by id', () => {
+      let state = createInitialReminderState();
+      const questId = state.items[0].id;
+      state = addSubtask(state, questId, 'Step 1');
+      state = addSubtask(state, questId, 'Step 2');
+      const sub1 = state.items[0].subtasks![0].id;
+      const sub2 = state.items[0].subtasks![1].id;
+
+      // Toggle step 1
+      state = toggleSubtask(state, questId, sub1);
+      expect(state.items[0].subtasks![0].completed).toBe(true);
+      expect(state.items[0].subtasks![1].completed).toBe(false);
+
+      // Toggle back
+      state = toggleSubtask(state, questId, sub1);
+      expect(state.items[0].subtasks![0].completed).toBe(false);
+
+      // Delete step 1
+      state = deleteSubtask(state, questId, sub1);
+      expect(state.items[0].subtasks).toHaveLength(1);
+      expect(state.items[0].subtasks![0].id).toBe(sub2);
+    });
+  });
+
+  describe('Backward-Compatible JSON Serialization with Extended Fields', () => {
+    it('deserializes legacy JSON safely defaulting new fields', () => {
+      const legacyJson = JSON.stringify({
+        theme: 'custard',
+        stickyVisible: true,
+        items: [
+          {
+            id: 'legacy-q1',
+            text: 'Legacy quest without new properties',
+            completed: false,
+            createdAtMs: 12345,
+          },
+        ],
+      });
+
+      const parsed = parseRemindersJson(legacyJson);
+      expect(parsed.activeFocusQuestId).toBeNull();
+      expect(parsed.items).toHaveLength(1);
+      expect(parsed.items[0].subtasks).toEqual([]);
+      expect(parsed.items[0].completedPomodoros).toBe(0);
+      expect(parsed.items[0].estimatedPomodoros).toBeUndefined();
+      expect(parsed.items[0].notifiedStages).toEqual([]);
+    });
+
+    it('round-trips extended fields through JSON correctly', () => {
+      let state = createInitialReminderState();
+      const qId = state.items[0].id;
+      state = setActiveFocusQuest(state, qId);
+      state = addSubtask(state, qId, 'Sub-quest alpha');
+      state.items[0].estimatedPomodoros = 4;
+      state.items[0].completedPomodoros = 2;
+      state.items[0].notifiedStages = ['evening-before'];
+
+      const json = serializeRemindersJson(state);
+      const restored = parseRemindersJson(json);
+
+      expect(restored.activeFocusQuestId).toBe(qId);
+      expect(restored.items[0].estimatedPomodoros).toBe(4);
+      expect(restored.items[0].completedPomodoros).toBe(2);
+      expect(restored.items[0].notifiedStages).toEqual(['evening-before']);
+      expect(restored.items[0].subtasks).toHaveLength(1);
+      expect(restored.items[0].subtasks![0].text).toBe('Sub-quest alpha');
+    });
+
+    it('resets notifiedStages when updateReminderDueDate is called', () => {
+      let state = createInitialReminderState();
+      state.items[0].dueDate = '2026-11-02';
+      state.items[0].notifiedStages = ['evening-before', 'due-day'];
+
+      state = updateReminderDueDate(state, state.items[0].id, '2026-11-05');
+      expect(state.items[0].dueDate).toBe('2026-11-05');
+      expect(state.items[0].notifiedStages).toEqual([]);
     });
   });
 });

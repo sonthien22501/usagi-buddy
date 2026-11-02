@@ -65,6 +65,10 @@ export interface UsagiAPI {
   toggleReminder: (id: string) => void;
   deleteReminder: (id: string) => void;
   clearCompletedReminders: () => void;
+  setFocusQuest: (questId: string | null) => void;
+  addSubtask: (questId: string, text: string) => void;
+  toggleSubtask: (questId: string, subtaskId: string) => void;
+  deleteSubtask: (questId: string, subtaskId: string) => void;
   cycleStickyFontScale: () => void;
   updateReminderPreferences: (prefs: ReminderPreferencesUpdate) => void;
   resizeStickyWindow: (width: number, height: number) => void;
@@ -240,6 +244,18 @@ const api: UsagiAPI = {
   },
   clearCompletedReminders: () => {
     ipcRenderer.send('clear-completed-reminders');
+  },
+  setFocusQuest: (questId: string | null) => {
+    ipcRenderer.send('set-focus-quest', questId);
+  },
+  addSubtask: (questId: string, text: string) => {
+    ipcRenderer.send('add-subtask', { questId, text });
+  },
+  toggleSubtask: (questId: string, subtaskId: string) => {
+    ipcRenderer.send('toggle-subtask', { questId, subtaskId });
+  },
+  deleteSubtask: (questId: string, subtaskId: string) => {
+    ipcRenderer.send('delete-subtask', { questId, subtaskId });
   },
   cycleStickyFontScale: () => {
     ipcRenderer.send('cycle-sticky-font-scale');

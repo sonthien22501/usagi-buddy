@@ -528,6 +528,140 @@
         margin-left: 4px;
         vertical-align: middle;
       }
+      .quest-item.focus-active,
+      .reminder-item.focus-active {
+        border-color: #f59e0b;
+        box-shadow:
+          0 0 0 1.5px #f59e0b,
+          0 2px 6px rgba(245, 158, 11, 0.25);
+        background: #fffdf0;
+      }
+      .quest-focus-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        padding: 1px 3px;
+        font-size: calc(11px * var(--font-scale));
+        cursor: pointer;
+        opacity: 0.65;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .quest-focus-btn:hover {
+        opacity: 1;
+        transform: scale(1.1);
+        background: rgba(239, 68, 68, 0.1);
+      }
+      .quest-focus-btn.active {
+        opacity: 1;
+        background: #fee2e2;
+        border-color: #ef4444;
+      }
+      .quest-pomo-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: calc(9.5px * var(--font-scale));
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 999px;
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+        margin-left: 5px;
+        vertical-align: middle;
+      }
+      .subtask-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: calc(9px * var(--font-scale));
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 999px;
+        background: var(--card-inner);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        margin-left: 5px;
+        vertical-align: middle;
+        transition: all 0.15s ease;
+      }
+      .subtask-toggle-btn:hover {
+        background: var(--badge-bg);
+      }
+      .quest-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .subtasks-panel {
+        margin-left: 20px;
+        padding: 4px 6px;
+        background: var(--item-hover);
+        border-left: 2.5px solid var(--border-color);
+        border-radius: 0 0 6px 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .subtask-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: calc(11px * var(--font-scale));
+        color: var(--text-color);
+        cursor: pointer;
+      }
+      .subtask-item.completed {
+        text-decoration: line-through;
+        opacity: 0.6;
+      }
+      .subtask-check {
+        width: 12px;
+        height: 12px;
+        cursor: pointer;
+        accent-color: var(--accent-color);
+      }
+      .subtask-text {
+        flex: 1;
+        word-break: break-word;
+      }
+      .subtask-del-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 10px;
+        opacity: 0.5;
+        padding: 0 3px;
+      }
+      .subtask-del-btn:hover {
+        opacity: 1;
+        color: #e63946;
+      }
+      .subtask-add-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 2px;
+      }
+      .subtask-input {
+        flex: 1;
+        font-size: calc(10px * var(--font-scale));
+        padding: 2px 6px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--card-bg);
+        color: var(--text-color);
+        outline: none;
+      }
+      .subtask-input:focus {
+        border-color: var(--accent-color);
+      }
       /* Mini calendar inside sticky note */
       .cal-sticky-scroll {
         flex: 1;

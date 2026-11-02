@@ -4,12 +4,24 @@
 
 import { daysBetweenYMD } from './calendarStore';
 
+export type DeadlineAlertStage = 'evening-before' | 'due-day' | 'overdue';
+
+export interface SubtaskItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 export interface ReminderItem {
   id: string;
   text: string;
   completed: boolean;
   createdAtMs: number;
   dueDate?: string; // YYYY-MM-DD
+  subtasks?: SubtaskItem[];
+  estimatedPomodoros?: number;
+  completedPomodoros?: number;
+  notifiedStages?: DeadlineAlertStage[];
 }
 
 export type StickyFontScale = 'sm' | 'md' | 'lg';
@@ -52,10 +64,30 @@ export interface ReminderState {
   stickyX?: number | null;
   stickyY?: number | null;
   activeStickyTab?: StickyTabId;
+  activeFocusQuestId?: string | null;
 }
 
 export const MAX_REMINDER_ITEMS = 30;
 export const MAX_REMINDER_TEXT_LENGTH = 120;
+export const MAX_SUBTASKS_PER_QUEST = 15;
+export const MAX_SUBTASK_TEXT_LENGTH = 80;
+
+export function extractPomodoroToken(rawText: string): {
+  cleanText: string;
+  estimatedPomodoros?: number;
+} {
+  const match = rawText.match(/(?:^|\s)~(\d+)(?:pom|p)\b/i);
+  if (!match) {
+    return { cleanText: rawText };
+  }
+  const rawNum = parseInt(match[1], 10);
+  const estimatedPomodoros = Math.min(Math.max(rawNum, 1), 20);
+  const cleanText = rawText
+    .replace(/(?:^|\s)~(\d+)(?:pom|p)\b/i, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return { cleanText, estimatedPomodoros };
+}
 
 export function formatLocalDateYMD(d: Date): string {
   const y = d.getFullYear();
@@ -410,24 +442,36 @@ export const DEFAULT_STARTER_ITEMS: ReminderItem[] = [
     text: 'Drink a glass of water 💧',
     completed: false,
     createdAtMs: 1729900000000,
+    subtasks: [],
+    completedPomodoros: 0,
+    notifiedStages: [],
   },
   {
     id: 'starter-pomodoro',
     text: '25m Focus Session with Usagi 🍮',
     completed: false,
     createdAtMs: 1729900001000,
+    subtasks: [],
+    completedPomodoros: 0,
+    notifiedStages: [],
   },
   {
     id: 'starter-stretch',
     text: 'Stretch shoulders & eyes ✨',
     completed: false,
     createdAtMs: 1729900002000,
+    subtasks: [],
+    completedPomodoros: 0,
+    notifiedStages: [],
   },
 ];
 
 export function createInitialReminderState(): ReminderState {
   return {
-    items: DEFAULT_STARTER_ITEMS.map((item) => ({ ...item })),
+    items: DEFAULT_STARTER_ITEMS.map((item) => ({
+      ...item,
+      subtasks: [...(item.subtasks ?? [])],
+    })),
     stickyVisible: true,
     theme: 'custard',
     fontScale: 'md',
@@ -439,6 +483,7 @@ export function createInitialReminderState(): ReminderState {
     stickyX: null,
     stickyY: null,
     activeStickyTab: 'quests',
+    activeFocusQuestId: null,
   };
 }
 
@@ -464,8 +509,9 @@ export function addReminderItem(
     }
   }
 
+  const pomo = extractPomodoroToken(text);
   const { cleanText, dueDate } = extractDueDateToken(
-    text,
+    pomo.cleanText,
     fallbackDueDate,
     nowDate,
     state.dateFormat || 'DD/MM'
@@ -480,7 +526,13 @@ export function addReminderItem(
     text: truncated,
     completed: false,
     createdAtMs: nowMs,
+    subtasks: [],
+    completedPomodoros: 0,
+    notifiedStages: [],
     ...(dueDate ? { dueDate } : {}),
+    ...(pomo.estimatedPomodoros !== undefined
+      ? { estimatedPomodoros: pomo.estimatedPomodoros }
+      : {}),
   };
 
   return {
@@ -512,10 +564,14 @@ export function toggleReminderItem(
     return { state, newlyCompleted: null };
   }
 
+  const nextActiveFocusQuestId =
+    newlyCompleted && state.activeFocusQuestId === id ? null : (state.activeFocusQuestId ?? null);
+
   return {
     state: {
       ...state,
       items: nextItems,
+      activeFocusQuestId: nextActiveFocusQuestId,
     },
     newlyCompleted,
   };
@@ -525,13 +581,198 @@ export function deleteReminderItem(state: ReminderState, id: string): ReminderSt
   return {
     ...state,
     items: state.items.filter((item) => item.id !== id),
+    activeFocusQuestId: state.activeFocusQuestId === id ? null : (state.activeFocusQuestId ?? null),
   };
 }
 
 export function clearCompletedReminders(state: ReminderState): ReminderState {
+  const completedIds = new Set(state.items.filter((it) => it.completed).map((it) => it.id));
   return {
     ...state,
     items: state.items.filter((item) => !item.completed),
+    activeFocusQuestId:
+      state.activeFocusQuestId && completedIds.has(state.activeFocusQuestId)
+        ? null
+        : (state.activeFocusQuestId ?? null),
+  };
+}
+
+export function setActiveFocusQuest(state: ReminderState, questId: string | null): ReminderState {
+  if (questId === null || questId === state.activeFocusQuestId) {
+    return {
+      ...state,
+      activeFocusQuestId: null,
+    };
+  }
+
+  const target = state.items.find((i) => i.id === questId);
+  if (!target || target.completed) {
+    return {
+      ...state,
+      activeFocusQuestId: null,
+    };
+  }
+
+  return {
+    ...state,
+    activeFocusQuestId: questId,
+  };
+}
+
+export function incrementQuestPomodoro(
+  state: ReminderState,
+  questId: string | null | undefined
+): { state: ReminderState; targetReached: boolean; questText?: string } {
+  if (!questId) {
+    return { state, targetReached: false };
+  }
+
+  const target = state.items.find((i) => i.id === questId);
+  if (!target) {
+    return { state, targetReached: false };
+  }
+
+  const nextCompleted = (target.completedPomodoros ?? 0) + 1;
+  const targetReached = Boolean(
+    target.estimatedPomodoros && nextCompleted >= target.estimatedPomodoros
+  );
+
+  const nextItems = state.items.map((item) => {
+    if (item.id === questId) {
+      return {
+        ...item,
+        completedPomodoros: nextCompleted,
+      };
+    }
+    return item;
+  });
+
+  return {
+    state: {
+      ...state,
+      items: nextItems,
+    },
+    targetReached,
+    questText: target.text,
+  };
+}
+
+export function addSubtask(state: ReminderState, questId: string, text: string): ReminderState {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return state;
+  }
+
+  const quest = state.items.find((i) => i.id === questId);
+  if (!quest) {
+    return state;
+  }
+
+  const existingSubtasks = quest.subtasks ?? [];
+  if (existingSubtasks.length >= MAX_SUBTASKS_PER_QUEST) {
+    return state;
+  }
+
+  const newSubtask: SubtaskItem = {
+    id: `sub_${Date.now()}_${existingSubtasks.length}_${Math.random().toString(36).slice(2, 6)}`,
+    text: trimmed.slice(0, MAX_SUBTASK_TEXT_LENGTH),
+    completed: false,
+  };
+
+  const nextItems = state.items.map((item) => {
+    if (item.id === questId) {
+      return {
+        ...item,
+        subtasks: [...existingSubtasks, newSubtask],
+      };
+    }
+    return item;
+  });
+
+  return {
+    ...state,
+    items: nextItems,
+  };
+}
+
+export function toggleSubtask(
+  state: ReminderState,
+  questId: string,
+  subtaskId: string
+): ReminderState {
+  const quest = state.items.find((i) => i.id === questId);
+  if (!quest || !quest.subtasks) {
+    return state;
+  }
+
+  const nextSubtasks = quest.subtasks.map((sub) => {
+    if (sub.id === subtaskId) {
+      return { ...sub, completed: !sub.completed };
+    }
+    return sub;
+  });
+
+  const nextItems = state.items.map((item) => {
+    if (item.id === questId) {
+      return {
+        ...item,
+        subtasks: nextSubtasks,
+      };
+    }
+    return item;
+  });
+
+  return {
+    ...state,
+    items: nextItems,
+  };
+}
+
+export function deleteSubtask(
+  state: ReminderState,
+  questId: string,
+  subtaskId: string
+): ReminderState {
+  const quest = state.items.find((i) => i.id === questId);
+  if (!quest || !quest.subtasks) {
+    return state;
+  }
+
+  const nextSubtasks = quest.subtasks.filter((sub) => sub.id !== subtaskId);
+
+  const nextItems = state.items.map((item) => {
+    if (item.id === questId) {
+      return {
+        ...item,
+        subtasks: nextSubtasks,
+      };
+    }
+    return item;
+  });
+
+  return {
+    ...state,
+    items: nextItems,
+  };
+}
+
+export function updateReminderDueDate(
+  state: ReminderState,
+  id: string,
+  dueDate?: string
+): ReminderState {
+  return {
+    ...state,
+    items: state.items.map((item) => {
+      if (item.id === id) {
+        return {
+          ...item,
+          dueDate,
+          notifiedStages: [],
+        };
+      }
+      return item;
+    }),
   };
 }
 
@@ -615,6 +856,12 @@ export function updateReminderPreferences(
   return next;
 }
 
+function isValidSubtask(sub: unknown): sub is SubtaskItem {
+  if (typeof sub !== 'object' || sub === null) return false;
+  const s = sub as Record<string, unknown>;
+  return typeof s.id === 'string' && typeof s.text === 'string' && typeof s.completed === 'boolean';
+}
+
 function isValidReminderItem(item: unknown): item is ReminderItem {
   if (typeof item !== 'object' || item === null) return false;
   const candidate = item as Record<string, unknown>;
@@ -666,6 +913,8 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
       parsed.activeStickyTab === 'calendar' || parsed.activeStickyTab === 'schedule'
         ? parsed.activeStickyTab
         : 'quests';
+    const activeFocusQuestId: string | null =
+      typeof parsed.activeFocusQuestId === 'string' ? parsed.activeFocusQuestId : null;
 
     if (!Array.isArray(parsed.items)) {
       return {
@@ -681,6 +930,7 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
         stickyX,
         stickyY,
         activeStickyTab,
+        activeFocusQuestId,
       };
     }
 
@@ -692,9 +942,43 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
           text: String(item.text).slice(0, MAX_REMINDER_TEXT_LENGTH),
           completed: Boolean(item.completed),
           createdAtMs: Number(item.createdAtMs) || 0,
+          subtasks: [],
+          completedPomodoros: 0,
+          notifiedStages: [],
         };
         if (typeof item.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.dueDate)) {
           validItem.dueDate = item.dueDate;
+        }
+        if (Array.isArray(item.subtasks)) {
+          validItem.subtasks = item.subtasks
+            .filter(isValidSubtask)
+            .map((s) => ({
+              id: String(s.id),
+              text: String(s.text).slice(0, MAX_SUBTASK_TEXT_LENGTH),
+              completed: Boolean(s.completed),
+            }))
+            .slice(0, MAX_SUBTASKS_PER_QUEST);
+        }
+        if (
+          typeof item.completedPomodoros === 'number' &&
+          Number.isFinite(item.completedPomodoros)
+        ) {
+          validItem.completedPomodoros = Math.max(0, Math.round(item.completedPomodoros));
+        }
+        if (
+          typeof item.estimatedPomodoros === 'number' &&
+          Number.isFinite(item.estimatedPomodoros)
+        ) {
+          validItem.estimatedPomodoros = Math.min(
+            Math.max(Math.round(item.estimatedPomodoros), 1),
+            20
+          );
+        }
+        if (Array.isArray(item.notifiedStages)) {
+          const allowed: DeadlineAlertStage[] = ['evening-before', 'due-day', 'overdue'];
+          validItem.notifiedStages = item.notifiedStages.filter((st): st is DeadlineAlertStage =>
+            allowed.includes(st as DeadlineAlertStage)
+          );
         }
         validItems.push(validItem);
       }
@@ -713,6 +997,7 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
       stickyX,
       stickyY,
       activeStickyTab,
+      activeFocusQuestId,
     };
   } catch {
     return createInitialReminderState();

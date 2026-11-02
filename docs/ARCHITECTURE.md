@@ -29,6 +29,7 @@ usagi-buddy/
 │   ├── core/
 │   │   ├── alphaCropper.ts        # Alpha bounding-box scanner & auto-trimmer
 │   │   ├── calendarStore.ts       # Pure month grid, Nager.Date holiday normalizer, country detection, birthday injection & countdowns
+│   │   ├── deadlineScheduler.ts   # Smart Multi-Stage Deadline Engine (#11) with evening-before, due-day & overdue evaluation
 │   │   ├── kawaiiIcons.ts         # Unified Kawaii rounded SVG icon set with theme-adaptive fills
 │   │   ├── settingsStore.ts       # Zero-dependency user preferences store, JSON serialization & multi-mode transition resolver
 │   │   ├── trayPositioner.ts      # Cross-platform tray popover anchor & screen boundary clamping
@@ -59,6 +60,7 @@ usagi-buddy/
 └── tests/
     ├── alphaCropper.test.ts
     ├── calendarStore.test.ts
+    ├── deadlineScheduler.test.ts
     ├── physicsEngine.test.ts
     ├── reminderStore.test.ts
     ├── costumeManager.test.ts
@@ -81,8 +83,10 @@ usagi-buddy/
 - `ModeFlags`: `{ ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
 - `WardrobeRotationState`: `{ fixedAppearance: boolean, elapsedMs: number }`
-- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard', fontScale?: 'sm' | 'md' | 'lg', dateFormat?: 'DD/MM' | 'MM/DD', weekStartsOn?: 0 | 1, stickyAlwaysOnTop?: boolean, stickyWidth?: number, stickyHeight?: number, stickyX?: number | null, stickyY?: number | null, activeStickyTab?: 'quests' | 'calendar' | 'schedule' }`
-- `ReminderItem`: `{ id: string, text: string, completed: boolean, createdAtMs: number, dueDate?: string }`
+- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard', fontScale?: 'sm' | 'md' | 'lg', dateFormat?: 'DD/MM' | 'MM/DD', weekStartsOn?: 0 | 1, stickyAlwaysOnTop?: boolean, stickyWidth?: number, stickyHeight?: number, stickyX?: number | null, stickyY?: number | null, activeStickyTab?: 'quests' | 'calendar' | 'schedule', activeFocusQuestId?: string | null }`
+- `ReminderItem`: `{ id: string, text: string, completed: boolean, createdAtMs: number, dueDate?: string, subtasks?: SubtaskItem[], estimatedPomodoros?: number, completedPomodoros?: number, notifiedStages?: DeadlineAlertStage[] }`
+- `SubtaskItem`: `{ id: string, text: string, completed: boolean }`
+- `DeadlineAlertStage`: `'evening-before' | 'due-day' | 'overdue'`
 - `ScheduleEntry`: `{ id: string, title: string, dayOfWeek: number, startTime: string, endTime: string, location?: string }`
 - `ScheduleState`: `{ entries: ScheduleEntry[] }`
 - `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', nextReminderAtMs, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
@@ -115,3 +119,4 @@ usagi-buddy/
 - [x] M18: Unified Calendar, Holiday Service, Buddy Birthday & Date-Linked Quests (Nager.Date public holiday client + offline fallback, zero-permission country detection, Buddy Profile with birthday event injection, inline `@today`/`@tomorrow`/`@+Nd`/`@YYYY-MM-DD` quest parser, quick-date chips, and identical Custard & Caramel Kawaii mini calendar + countdown UI across Dashboard and Sticky Note) (`src/core/calendarStore.ts`, `src/core/reminderStore.ts`, `src/dashboard/`, `src/sticky/`, `src/main/index.ts`)
 - [x] M19: Cross-Session State Persistence & Geometry Memory (Sticky note dimensions & screen coordinates persistence, active sticky tab and active dashboard tab hydration, proportional text scaling via CSS var(--font-scale), Usagi companion coordinates persistence across drag/pin, and unified dev vs packaged userData migration) (`src/core/reminderStore.ts`, `src/core/settingsStore.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/sticky/`, `src/dashboard/`, `src/renderer/`)
 - [x] M20: Streamlined Taskbar Tray & Memory/Storage Diet (removal of Tray Ghost Mode, 3-chip core focus presets in Tray, lazy window/sprite loading, on-demand cursor tracking, hidden loop throttling, and deduplicated minified asset packaging) (`src/main/index.ts`, `src/tray/`, `src/renderer/app.ts`, `scripts/build.mjs`, `package.json`)
+- [x] M21: Quest Productivity Suite (#11, #10, #13 & Close #6) — Smart Multi-Stage Deadline Engine (1-Day-Before Evening Briefing at 19:00, Due-Day Morning Nudge at 09:00, & Overdue Alerts with anti-spam idempotency), Quest-Linked Pomodoro Timer ("Focus on this Quest", inline ~Np/~Npom parsing, & 🍅 counter), and Bite-Sized Sub-Quests with [done/total] pill, inline expand/collapse, and full synchronization across Sticky Note and Dashboard (`src/core/deadlineScheduler.ts`, `src/core/reminderStore.ts`, `src/sticky/`, `src/dashboard/`, `src/main/index.ts`, `src/preload/index.ts`, `tests/deadlineScheduler.test.ts`, `tests/reminderStore.test.ts`)

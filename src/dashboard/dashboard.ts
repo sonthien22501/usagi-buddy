@@ -15,6 +15,9 @@ const dashViewConfig = document.getElementById('dashViewConfig') as HTMLDivEleme
 const toggleStickyWindowBtn = document.getElementById(
   'toggle-sticky-window-btn'
 ) as HTMLButtonElement | null;
+const dashQuestList = document.getElementById('dash-quest-list') as HTMLDivElement | null;
+const dashQuestCounter = document.getElementById('dash-quest-counter') as HTMLSpanElement | null;
+const dashExpandedQuestIds = new Set<string>();
 
 // Buddy Profile Elements
 const buddyNicknameInput = document.getElementById(
@@ -223,6 +226,169 @@ function renderReminderConfigUI(state: ReminderState): void {
   if (toggleStickyWindowBtn) {
     toggleStickyWindowBtn.textContent = state.stickyVisible ? 'Hide Note' : 'Show Note';
     toggleStickyWindowBtn.classList.toggle('active', Boolean(state.stickyVisible));
+  }
+
+  renderDashboardQuests(state);
+}
+
+function renderDashboardQuests(state: ReminderState): void {
+  if (dashQuestCounter) {
+    const comp = state.items.filter((i) => i.completed).length;
+    dashQuestCounter.textContent = `${comp}/${state.items.length} quests`;
+  }
+
+  if (!dashQuestList) return;
+  dashQuestList.innerHTML = '';
+
+  if (state.items.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.textAlign = 'center';
+    empty.style.padding = '8px';
+    empty.style.fontSize = '12px';
+    empty.style.color = 'var(--text-muted)';
+    empty.textContent = 'No quests yet! Add quests in the Sticky Note~';
+    dashQuestList.appendChild(empty);
+    return;
+  }
+
+  for (const item of state.items) {
+    const wrap = document.createElement('div');
+    wrap.style.display = 'flex';
+    wrap.style.flexDirection = 'column';
+    wrap.style.gap = '2px';
+
+    const itemEl = document.createElement('div');
+    itemEl.className = `quest-dashboard-item ${item.completed ? 'completed' : ''} ${
+      state.activeFocusQuestId === item.id ? 'focus-active' : ''
+    }`;
+
+    itemEl.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.delete-btn, .quest-focus-btn, .subtask-toggle-btn'))
+        return;
+      window.usagiAPI?.toggleReminder(item.id);
+    });
+
+    const focusBtn = document.createElement('button');
+    focusBtn.className = `quest-focus-btn ${state.activeFocusQuestId === item.id ? 'active' : ''}`;
+    focusBtn.textContent = '🍅';
+    focusBtn.title = state.activeFocusQuestId === item.id ? 'Unfocus quest' : 'Focus on this quest';
+    focusBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.usagiAPI?.setFocusQuest(item.id);
+    });
+
+    const bullet = document.createElement('span');
+    bullet.className = 'quest-bullet';
+    bullet.textContent = item.completed ? '🍮' : '✦';
+
+    const text = document.createElement('span');
+    text.className = 'quest-text';
+    text.textContent = item.text;
+
+    if ((item.completedPomodoros && item.completedPomodoros > 0) || item.estimatedPomodoros) {
+      const pill = document.createElement('span');
+      pill.className = 'quest-pomo-pill';
+      const c = item.completedPomodoros ?? 0;
+      pill.textContent = item.estimatedPomodoros ? `🍅 ${c}/${item.estimatedPomodoros}` : `🍅 ${c}`;
+      text.appendChild(pill);
+    }
+
+    const subtasks = item.subtasks ?? [];
+    const subtaskBtn = document.createElement('button');
+    subtaskBtn.className = 'subtask-toggle-btn';
+    if (subtasks.length > 0) {
+      const done = subtasks.filter((s) => s.completed).length;
+      subtaskBtn.textContent = `[${done}/${subtasks.length}]`;
+    } else {
+      subtaskBtn.textContent = '+ step';
+    }
+    subtaskBtn.title = dashExpandedQuestIds.has(item.id) ? 'Collapse subtasks' : 'Expand subtasks';
+    subtaskBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (dashExpandedQuestIds.has(item.id)) {
+        dashExpandedQuestIds.delete(item.id);
+      } else {
+        dashExpandedQuestIds.add(item.id);
+      }
+      renderDashboardQuests(currentReminderState);
+    });
+    text.appendChild(subtaskBtn);
+
+    const comfyLine = document.createElement('span');
+    comfyLine.className = 'comfy-line';
+    text.appendChild(comfyLine);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'delete-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = 'Delete quest';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.usagiAPI?.deleteReminder(item.id);
+    });
+
+    itemEl.appendChild(focusBtn);
+    itemEl.appendChild(bullet);
+    itemEl.appendChild(text);
+    itemEl.appendChild(delBtn);
+    wrap.appendChild(itemEl);
+
+    if (dashExpandedQuestIds.has(item.id)) {
+      const panel = document.createElement('div');
+      panel.className = 'dash-subtasks-panel';
+
+      for (const sub of subtasks) {
+        const subRow = document.createElement('div');
+        subRow.className = `dash-subtask-item ${sub.completed ? 'completed' : ''}`;
+
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.style.cursor = 'pointer';
+        chk.checked = sub.completed;
+        chk.addEventListener('change', (e) => {
+          e.stopPropagation();
+          window.usagiAPI?.toggleSubtask(item.id, sub.id);
+        });
+
+        const subTxt = document.createElement('span');
+        subTxt.style.flex = '1';
+        subTxt.textContent = sub.text;
+
+        const subDel = document.createElement('button');
+        subDel.className = 'delete-btn';
+        subDel.style.fontSize = '10px';
+        subDel.textContent = '✕';
+        subDel.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.usagiAPI?.deleteSubtask(item.id, sub.id);
+        });
+
+        subRow.appendChild(chk);
+        subRow.appendChild(subTxt);
+        subRow.appendChild(subDel);
+        panel.appendChild(subRow);
+      }
+
+      const addInput = document.createElement('input');
+      addInput.type = 'text';
+      addInput.className = 'dash-subtask-input';
+      addInput.placeholder = 'Add step... (Enter)';
+      addInput.maxLength = 80;
+      addInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const val = addInput.value.trim();
+          if (val) {
+            window.usagiAPI?.addSubtask(item.id, val);
+            addInput.value = '';
+          }
+        }
+      });
+      panel.appendChild(addInput);
+      wrap.appendChild(panel);
+    }
+
+    dashQuestList.appendChild(wrap);
   }
 }
 
