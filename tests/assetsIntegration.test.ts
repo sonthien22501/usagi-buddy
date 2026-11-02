@@ -120,9 +120,10 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(fs.existsSync(dashboardHtmlPath)).toBe(true);
     const html = fs.readFileSync(dashboardHtmlPath, 'utf-8');
 
-    // Usagi Custard & Caramel Anime Theme variables & toggle
-    expect(html).toContain('data-theme');
-    expect(html).toContain('theme-toggle-btn');
+    // Usagi Custard & Caramel Anime Theme variables (night mode removed)
+    expect(html).toContain('data-theme="custard"');
+    expect(html).not.toContain("[data-theme='night']");
+    expect(html).not.toContain('theme-toggle-btn');
     expect(html).toContain('--bg-color');
     expect(html).toContain('--border-color');
 
@@ -200,10 +201,11 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(fs.existsSync(trayTsPath)).toBe(true);
 
     const trayHtml = fs.readFileSync(trayHtmlPath, 'utf-8');
-    expect(trayHtml).toContain('data-theme');
+    expect(trayHtml).toContain('data-theme="custard"');
+    expect(trayHtml).not.toContain("[data-theme='night']");
+    expect(trayHtml).not.toContain('tray-theme-toggle-btn');
     expect(trayHtml).toContain('--bg-color');
     expect(trayHtml).toContain('--border-color');
-    expect(trayHtml).toContain('tray-theme-toggle-btn');
     expect(trayHtml).toContain('tray-clock-time');
     expect(trayHtml).toContain('tray-clock-badge');
     expect(trayHtml).toContain('tray-start-pause-btn');
@@ -239,5 +241,10 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(dashboardHtml).toContain('.kawaii-svg');
     expect(stickyHtml).toContain('.kawaii-svg');
     expect(trayHtml).toContain('.kawaii-svg');
+
+    // 6. Sticky window has night mode removed
+    expect(stickyHtml).toContain('data-theme="custard"');
+    expect(stickyHtml).not.toContain("[data-theme='night']");
+    expect(stickyHtml).not.toContain('themeToggleBtn');
   });
 });

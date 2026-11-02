@@ -21,21 +21,6 @@
         --item-hover: #fff3d6;
       }
 
-      [data-theme='night'] {
-        --bg-color: #1e1a29;
-        --card-bg: #272138;
-        --card-inner: #332a4a;
-        --border-color: #e8b4b8;
-        --text-color: #fce8ee;
-        --text-muted: #bdaec6;
-        --accent-strawberry: #ff758f;
-        --accent-strawberry-hover: #ff8fa3;
-        --shadow-color: #120f1d;
-        --badge-bg: #3a2e52;
-        --badge-text: #fce8ee;
-        --item-hover: #3a2e52;
-      }
-
       * {
         box-sizing: border-box;
         margin: 0;
@@ -129,27 +114,6 @@
         font-weight: 700;
         color: var(--accent-strawberry);
         letter-spacing: 0.2px;
-      }
-
-      .theme-btn {
-        background: var(--card-inner);
-        border: 1.5px solid var(--border-color);
-        color: var(--text-color);
-        padding: 4px 8px;
-        border-radius: 8px;
-        font-size: 11px;
-        font-weight: 800;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        box-shadow: 0 2px 0 var(--border-color);
-        transition: transform 0.08s ease;
-      }
-
-      .theme-btn:active {
-        transform: translateY(1.5px);
-        box-shadow: none;
       }
 
       /* Timer Card */
@@ -338,10 +302,6 @@
             <span class="tray-status-pill">● Floating</span>
           </div>
         </div>
-        <button id="tray-theme-toggle-btn" class="theme-btn" title="Toggle Day / Night Theme">
-          <span class="kawaii-icon-wrap" id="tray-theme-icon-wrap"></span>
-          <span id="tray-theme-text">Night</span>
-        </button>
       </div>
 
       <!-- Focus Timer -->

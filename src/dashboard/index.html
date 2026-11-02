@@ -22,22 +22,6 @@
         --slider-track: rgba(92, 58, 33, 0.15);
       }
 
-      [data-theme='night'] {
-        --bg-color: #1e1a29;
-        --card-bg: #272138;
-        --card-inner: #332a4a;
-        --border-color: #e8b4b8;
-        --text-color: #fce8ee;
-        --text-muted: #bdaec6;
-        --accent-strawberry: #ff758f;
-        --accent-strawberry-hover: #ff8fa3;
-        --shadow-color: #120f1d;
-        --badge-bg: #3a2e52;
-        --badge-text: #fce8ee;
-        --input-bg: #201a2f;
-        --slider-track: rgba(232, 180, 184, 0.2);
-      }
-
       * {
         box-sizing: border-box;
         margin: 0;
@@ -153,30 +137,6 @@
         font-size: 11.5px;
         color: var(--text-muted);
         margin-top: 1px;
-      }
-
-      .theme-btn {
-        background: var(--card-inner);
-        border: 2px solid var(--border-color);
-        color: var(--text-color);
-        padding: 5px 12px;
-        border-radius: 10px;
-        font-size: 12px;
-        font-weight: 800;
-        cursor: pointer;
-        box-shadow: 0 2.5px 0 var(--border-color);
-        transition:
-          transform 0.1s ease,
-          background 0.15s ease;
-      }
-
-      .theme-btn:hover {
-        filter: brightness(1.05);
-      }
-
-      .theme-btn:active {
-        transform: translateY(2px);
-        box-shadow: none;
       }
 
       .card {
@@ -773,7 +733,6 @@
           <p>Custard Anime Companion & Quests</p>
         </div>
       </div>
-      <button id="theme-toggle-btn" class="theme-btn">🌙 Night</button>
     </div>
 
     <!-- 1. Desktop Sticky Reminders & Cozy Calendar Card -->

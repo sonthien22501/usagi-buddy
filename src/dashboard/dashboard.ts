@@ -12,8 +12,6 @@ import {
   daysBetweenYMD,
 } from '../core/calendarStore';
 
-const themeToggleBtn = document.getElementById('theme-toggle-btn') as HTMLButtonElement | null;
-
 // Sticky Reminders elements
 const toggleStickyWindowBtn = document.getElementById(
   'toggle-sticky-window-btn'
@@ -130,25 +128,6 @@ let isPlayMode = false;
 let isGhostMode = false;
 let isFixedAppearance = false;
 let isUsagiHidden = false;
-
-// 1. Theme Management
-function updateThemeUI(theme: 'custard' | 'night'): void {
-  document.body.setAttribute('data-theme', theme);
-  if (themeToggleBtn) {
-    themeToggleBtn.innerHTML = renderIconLabel(
-      theme === 'custard' ? 'moon' : 'sun',
-      theme === 'custard' ? 'Night' : 'Custard',
-      13
-    );
-  }
-}
-
-if (themeToggleBtn) {
-  themeToggleBtn.addEventListener('click', () => {
-    const nextTheme = currentReminderState.theme === 'custard' ? 'night' : 'custard';
-    window.usagiAPI?.setTheme(nextTheme);
-  });
-}
 
 // 2. Desktop Sticky Reminders & Calendar
 function getTodayYMD(): string {
@@ -301,11 +280,11 @@ function renderCalendar(): void {
     btn.addEventListener('click', () => {
       if (selectedDateStr === cell.dateStr) {
         selectedDateStr = null;
+        activeQuickDueDate = null;
       } else {
         selectedDateStr = cell.dateStr;
         activeQuickDueDate = cell.dateStr;
       }
-      renderCalendar();
       updateReminderUI(currentReminderState);
     });
 
@@ -354,7 +333,7 @@ function renderCalendar(): void {
 
 function updateReminderUI(state: ReminderState): void {
   currentReminderState = state;
-  updateThemeUI(state.theme);
+  document.body.setAttribute('data-theme', 'custard');
 
   if (toggleStickyWindowBtn) {
     toggleStickyWindowBtn.innerHTML = renderIconLabel(
@@ -491,7 +470,6 @@ if (chipClearDate) {
     selectedDateStr = null;
     chipDateButtons.forEach((b) => b.classList.remove('active'));
     chipClearDate.style.display = 'none';
-    renderCalendar();
     updateReminderUI(currentReminderState);
   });
 }
@@ -502,7 +480,6 @@ if (calClearFilterBtn) {
     activeQuickDueDate = null;
     chipDateButtons.forEach((b) => b.classList.remove('active'));
     if (chipClearDate) chipClearDate.style.display = 'none';
-    renderCalendar();
     updateReminderUI(currentReminderState);
   });
 }
@@ -536,7 +513,6 @@ if (calTodayBtn) {
     currentCalendarMonth = now.getMonth() + 1;
     selectedDateStr = getTodayYMD();
     activeQuickDueDate = selectedDateStr;
-    renderCalendar();
     updateReminderUI(currentReminderState);
   });
 }
@@ -1002,7 +978,6 @@ if (window.usagiAPI) {
   window.usagiAPI.onCalendarStateChanged((payload) => {
     currentEvents = payload.events;
     renderBuddyProfile(payload.profile);
-    renderCalendar();
     updateReminderUI(currentReminderState);
   });
 
@@ -1029,7 +1004,6 @@ if (window.usagiAPI) {
       if (payload) {
         currentEvents = payload.events;
         renderBuddyProfile(payload.profile);
-        renderCalendar();
         updateReminderUI(currentReminderState);
       }
     })

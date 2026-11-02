@@ -2,11 +2,6 @@ import { getKawaiiIcon } from '../core/kawaiiIcons';
 import { formatPomodoroTime, PomodoroState } from '../core/pomodoroTimer';
 import { ReminderState } from '../core/reminderStore';
 
-// Header elements
-const themeToggleBtn = document.getElementById('tray-theme-toggle-btn') as HTMLButtonElement | null;
-const themeIconWrap = document.getElementById('tray-theme-icon-wrap') as HTMLSpanElement | null;
-const themeText = document.getElementById('tray-theme-text') as HTMLSpanElement | null;
-
 // Timer elements
 const clockTime = document.getElementById('tray-clock-time') as HTMLDivElement | null;
 const clockBadge = document.getElementById('tray-clock-badge') as HTMLSpanElement | null;
@@ -88,17 +83,6 @@ function initStaticIcons(): void {
   if (resetIcon) resetIcon.innerHTML = getKawaiiIcon('reset', 14);
 }
 
-// Update Theme UI
-function updateThemeUI(theme: 'custard' | 'night'): void {
-  document.body.setAttribute('data-theme', theme);
-  if (themeIconWrap) {
-    themeIconWrap.innerHTML = getKawaiiIcon(theme === 'custard' ? 'moon' : 'sun', 14);
-  }
-  if (themeText) {
-    themeText.textContent = theme === 'custard' ? 'Night' : 'Custard';
-  }
-}
-
 // Update Timer UI
 function updatePomodoroUI(state: PomodoroState): void {
   currentPomodoroState = state;
@@ -126,7 +110,7 @@ function updatePomodoroUI(state: PomodoroState): void {
 // Update Reminder and Sticky State
 function updateReminderUI(state: ReminderState): void {
   currentReminderState = state;
-  updateThemeUI(state.theme);
+  document.body.setAttribute('data-theme', 'custard');
 
   if (stickyText && stickyStatus) {
     stickyText.textContent = state.stickyVisible ? 'Hide Sticky Quests' : 'Show Sticky Quests';
@@ -184,13 +168,6 @@ function updateGhostUI(locked: boolean): void {
 initStaticIcons();
 updateHiddenUI(false);
 updateGhostUI(false);
-
-if (themeToggleBtn) {
-  themeToggleBtn.addEventListener('click', () => {
-    const nextTheme = currentReminderState.theme === 'custard' ? 'night' : 'custard';
-    window.usagiAPI?.setTheme(nextTheme);
-  });
-}
 
 if (startPauseBtn) {
   startPauseBtn.addEventListener('click', () => {

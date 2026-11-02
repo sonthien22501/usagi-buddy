@@ -13,7 +13,7 @@ export interface ReminderItem {
 export interface ReminderState {
   items: ReminderItem[];
   stickyVisible: boolean;
-  theme: 'custard' | 'night';
+  theme: 'custard';
 }
 
 export const MAX_REMINDER_ITEMS = 30;
@@ -213,7 +213,7 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
       return createInitialReminderState();
     }
 
-    const theme: 'custard' | 'night' = parsed.theme === 'night' ? 'night' : 'custard';
+    const theme: 'custard' = 'custard';
     const stickyVisible: boolean =
       typeof parsed.stickyVisible === 'boolean' ? parsed.stickyVisible : true;
 

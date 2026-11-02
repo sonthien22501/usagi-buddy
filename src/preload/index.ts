@@ -59,7 +59,6 @@ export interface UsagiAPI {
   deleteReminder: (id: string) => void;
   clearCompletedReminders: () => void;
   toggleStickyWindow: () => void;
-  setTheme: (theme: 'custard' | 'night') => void;
   onTaskCelebration: (callback: (taskText: string) => void) => () => void;
   toggleFixedAppearance: () => void;
   onFixedAppearanceChanged: (callback: (fixed: boolean) => void) => () => void;
@@ -226,9 +225,6 @@ const api: UsagiAPI = {
   },
   toggleStickyWindow: () => {
     ipcRenderer.send('toggle-sticky-window');
-  },
-  setTheme: (theme: 'custard' | 'night') => {
-    ipcRenderer.send('set-theme', theme);
   },
   onTaskCelebration: (callback: (taskText: string) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, taskText: string) => callback(taskText);
