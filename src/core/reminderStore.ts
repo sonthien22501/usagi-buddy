@@ -7,6 +7,7 @@ export interface ReminderItem {
   text: string;
   completed: boolean;
   createdAtMs: number;
+  dueDate?: string; // YYYY-MM-DD
 }
 
 export interface ReminderState {
@@ -17,6 +18,57 @@ export interface ReminderState {
 
 export const MAX_REMINDER_ITEMS = 30;
 export const MAX_REMINDER_TEXT_LENGTH = 120;
+
+export function formatLocalDateYMD(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function extractDueDateToken(
+  rawText: string,
+  defaultDateStr?: string,
+  now = new Date()
+): { cleanText: string; dueDate?: string } {
+  let dueDate: string | undefined = undefined;
+  let text = rawText;
+
+  const todayRegex = /(?:^|\s)@today\b/i;
+  const tomorrowRegex = /(?:^|\s)@(?:tomorrow|tmrw)\b/i;
+  const plusDaysRegex = /(?:^|\s)@\+(\d+)d\b/i;
+  const dateRegex = /(?:^|\s)@(\d{4}-\d{2}-\d{2})\b/;
+
+  if (todayRegex.test(text)) {
+    dueDate = formatLocalDateYMD(now);
+    text = text.replace(todayRegex, '');
+  } else if (tomorrowRegex.test(text)) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    dueDate = formatLocalDateYMD(d);
+    text = text.replace(tomorrowRegex, '');
+  } else if (plusDaysRegex.test(text)) {
+    const match = text.match(plusDaysRegex);
+    if (match) {
+      const days = parseInt(match[1], 10);
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
+      dueDate = formatLocalDateYMD(d);
+      text = text.replace(plusDaysRegex, '');
+    }
+  } else if (dateRegex.test(text)) {
+    const match = text.match(dateRegex);
+    if (match) {
+      dueDate = match[1];
+      text = text.replace(dateRegex, '');
+    }
+  }
+
+  if (!dueDate && defaultDateStr && /^\d{4}-\d{2}-\d{2}$/.test(defaultDateStr)) {
+    dueDate = defaultDateStr;
+  }
+
+  const cleanText = text.replace(/\s+/g, ' ').trim();
+  return { cleanText, dueDate };
+}
 
 export const DEFAULT_STARTER_ITEMS: ReminderItem[] = [
   {
@@ -50,19 +102,37 @@ export function createInitialReminderState(): ReminderState {
 export function addReminderItem(
   state: ReminderState,
   text: string,
-  nowMs = Date.now()
+  nowMs = Date.now(),
+  idOrDueDate?: string,
+  explicitDueDate?: string
 ): ReminderState {
-  const trimmed = text.trim();
-  if (!trimmed || state.items.length >= MAX_REMINDER_ITEMS) {
+  const nowDate = new Date(nowMs);
+  let customId: string | undefined;
+  let fallbackDueDate: string | undefined;
+
+  if (explicitDueDate !== undefined) {
+    customId = idOrDueDate;
+    fallbackDueDate = explicitDueDate;
+  } else if (idOrDueDate !== undefined) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(idOrDueDate)) {
+      fallbackDueDate = idOrDueDate;
+    } else {
+      customId = idOrDueDate;
+    }
+  }
+
+  const { cleanText, dueDate } = extractDueDateToken(text, fallbackDueDate, nowDate);
+  if (!cleanText || state.items.length >= MAX_REMINDER_ITEMS) {
     return state;
   }
 
-  const truncated = trimmed.slice(0, MAX_REMINDER_TEXT_LENGTH);
+  const truncated = cleanText.slice(0, MAX_REMINDER_TEXT_LENGTH);
   const newItem: ReminderItem = {
-    id: `reminder-${nowMs}-${Math.random().toString(36).slice(2, 8)}`,
+    id: customId || `reminder-${nowMs}-${Math.random().toString(36).slice(2, 8)}`,
     text: truncated,
     completed: false,
     createdAtMs: nowMs,
+    ...(dueDate ? { dueDate } : {}),
   };
 
   return {
@@ -120,12 +190,16 @@ export function clearCompletedReminders(state: ReminderState): ReminderState {
 function isValidReminderItem(item: unknown): item is ReminderItem {
   if (typeof item !== 'object' || item === null) return false;
   const candidate = item as Record<string, unknown>;
-  return (
+  const basicValid =
     typeof candidate.id === 'string' &&
     typeof candidate.text === 'string' &&
     typeof candidate.completed === 'boolean' &&
-    typeof candidate.createdAtMs === 'number'
-  );
+    typeof candidate.createdAtMs === 'number';
+  if (!basicValid) return false;
+  if ('dueDate' in candidate && candidate.dueDate !== undefined) {
+    return typeof candidate.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(candidate.dueDate);
+  }
+  return true;
 }
 
 export function parseRemindersJson(raw: string | null | undefined): ReminderState {
@@ -154,12 +228,16 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
     const validItems: ReminderItem[] = [];
     for (const item of parsed.items) {
       if (isValidReminderItem(item)) {
-        validItems.push({
+        const validItem: ReminderItem = {
           id: String(item.id),
           text: String(item.text).slice(0, MAX_REMINDER_TEXT_LENGTH),
           completed: Boolean(item.completed),
           createdAtMs: Number(item.createdAtMs) || 0,
-        });
+        };
+        if (typeof item.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.dueDate)) {
+          validItem.dueDate = item.dueDate;
+        }
+        validItems.push(validItem);
       }
     }
 

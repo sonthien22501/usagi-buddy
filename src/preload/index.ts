@@ -4,6 +4,12 @@ import { SnackTarget, Vector2D } from '../core/physicsEngine';
 import { PomodoroState } from '../core/pomodoroTimer';
 import { VolumeConfig } from '../core/soundManager';
 import { ReminderState } from '../core/reminderStore';
+import { BuddyProfile, HolidayEvent } from '../core/calendarStore';
+
+export interface CalendarStatePayload {
+  profile: BuddyProfile;
+  events: HolidayEvent[];
+}
 
 export interface WellnessUpdatePayload {
   mood: 'active' | 'sleeping';
@@ -45,7 +51,10 @@ export interface UsagiAPI {
   ) => () => void;
   getReminderState: () => Promise<ReminderState>;
   onReminderStateChanged: (callback: (state: ReminderState) => void) => () => void;
-  addReminder: (text: string) => void;
+  addReminder: (text: string, dueDate?: string) => void;
+  getCalendarState: () => Promise<CalendarStatePayload>;
+  updateBuddyProfile: (profile: Partial<BuddyProfile>) => void;
+  onCalendarStateChanged: (callback: (payload: CalendarStatePayload) => void) => () => void;
   toggleReminder: (id: string) => void;
   deleteReminder: (id: string) => void;
   clearCompletedReminders: () => void;
@@ -189,8 +198,22 @@ const api: UsagiAPI = {
     ipcRenderer.on('reminder-state-changed', handler);
     return () => ipcRenderer.removeListener('reminder-state-changed', handler);
   },
-  addReminder: (text: string) => {
-    ipcRenderer.send('add-reminder', text);
+  addReminder: (text: string, dueDate?: string) => {
+    if (dueDate) {
+      ipcRenderer.send('add-reminder', { text, dueDate });
+    } else {
+      ipcRenderer.send('add-reminder', text);
+    }
+  },
+  getCalendarState: () => ipcRenderer.invoke('get-calendar-state'),
+  updateBuddyProfile: (profile: Partial<BuddyProfile>) => {
+    ipcRenderer.send('update-buddy-profile', profile);
+  },
+  onCalendarStateChanged: (callback: (payload: CalendarStatePayload) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, payload: CalendarStatePayload) =>
+      callback(payload);
+    ipcRenderer.on('calendar-state-changed', handler);
+    return () => ipcRenderer.removeListener('calendar-state-changed', handler);
   },
   toggleReminder: (id: string) => {
     ipcRenderer.send('toggle-reminder', id);

@@ -43,9 +43,15 @@ describe('Kawaii SVG Icon Set', () => {
     'plus',
     'check',
     'sparkle',
+    'calendar',
+    'cake',
+    'party',
+    'globe',
+    'chevron-left',
+    'chevron-right',
   ];
 
-  it('contains all 35 defined kawaii icon keys in KAWAII_ICONS', () => {
+  it('contains all 41 defined kawaii icon keys in KAWAII_ICONS', () => {
     for (const id of EXPECTED_ICON_IDS) {
       expect(KAWAII_ICONS[id]).toBeDefined();
       expect(typeof KAWAII_ICONS[id]).toBe('string');

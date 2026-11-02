@@ -28,11 +28,12 @@ usagi-buddy/
 ├── src/
 │   ├── core/
 │   │   ├── alphaCropper.ts        # Alpha bounding-box scanner & auto-trimmer
+│   │   ├── calendarStore.ts       # Pure month grid, Nager.Date holiday normalizer, country detection, birthday injection & countdowns
 │   │   ├── kawaiiIcons.ts         # Unified Kawaii rounded SVG icon set with theme-adaptive fills
 │   │   ├── settingsStore.ts       # Zero-dependency user preferences store, JSON serialization & multi-mode transition resolver
 │   │   ├── trayPositioner.ts      # Cross-platform tray popover anchor & screen boundary clamping
 │   │   ├── physicsEngine.ts       # 60fps kick-and-glide swimming, squash/stretch, cursor follow, combo spin
-│   │   ├── reminderStore.ts       # Desktop sticky reminders state machine, JSON disk persistence & task celebration detection
+│   │   ├── reminderStore.ts       # Desktop sticky reminders state machine, natural date tokens (@today/@tomorrow), JSON persistence & celebrations
 │   │   ├── costumeManager.ts      # Multi-costume wardrobe selector, 30m auto-rotation, & fixed appearance mode
 │   │   ├── ghostModeController.ts # Smart click-through & interactive hit-box forwarding logic
 │   │   ├── pomodoroTimer.ts       # 25-min study countdown & snack drop generator
@@ -40,23 +41,24 @@ usagi-buddy/
 │   │   ├── soundManager.ts        # Event-to-MP3 mapper, URL-safe encoder (huhhhh%3F.mp3), mute & cooldown
 │   │   └── wellnessCoach.ts       # Random 30–40m water reminder, 2m AFK sleep mode, & daily tray stats
 │   ├── main/
-│   │   └── index.ts               # Electron Main: overlay window, dashboard window, sticky window, tray menu, reminders IPC
+│   │   └── index.ts               # Electron Main: overlay window, dashboard window, sticky window, tray menu, reminders & calendar IPC
 │   ├── preload/
 │   │   └── index.ts               # Electron contextBridge (`window.usagiAPI`)
 │   ├── sticky/
-│   │   ├── index.html             # Desktop-pinned frameless sticky note quest board
-│   │   └── sticky.ts              # Sticky note controller with theme toggle & task CRUD
+│   │   ├── index.html             # Desktop-pinned frameless sticky note (2-tab Quests + Calendar & Holidays view)
+│   │   └── sticky.ts              # Sticky note controller with 2-tab switcher, mini calendar grid, date chips & task CRUD
 │   ├── tray/
 │   │   ├── index.html             # Custom Custard & Caramel anime taskbar dropdown popover
 │   │   └── tray.ts                # Tray popover controller synced with timer, theme, and quick actions
 │   ├── dashboard/
 │   │   ├── index.html             # Dedicated Usagi Buddy Dashboard GUI window (Custard & Caramel anime theme)
-│   │   └── dashboard.ts           # Dashboard controller (reminders sync, wardrobe grid, fixed appearance toggle, volume & timer)
+│   │   └── dashboard.ts           # Dashboard controller (calendar & holidays, buddy profile, reminders sync, wardrobe grid, volume & timer)
 │   └── renderer/
 │       ├── index.html             # Transparent full-screen overlay canvas & quick floating controls
 │       └── app.ts                 # 60fps swim transforms, costume rendering, and task celebration spins
 └── tests/
     ├── alphaCropper.test.ts
+    ├── calendarStore.test.ts
     ├── physicsEngine.test.ts
     ├── reminderStore.test.ts
     ├── costumeManager.test.ts
@@ -73,12 +75,14 @@ usagi-buddy/
 
 ## 4. Core Data Contracts
 
+- `BuddyProfile`: `{ nickname, birthdayMonth, birthdayDay, countryCode }`
+- `HolidayEvent`: `{ id, date, name, localName, countryCode, type: 'public_holiday' | 'birthday' }`
 - `UserSettings`: `{ costumeSelection, activeCostume, fixedAppearance, timerDurationMs, timerRemainingMs, timerPhase, volumeConfig, soundMuted, ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
 - `ModeFlags`: `{ ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
 - `WardrobeRotationState`: `{ fixedAppearance: boolean, elapsedMs: number }`
 - `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard' | 'night' }`
-- `ReminderItem`: `{ id: string, text: string, completed: boolean, createdAtMs: number }`
+- `ReminderItem`: `{ id: string, text: string, completed: boolean, createdAtMs: number, dueDate?: string }`
 - `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', nextReminderAtMs, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
 - `SoundEvent`: `'click-normal' | 'click-combo' | 'snack-eaten' | 'wellness-reminder' | 'welcome-back' | 'timer-complete'`
 - `VolumeConfig`: `{ master, buddy, alarm, equalizeLoudness }`
@@ -106,3 +110,4 @@ usagi-buddy/
 - [x] M15: Wardrobe 30m Auto-Rotation with Clean `🔄 Auto-Change` / `🔒 Appearance Fixed` toggle, and `🙈 Hide Usagi (Do Not Disturb)` mode across Tray and Dashboard
 - [x] M16: Custom Custard & Caramel Taskbar Tray Popover (`src/tray/`, `src/core/trayPositioner.ts`) & Unified Kawaii Rounded SVG Icon System (`src/core/kawaiiIcons.ts`) across Tray, Dashboard, and Sticky Note
 - [x] M17: Session Persistence & Multi-Feature Harmony (JSON settings store in userData, OS-level screen cursor streaming for Ghost Mode + Follow Cursor harmony, mutual exclusion between Stationary and Follow modes, manual wardrobe selection lock vs 30m auto-rotation, hidden snack suppression, and cross-window full state hydration) (`src/core/settingsStore.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/app.ts`, `src/dashboard/dashboard.ts`)
+- [x] M18: Unified Calendar, Holiday Service, Buddy Birthday & Date-Linked Quests (Nager.Date public holiday client + offline fallback, zero-permission country detection, Buddy Profile with birthday event injection, inline `@today`/`@tomorrow`/`@+Nd`/`@YYYY-MM-DD` quest parser, quick-date chips, and identical Custard & Caramel Kawaii mini calendar + countdown UI across Dashboard and Sticky Note) (`src/core/calendarStore.ts`, `src/core/reminderStore.ts`, `src/dashboard/`, `src/sticky/`, `src/main/index.ts`)
