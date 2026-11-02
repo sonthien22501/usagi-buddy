@@ -12,8 +12,6 @@ import {
   daysBetweenYMD,
 } from '../core/calendarStore';
 
-const themeToggleBtn = document.getElementById('theme-toggle-btn') as HTMLButtonElement | null;
-
 // Sticky Reminders elements
 const toggleStickyWindowBtn = document.getElementById(
   'toggle-sticky-window-btn'
@@ -130,25 +128,6 @@ let isPlayMode = false;
 let isGhostMode = false;
 let isFixedAppearance = false;
 let isUsagiHidden = false;
-
-// 1. Theme Management
-function updateThemeUI(theme: 'custard' | 'night'): void {
-  document.body.setAttribute('data-theme', theme);
-  if (themeToggleBtn) {
-    themeToggleBtn.innerHTML = renderIconLabel(
-      theme === 'custard' ? 'moon' : 'sun',
-      theme === 'custard' ? 'Night' : 'Custard',
-      13
-    );
-  }
-}
-
-if (themeToggleBtn) {
-  themeToggleBtn.addEventListener('click', () => {
-    const nextTheme = currentReminderState.theme === 'custard' ? 'night' : 'custard';
-    window.usagiAPI?.setTheme(nextTheme);
-  });
-}
 
 // 2. Desktop Sticky Reminders & Calendar
 function getTodayYMD(): string {
@@ -354,7 +333,7 @@ function renderCalendar(): void {
 
 function updateReminderUI(state: ReminderState): void {
   currentReminderState = state;
-  updateThemeUI(state.theme);
+  document.body.setAttribute('data-theme', 'custard');
 
   if (toggleStickyWindowBtn) {
     toggleStickyWindowBtn.innerHTML = renderIconLabel(

@@ -104,19 +104,27 @@ describe('reminderStore', () => {
     expect(cleared.items.every((it) => !it.completed)).toBe(true);
   });
 
-  it('serializes and deserializes reminders JSON safely', () => {
+  it('serializes and deserializes reminders JSON safely and normalizes legacy night theme to custard', () => {
     let state = createInitialReminderState();
-    state.theme = 'night';
     state.stickyVisible = false;
     state = addReminderItem(state, 'Bedtime chamomile tea');
 
     const json = serializeRemindersJson(state);
     const parsed = parseRemindersJson(json);
 
-    expect(parsed.theme).toBe('night');
+    expect(parsed.theme).toBe('custard');
     expect(parsed.stickyVisible).toBe(false);
     expect(parsed.items.length).toBe(4);
     expect(parsed.items[3].text).toBe('Bedtime chamomile tea');
+
+    // Legacy night theme migration check
+    const legacyNightJson = JSON.stringify({
+      theme: 'night',
+      stickyVisible: true,
+      items: [{ id: 'leg-1', text: 'Legacy night task', completed: false, createdAtMs: 100 }],
+    });
+    const migrated = parseRemindersJson(legacyNightJson);
+    expect(migrated.theme).toBe('custard');
   });
 
   it('gracefully recovers from null, empty, malformed or invalid JSON', () => {
@@ -145,7 +153,7 @@ describe('reminderStore', () => {
       ],
     });
     const parsedPartial = parseRemindersJson(partialValid);
-    expect(parsedPartial.theme).toBe('night');
+    expect(parsedPartial.theme).toBe('custard');
     expect(parsedPartial.items.length).toBe(1);
     expect(parsedPartial.items[0].text).toBe('Valid task');
   });

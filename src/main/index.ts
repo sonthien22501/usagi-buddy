@@ -1063,12 +1063,6 @@ app.whenReady().then(() => {
     toggleStickyWindow();
   });
 
-  ipcMain.on('set-theme', (_e, theme: 'custard' | 'night') => {
-    reminderState = { ...reminderState, theme };
-    saveRemindersToDisk();
-    broadcastReminderState();
-  });
-
   ipcMain.on('toggle-fixed-appearance', () => {
     toggleFixedAppearance();
   });

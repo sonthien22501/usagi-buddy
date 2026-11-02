@@ -39,7 +39,6 @@ const addQuestBtn = document.getElementById('addQuestBtn') as HTMLButtonElement 
 const questList = document.getElementById('questList') as HTMLDivElement | null;
 const questCounter = document.getElementById('questCounter') as HTMLSpanElement | null;
 const clearDoneBtn = document.getElementById('clearDoneBtn') as HTMLButtonElement | null;
-const themeToggleBtn = document.getElementById('themeToggleBtn') as HTMLButtonElement | null;
 const minimizeBtn = document.getElementById('minimizeBtn') as HTMLButtonElement | null;
 
 const stickyChipClearDate = document.getElementById(
@@ -254,13 +253,7 @@ function renderUpcoming(): void {
 
 function render(state: ReminderState): void {
   currentState = state;
-  document.body.setAttribute('data-theme', state.theme);
-
-  if (themeToggleBtn) {
-    themeToggleBtn.innerHTML = getKawaiiIcon(state.theme === 'custard' ? 'moon' : 'sun', 14);
-    themeToggleBtn.title =
-      state.theme === 'custard' ? 'Switch to Night Mode' : 'Switch to Custard Day';
-  }
+  document.body.setAttribute('data-theme', 'custard');
 
   renderCalendar();
 
@@ -442,13 +435,6 @@ function init(): void {
   if (minimizeBtn) {
     minimizeBtn.addEventListener('click', () => {
       window.usagiAPI?.toggleStickyWindow();
-    });
-  }
-
-  if (themeToggleBtn) {
-    themeToggleBtn.addEventListener('click', () => {
-      const nextTheme = currentState.theme === 'custard' ? 'night' : 'custard';
-      window.usagiAPI?.setTheme(nextTheme);
     });
   }
 

@@ -3,7 +3,7 @@
 ## 1. System Overview & Tech Stack
 
 - **Product**: Cross-platform (macOS + Windows) frameless, transparent, desktop companion ("Usagi Float") featuring multi-window architecture: overlay buddy window, full-control dashboard window, desktop-pinned sticky checklist window, and themed taskbar tray popover window.
-- **Runtime & UI**: Electron + TypeScript + HTML5 2D Canvas (60 FPS kick-and-glide swimming, cursor keychain hug physics, per-pixel `setIgnoreMouseEvents(true, { forward: true })` hit-testing, Web Audio MP3 playback, Usagi Custard & Caramel Anime Theme with day/night modes, and unified Kawaii SVG Icon System).
+- **Runtime & UI**: Electron + TypeScript + HTML5 2D Canvas (60 FPS kick-and-glide swimming, cursor keychain hug physics, per-pixel `setIgnoreMouseEvents(true, { forward: true })` hit-testing, Web Audio MP3 playback, Usagi Custard & Caramel Anime Theme, and unified Kawaii SVG Icon System).
 - **Bundler & Compiler**: `typescript` (`tsc --noEmit`) + `esbuild` (bundles main, preload, renderer, dashboard, sticky, tray, and copies `.png` + `.mp3` assets).
 - **Test & Format**: `vitest` (12 test suites covering core physics, reminders, cursor hugs, alarm, kawaii icons, tray positioning, and asset integrity) + `prettier`.
 
@@ -81,7 +81,7 @@ usagi-buddy/
 - `ModeFlags`: `{ ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
 - `WardrobeRotationState`: `{ fixedAppearance: boolean, elapsedMs: number }`
-- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard' | 'night' }`
+- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard' }`
 - `ReminderItem`: `{ id: string, text: string, completed: boolean, createdAtMs: number, dueDate?: string }`
 - `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', nextReminderAtMs, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
 - `SoundEvent`: `'click-normal' | 'click-combo' | 'snack-eaten' | 'wellness-reminder' | 'welcome-back' | 'timer-complete'`
