@@ -1,4 +1,4 @@
-# Usagi Float — Architecture Cache (v0.5)
+# Usagi Float — Architecture Cache (v0.6)
 
 ## 1. System Overview & Tech Stack
 

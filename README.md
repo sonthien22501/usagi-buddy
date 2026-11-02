@@ -1,16 +1,76 @@
-# 🐰 Usagi Float (v0.5.0)
+# 🐰 Usagi Float (v0.6.0)
 
-A delightful, transparent, always-on-top desktop companion for **macOS** and **Windows**. Usagi swims organically across your screen, cheers you up with authentic Chiikawa voice lines ("Una!", "Bryy!", "Huhhhh?"), reminds you to stay hydrated, and keeps you focused with scientific study methods, quick repeat alarms, wardrobe costumes, desktop sticky notes, and a dedicated anime-themed companion dashboard!
+A delightful, transparent, always-on-top desktop companion for **macOS** and **Windows**. Usagi swims organically across your screen, cheers you up with authentic Chiikawa voice lines ("Una!", "Bryy!", "Huhhhh?"), reminds you to stay hydrated, and keeps you focused with scientific study methods, quick repeat alarms, wardrobe costumes, desktop sticky notes, a unified calendar with holidays, multi-language support (8 locales), and a dedicated anime-themed companion dashboard!
 
 <p align="center">
   <img src="assets/Usagi_logo.png" alt="Usagi Float Logo" width="160" />
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.5.0-ff7675.svg" alt="Version 0.5.0" />
+  <img src="https://img.shields.io/badge/version-0.6.0-ff7675.svg" alt="Version 0.6.0" />
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-ffeaa7.svg" alt="Platforms" />
   <img src="https://img.shields.io/badge/license-MIT-55efc4.svg" alt="License" />
 </p>
+
+---
+
+## ✨ What's New in v0.6.0
+
+### 🌐 Multi-Language Support (8 Locales)
+
+- **Zero-Dependency i18n Engine**: Fully localized across 8 languages:
+  - 🇺🇸 English (`en`)
+  - 🇻🇳 Vietnamese (`vi`)
+  - 🇩🇪 German (`de`)
+  - 🇫🇷 French (`fr`)
+  - 🇪🇸 Spanish (`es`)
+  - 🇯🇵 Japanese (`ja`)
+  - 🇰🇷 Korean (`ko`)
+  - 🇨🇳 Simplified Chinese (`zh`)
+- **System Locale Auto-Detection**: Automatically detects and applies your operating system's language on first run.
+- **Instant Live Switching**: Switch languages on the fly from the Dashboard (`#buddy-language-select`) with real-time multi-window IPC synchronization across the Dashboard, Sticky Note, and Tray Popover.
+- **Multilingual Holiday Support**: Displays localized public holiday names (`localName`) when available.
+
+### 📅 Unified Calendar, Public Holidays & Buddy Birthday
+
+- **Dual-Surface Mini Calendar**: Identical Custard & Caramel mini calendar grid view available in both the Companion Dashboard and a dedicated tab on the desktop Sticky Note.
+- **Global Public Holidays**: Zero-permission country detection with automatic holiday fetching via the Nager.Date API, backed by resilient offline caching.
+- **Buddy Profile & Birthday Countdown**: Chiikawa and Usagi birthday milestones injected directly into the calendar with special celebration countdowns and speech greetings.
+- **Date-Linked Quests**: Dates on the calendar reflect active deadlines, and clicking any date filters or anchors quests seamlessly.
+
+### ☀️ Cozy Date-Only Daily Digest & Smart Deadlines
+
+- **Honest Date Precision (`YYYY-MM-DD`)**: Deadlines focus on dates rather than stressful fake minute precision, complete with natural shorthand parsing (`@today`, `@tomorrow`, `@+3d`, `@YYYY-MM-DD`).
+- **Cozy Morning & Evening Digests**: Usagi gently informs you of upcoming quests through cute speech bubbles:
+  - ☀️ **Morning / Wake-Up Digest** (`hour >= 8`): Summarizes quests due today or overdue with an encouraging cheer (_"Today's quest: Finish report! Ganbatte~"_).
+  - 🌙 **Evening Preview** (`hour >= 19`): Summarizes tomorrow's quests ahead of time so you can rest easy (_"Tomorrow's quest: English class~"_).
+- **Visible-Only Delivery**: Alerts are only presented when Usagi is actively visible on screen, preventing missed notifications during Do Not Disturb mode.
+
+### 🔁 Natural Multilingual Recurring Quests
+
+- **Effortless Habit Parsing**: Type natural recurring phrases directly into the quest box across all 8 supported languages:
+  - `"every day"`, `"everyday"`, `"daily"`, `"mỗi ngày"`, `"hàng ngày"` ➔ Daily quest
+  - `"every weekday"`, `"weekdays"`, `"mỗi ngày trong tuần"` ➔ Weekday quest (Mon–Fri)
+  - `"every Tuesday"`, `"every fri"`, `"mỗi thứ ba"`, `"mỗi chủ nhật"` ➔ Weekly recurring quest anchored to that day of the week
+- **Smart Automatic Rollover**: Checking off a completed recurring task automatically advances its due date to the next occurrence, resets notifications, and triggers Usagi's celebratory spin feat.
+- **Subtle Visual Pill**: Displays a minimal `↻` badge on the Sticky Note (e.g., `↻ Tue, Nov 10`) without visual clutter.
+
+### 🍮 Themed Taskbar Tray Popover & Kawaii SVG Icons
+
+- **Custard & Caramel Tray Popover (`src/tray/`)**: Replaced standard OS menus with a custom anime popover matching the desktop companion's aesthetic.
+- **3-Chip Focus Presets**: Quick one-click activation for 25m Pomodoro, 52m Deep Work, and 90m Ultradian Flow with live remaining time countdowns.
+- **Unified Kawaii Icon System**: 100% theme-adaptive vector rounded SVG icons across the Tray, Dashboard, and Sticky Note.
+- **Multi-Monitor Display Clamping**: Popover automatically anchors to the active display bounds without overflowing screen edges.
+
+### 💾 Cross-Session State & Geometry Memory
+
+- **Sticky Note Geometry Memory**: Pinned Sticky Note window position and dimensions are remembered across restarts, with adaptive font scaling (`--font-scale`).
+- **Tab State Hydration**: Restores your last active tab (Quests vs. Calendar) in both the Sticky Note and Dashboard.
+- **Companion Window Coordinates**: Usagi's screen position is saved across drag-and-pin sessions.
+
+### 👗 Wardrobe Triple-Click Combo Polish
+
+- **Spin & Morph**: Rapid triple-clicking triggers a super-spin costume morph while reliably preserving your auto-rotation preference.
 
 ---
 
@@ -148,12 +208,12 @@ When your study session ends, Big Usagi appears on screen with interactive actio
 Download pre-built packages from the [**GitHub Releases**](https://github.com/sonthien22501/usagi-buddy/releases) page:
 
 - **macOS** (Apple Silicon & Intel):
-  - Download `Usagi-Float-0.5.0-arm64.dmg` (M1/M2/M3/M4) or `Usagi-Float-0.5.0.dmg` (Intel).
-  - Also available as portable `.zip`: `Usagi-Float-0.5.0-arm64-mac.zip` or `Usagi-Float-0.5.0-mac.zip`.
+  - Download `Usagi-Float-0.6.0-arm64.dmg` (M1/M2/M3/M4) or `Usagi-Float-0.6.0.dmg` (Intel).
+  - Also available as portable `.zip`: `Usagi-Float-0.6.0-arm64-mac.zip` or `Usagi-Float-0.6.0-mac.zip`.
   - Drag `Usagi Float.app` into your **Applications** folder.
   - _First launch note_: Right-click (Control-click) `Usagi Float.app` ➔ **Open** to approve the Gatekeeper security prompt once.
 - **Windows**:
-  - Download `Usagi-Float.Setup.0.5.0.exe` (installer) or `Usagi-Float.0.5.0.exe` (portable).
+  - Download `Usagi-Float.Setup.0.6.0.exe` (installer) or `Usagi-Float.0.6.0.exe` (portable).
 
 ---
 
