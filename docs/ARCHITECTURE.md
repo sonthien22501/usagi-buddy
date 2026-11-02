@@ -29,6 +29,7 @@ usagi-buddy/
 │   ├── core/
 │   │   ├── alphaCropper.ts        # Alpha bounding-box scanner & auto-trimmer
 │   │   ├── kawaiiIcons.ts         # Unified Kawaii rounded SVG icon set with theme-adaptive fills
+│   │   ├── settingsStore.ts       # Zero-dependency user preferences store, JSON serialization & multi-mode transition resolver
 │   │   ├── trayPositioner.ts      # Cross-platform tray popover anchor & screen boundary clamping
 │   │   ├── physicsEngine.ts       # 60fps kick-and-glide swimming, squash/stretch, cursor follow, combo spin
 │   │   ├── reminderStore.ts       # Desktop sticky reminders state machine, JSON disk persistence & task celebration detection
@@ -62,6 +63,9 @@ usagi-buddy/
     ├── ghostModeController.test.ts
     ├── pomodoroTimer.test.ts
     ├── soundManager.test.ts
+    ├── settingsStore.test.ts
+    ├── trayPositioner.test.ts
+    ├── kawaiiIcons.test.ts
     ├── wellnessCoach.test.ts
     ├── giantAlarmController.test.ts
     └── assetsIntegration.test.ts
@@ -69,6 +73,8 @@ usagi-buddy/
 
 ## 4. Core Data Contracts
 
+- `UserSettings`: `{ costumeSelection, activeCostume, fixedAppearance, timerDurationMs, timerRemainingMs, timerPhase, volumeConfig, soundMuted, ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
+- `ModeFlags`: `{ ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
 - `WardrobeRotationState`: `{ fixedAppearance: boolean, elapsedMs: number }`
 - `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard' | 'night' }`
@@ -99,3 +105,4 @@ usagi-buddy/
 - [x] M14: Usagi Custard & Caramel Anime Theme (Day Custard default + Night cozy toggle), Desktop-Pinned Sticky Reminders Note (`src/sticky/`) with task celebration broadcast
 - [x] M15: Wardrobe 30m Auto-Rotation with Clean `🔄 Auto-Change` / `🔒 Appearance Fixed` toggle, and `🙈 Hide Usagi (Do Not Disturb)` mode across Tray and Dashboard
 - [x] M16: Custom Custard & Caramel Taskbar Tray Popover (`src/tray/`, `src/core/trayPositioner.ts`) & Unified Kawaii Rounded SVG Icon System (`src/core/kawaiiIcons.ts`) across Tray, Dashboard, and Sticky Note
+- [x] M17: Session Persistence & Multi-Feature Harmony (JSON settings store in userData, OS-level screen cursor streaming for Ghost Mode + Follow Cursor harmony, mutual exclusion between Stationary and Follow modes, manual wardrobe selection lock vs 30m auto-rotation, hidden snack suppression, and cross-window full state hydration) (`src/core/settingsStore.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/app.ts`, `src/dashboard/dashboard.ts`)

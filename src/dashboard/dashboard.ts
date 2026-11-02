@@ -246,6 +246,20 @@ function updatePomodoroUI(state: PomodoroState): void {
   currentPomodoroState = state;
   const timeFormatted = formatPomodoroTime(state.remainingMs);
   const phaseUpper = state.phase.toUpperCase();
+  const durationMin = Math.round(state.durationMs / 60000);
+
+  if (manualTimeInput) {
+    manualTimeInput.placeholder = String(durationMin);
+  }
+
+  chipButtons.forEach((btn) => {
+    const min = Number(btn.getAttribute('data-min'));
+    if (min === durationMin) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
 
   if (clockTime) {
     clockTime.textContent = timeFormatted;
