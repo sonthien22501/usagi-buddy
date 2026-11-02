@@ -32,7 +32,9 @@ describe('settingsStore', () => {
         usagiX: null,
         usagiY: null,
         activeDashboardTab: 'companion',
+        locale: defaults.locale,
       });
+      expect(['en', 'vi', 'de', 'fr', 'es', 'ja', 'ko', 'zh']).toContain(defaults.locale);
     });
   });
 
@@ -59,11 +61,20 @@ describe('settingsStore', () => {
         usagiX: 450,
         usagiY: 300,
         activeDashboardTab: 'config',
+        locale: 'vi',
       };
 
       const serialized = serializeUserSettingsJson(settings);
       const parsed = parseUserSettingsJson(serialized);
       expect(parsed).toEqual(settings);
+    });
+
+    it('persists and validates locale properly', () => {
+      const valid = parseUserSettingsJson(JSON.stringify({ locale: 'ja' }));
+      expect(valid.locale).toBe('ja');
+
+      const invalid = parseUserSettingsJson(JSON.stringify({ locale: 'unknown' }));
+      expect(['en', 'vi', 'de', 'fr', 'es', 'ja', 'ko', 'zh']).toContain(invalid.locale);
     });
 
     it('falls back to defaults for null, empty, or corrupt json', () => {

@@ -6,6 +6,7 @@ import {
 } from './costumeManager';
 import { DEFAULT_POMODORO_MS, type PomodoroPhase } from './pomodoroTimer';
 import { DEFAULT_VOLUME_CONFIG, type VolumeConfig } from './soundManager';
+import { SupportedLocale, detectSystemLocale, isSupportedLocale } from './i18n';
 
 export type DashboardTabId = 'companion' | 'config';
 
@@ -25,6 +26,7 @@ export interface UserSettings {
   usagiX?: number | null;
   usagiY?: number | null;
   activeDashboardTab?: DashboardTabId;
+  locale?: SupportedLocale;
 }
 
 export interface ModeFlags {
@@ -57,6 +59,7 @@ export function createDefaultUserSettings(): UserSettings {
     usagiX: null,
     usagiY: null,
     activeDashboardTab: 'companion',
+    locale: detectSystemLocale(),
   };
 }
 
@@ -157,6 +160,11 @@ export function parseUserSettingsJson(raw: string | null | undefined): UserSetti
   const activeDashboardTab: DashboardTabId =
     data.activeDashboardTab === 'config' ? 'config' : 'companion';
 
+  const locale: SupportedLocale =
+    typeof data.locale === 'string' && isSupportedLocale(data.locale)
+      ? data.locale
+      : detectSystemLocale();
+
   return {
     costumeSelection,
     activeCostume,
@@ -173,6 +181,7 @@ export function parseUserSettingsJson(raw: string | null | undefined): UserSetti
     usagiX,
     usagiY,
     activeDashboardTab,
+    locale,
   };
 }
 

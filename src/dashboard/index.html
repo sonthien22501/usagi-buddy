@@ -732,7 +732,7 @@
           <img src="../assets/Usagi_logo.png" alt="Usagi Logo" />
         </div>
         <div class="app-header-text">
-          <h1>Usagi Buddy Dashboard</h1>
+          <h1 id="dash-header-title">Usagi Buddy Dashboard</h1>
         </div>
       </div>
     </div>
@@ -750,7 +750,7 @@
         <div class="card-header">
           <div class="card-title">
             <span class="kawaii-icon-wrap" id="timer-card-icon"></span>
-            <span>Custom Focus Timer</span>
+            <span id="dash-timer-title">Custom Focus Timer</span>
           </div>
           <span class="badge" id="timer-badge">25:00 IDLE</span>
         </div>
@@ -765,6 +765,7 @@
           <button
             class="chip-btn"
             data-min="25"
+            id="chip-preset-25"
             title="Pomodoro Technique: 25m work / 5m break (Beginners, high-friction tasks, or admin work)"
           >
             25m Pomodoro
@@ -772,6 +773,7 @@
           <button
             class="chip-btn"
             data-min="52"
+            id="chip-preset-52"
             title="52/17 Method: 52m work / 17m break (Deep reading, writing, coding, and sustained knowledge work)"
           >
             52m Rule (17m rest)
@@ -779,6 +781,7 @@
           <button
             class="chip-btn"
             data-min="90"
+            id="chip-preset-90"
             title="Ultradian Rhythm: 90m work / 20m break (Complex problem-solving, marathon study sessions, or creative flow)"
           >
             90m Ultradian (20m rest)
@@ -796,7 +799,7 @@
             value="0"
             placeholder="0"
           />
-          <span class="unit-tag">min</span>
+          <span class="unit-tag" id="timer-unit-tag">min</span>
           <button class="btn-step" id="add-10-btn" type="button" title="Add 10 minutes to timer">
             +10m
           </button>
@@ -816,7 +819,7 @@
         <div class="card-header">
           <div class="card-title">
             <span class="kawaii-icon-wrap" id="wardrobe-card-icon"></span>
-            <span>Wardrobe & Outfits</span>
+            <span id="dash-wardrobe-title">Wardrobe & Outfits</span>
           </div>
           <span class="badge" id="costume-badge">CLASSIC</span>
         </div>
@@ -827,7 +830,7 @@
             title="Classic swimming Usagi"
           >
             <span class="costume-icon" id="costume-icon-classic"></span>
-            <span class="costume-name">Classic</span>
+            <span class="costume-name" id="costume-name-classic">Classic</span>
           </button>
           <button
             class="costume-card-btn"
@@ -835,11 +838,11 @@
             title="Study Mode with book & pencil"
           >
             <span class="costume-icon" id="costume-icon-study"></span>
-            <span class="costume-name">Study</span>
+            <span class="costume-name" id="costume-name-study">Study</span>
           </button>
           <button class="costume-card-btn" data-costume="vest" title="Corporate suit & vest mode">
             <span class="costume-icon" id="costume-icon-vest"></span>
-            <span class="costume-name">Work</span>
+            <span class="costume-name" id="costume-name-vest">Work</span>
           </button>
           <button
             class="costume-card-btn"
@@ -847,11 +850,11 @@
             title="Sigma grindset with cool shades"
           >
             <span class="costume-icon" id="costume-icon-sigma"></span>
-            <span class="costume-name">Sigma</span>
+            <span class="costume-name" id="costume-name-sigma">Sigma</span>
           </button>
           <button class="costume-card-btn" data-costume="star" title="Sparkling magical star Usagi">
             <span class="costume-icon" id="costume-icon-star"></span>
-            <span class="costume-name">Star</span>
+            <span class="costume-name" id="costume-name-star">Star</span>
           </button>
           <button
             class="costume-card-btn"
@@ -859,7 +862,7 @@
             title="Surprise / Shuffle on click"
           >
             <span class="costume-icon" id="costume-icon-random"></span>
-            <span class="costume-name">Shuffle</span>
+            <span class="costume-name" id="costume-name-random">Shuffle</span>
           </button>
         </div>
       </div>
@@ -869,14 +872,14 @@
         <div class="card-header">
           <div class="card-title">
             <span class="kawaii-icon-wrap" id="modes-card-icon"></span>
-            <span>Companion Modes & Actions</span>
+            <span id="dash-modes-title">Companion Modes & Actions</span>
           </div>
         </div>
         <div class="mode-list">
           <!-- Sticky Quests Note Window Toggle -->
           <div class="mode-item">
             <div class="mode-title">
-              <span>Sticky Quests Note</span>
+              <span id="mode-title-sticky">Sticky Quests Note</span>
             </div>
             <button class="feature-btn" id="toggle-sticky-window-btn">Hide Note</button>
           </div>
@@ -884,7 +887,7 @@
           <!-- Stay Still -->
           <div class="mode-item">
             <div class="mode-title">
-              <span>Stay Still</span>
+              <span id="mode-title-still">Stay Still</span>
             </div>
             <button class="feature-btn" id="stationary-toggle-btn">Pin Still</button>
           </div>
@@ -892,7 +895,7 @@
           <!-- Play Mode / Follow Cursor -->
           <div class="mode-item">
             <div class="mode-title">
-              <span>Play Mode</span>
+              <span id="mode-title-play">Play Mode</span>
             </div>
             <button class="feature-btn" id="play-mode-toggle-btn">Follow Mouse</button>
           </div>
@@ -900,7 +903,7 @@
           <!-- Ghost Mode / Click-Through -->
           <div class="mode-item">
             <div class="mode-title">
-              <span>Ghost Mode</span>
+              <span id="mode-title-ghost">Ghost Mode</span>
             </div>
             <button class="feature-btn" id="ghost-mode-toggle-btn">Ghost Mode</button>
           </div>
@@ -908,7 +911,7 @@
           <!-- Drop Pudding Snack -->
           <div class="mode-item">
             <div class="mode-title">
-              <span>Pudding Snack</span>
+              <span id="mode-title-snack">Pudding Snack</span>
             </div>
             <button class="feature-btn" id="drop-snack-btn">Drop Snack</button>
           </div>
@@ -916,7 +919,7 @@
           <!-- Hide Usagi / Do Not Disturb -->
           <div class="mode-item">
             <div class="mode-title">
-              <span>Hide Usagi</span>
+              <span id="mode-title-hide">Hide Usagi</span>
             </div>
             <button class="feature-btn" id="hide-usagi-toggle-btn">Hide Usagi</button>
           </div>
@@ -931,14 +934,37 @@
         <div class="card-header">
           <div class="card-title">
             <span class="kawaii-icon-wrap" id="buddy-profile-icon"></span>
-            <span>Buddy Profile & Holiday Region</span>
+            <span id="dash-profile-title">Buddy Profile & Holiday Region</span>
           </div>
         </div>
         <div style="display: flex; flex-direction: column; gap: 4px">
+          <!-- Language Selector -->
+          <div class="config-row">
+            <div class="config-label">
+              <span style="font-weight: 800; font-size: 12px" id="buddy-lang-label">Language</span>
+            </div>
+            <select
+              id="buddy-language-select"
+              class="config-select"
+              style="width: 160px; height: 32px; font-size: 12px"
+            >
+              <option value="en">English 🇺🇸</option>
+              <option value="vi">Tiếng Việt 🇻🇳</option>
+              <option value="de">Deutsch 🇩🇪</option>
+              <option value="fr">Français 🇫🇷</option>
+              <option value="es">Español 🇪🇸</option>
+              <option value="ja">日本語 🇯🇵</option>
+              <option value="ko">한국어 🇰🇷</option>
+              <option value="zh">中文 🇨🇳</option>
+            </select>
+          </div>
+
           <!-- Nickname -->
           <div class="config-row">
             <div class="config-label">
-              <span style="font-weight: 800; font-size: 12px">Buddy Nickname</span>
+              <span style="font-weight: 800; font-size: 12px" id="buddy-nick-label"
+                >Buddy Nickname</span
+              >
             </div>
             <input
               type="text"
@@ -953,7 +979,9 @@
           <!-- Birthday (DD / MM order!) -->
           <div class="config-row">
             <div class="config-label">
-              <span style="font-weight: 800; font-size: 12px">Birthday (DD / MM)</span>
+              <span style="font-weight: 800; font-size: 12px" id="buddy-bday-label"
+                >Birthday (DD / MM)</span
+              >
             </div>
             <div style="display: flex; align-items: center; gap: 6px">
               <select
@@ -961,7 +989,7 @@
                 class="config-select"
                 style="width: 65px; height: 32px; font-size: 12px"
               >
-                <option value="">Day</option>
+                <option value="" id="buddy-bday-day-opt">Day</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
@@ -1000,7 +1028,7 @@
                 class="config-select"
                 style="width: 75px; height: 32px; font-size: 12px"
               >
-                <option value="">Month</option>
+                <option value="" id="buddy-bday-month-opt">Month</option>
                 <option value="1">Jan</option>
                 <option value="2">Feb</option>
                 <option value="3">Mar</option>
@@ -1020,7 +1048,9 @@
           <!-- Country / Holiday Region -->
           <div class="config-row">
             <div class="config-label">
-              <span style="font-weight: 800; font-size: 12px">Holiday Region</span>
+              <span style="font-weight: 800; font-size: 12px" id="buddy-region-label"
+                >Holiday Region</span
+              >
             </div>
             <select
               id="buddy-country-select"
@@ -1047,14 +1077,16 @@
         <div class="card-header">
           <div class="card-title">
             <span class="kawaii-icon-wrap" id="config-calendar-icon"></span>
-            <span>Date, Calendar & Sticky Note Config</span>
+            <span id="dash-config-title">Date, Calendar & Sticky Note Config</span>
           </div>
         </div>
         <div style="display: flex; flex-direction: column; gap: 4px">
           <!-- Date Format -->
           <div class="config-row">
             <div class="config-label">
-              <span style="font-weight: 800; font-size: 12px">Date Format</span>
+              <span style="font-weight: 800; font-size: 12px" id="config-date-format-label"
+                >Date Format</span
+              >
             </div>
             <button class="feature-btn" id="config-date-format-btn" style="width: 160px">
               DD/MM (15/11)
@@ -1064,7 +1096,9 @@
           <!-- Week Starts On -->
           <div class="config-row">
             <div class="config-label">
-              <span style="font-weight: 800; font-size: 12px">Week Starts On</span>
+              <span style="font-weight: 800; font-size: 12px" id="config-week-start-label"
+                >Week Starts On</span
+              >
             </div>
             <button class="feature-btn" id="config-week-start-btn" style="width: 160px">
               Monday (Mo–Su)
@@ -1074,7 +1108,9 @@
           <!-- Sticky Note Text Size -->
           <div class="config-row">
             <div class="config-label">
-              <span style="font-weight: 800; font-size: 12px">Sticky Note Text Size</span>
+              <span style="font-weight: 800; font-size: 12px" id="config-font-scale-label"
+                >Sticky Note Text Size</span
+              >
             </div>
             <button class="feature-btn" id="config-font-scale-btn" style="width: 160px">
               Medium (A+)
@@ -1084,7 +1120,9 @@
           <!-- Sticky Window Size -->
           <div class="config-row">
             <div class="config-label">
-              <span style="font-weight: 800; font-size: 12px">Sticky Window Size</span>
+              <span style="font-weight: 800; font-size: 12px" id="config-sticky-size-label"
+                >Sticky Window Size</span
+              >
             </div>
             <button class="feature-btn" id="config-sticky-size-btn" style="width: 160px">
               Compact (350×480)
@@ -1094,7 +1132,9 @@
           <!-- Pin Sticky Note on Top -->
           <div class="config-row">
             <div class="config-label">
-              <span style="font-weight: 800; font-size: 12px">Sticky Window Pin</span>
+              <span style="font-weight: 800; font-size: 12px" id="config-sticky-pin-label"
+                >Sticky Window Pin</span
+              >
             </div>
             <button class="feature-btn" id="config-sticky-pin-btn" style="width: 160px">
               Desktop Widget
@@ -1108,7 +1148,7 @@
         <div class="card-header">
           <div class="card-title">
             <span class="kawaii-icon-wrap" id="volume-card-icon"></span>
-            <span>Audio & Wardrobe Behavior</span>
+            <span id="dash-audio-title">Audio & Wardrobe Behavior</span>
           </div>
           <span class="badge" id="volume-val-badge">80%</span>
         </div>
@@ -1140,7 +1180,9 @@
           "
         >
           <div class="config-label">
-            <span style="font-weight: 800; font-size: 12px">Outfit Rotation</span>
+            <span style="font-weight: 800; font-size: 12px" id="outfit-rot-label"
+              >Outfit Rotation</span
+            >
           </div>
           <button class="feature-btn" id="fix-appearance-toggle-btn" style="width: 160px">
             Auto-Change

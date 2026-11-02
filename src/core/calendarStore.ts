@@ -1,4 +1,5 @@
 import { ReminderItem, WeekStartDay } from './reminderStore';
+import { SupportedLocale, t } from './i18n';
 
 export interface BuddyProfile {
   nickname: string;
@@ -492,10 +493,17 @@ export function getUpcomingCountdownItems(
   reminders: ReminderItem[],
   todayYMD: string,
   limit = 5,
-  excludeDateYMD?: string | null
+  excludeDateYMD?: string | null,
+  locale: SupportedLocale = 'en'
 ): UpcomingCountdownItem[] {
   const items: UpcomingCountdownItem[] = [];
   const maxDateYMD = getEndOfNextMonthYMD(todayYMD);
+
+  const formatBadge = (diff: number): string => {
+    if (diff === 0) return locale === 'en' ? 'Today!' : `${t(locale, 'sticky.badge.today')}!`;
+    if (diff === 1) return locale === 'en' ? 'Tomorrow' : t(locale, 'sticky.badge.tmrw');
+    return t(locale, 'sticky.cal.inDays', { days: diff });
+  };
 
   for (const ev of events) {
     if (excludeDateYMD && ev.date === excludeDateYMD) {
@@ -509,7 +517,7 @@ export function getUpcomingCountdownItems(
         title: ev.name,
         type: ev.type === 'birthday' ? 'birthday' : 'holiday',
         daysUntil: diff,
-        badgeText: diff === 0 ? 'Today!' : diff === 1 ? 'Tomorrow' : `In ${diff}d`,
+        badgeText: formatBadge(diff),
       });
     }
   }
@@ -527,7 +535,7 @@ export function getUpcomingCountdownItems(
           title: r.text,
           type: 'quest',
           daysUntil: diff,
-          badgeText: diff === 0 ? 'Today!' : diff === 1 ? 'Tomorrow' : `In ${diff}d`,
+          badgeText: formatBadge(diff),
           completed: r.completed,
         });
       }

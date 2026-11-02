@@ -4,6 +4,7 @@ import { CostumeId, OutfitSelection, getCostumeDefinition } from '../core/costum
 import { ReminderState } from '../core/reminderStore';
 import { getKawaiiIcon } from '../core/kawaiiIcons';
 import { BuddyProfile, HolidayEvent } from '../core/calendarStore';
+import { SupportedLocale, t, getShortMonthNames } from '../core/i18n';
 
 // Tab Switcher Elements
 const dashTabCompanion = document.getElementById('dashTabCompanion') as HTMLButtonElement | null;
@@ -17,6 +18,9 @@ const toggleStickyWindowBtn = document.getElementById(
 ) as HTMLButtonElement | null;
 
 // Buddy Profile Elements
+const buddyLanguageSelect = document.getElementById(
+  'buddy-language-select'
+) as HTMLSelectElement | null;
 const buddyNicknameInput = document.getElementById(
   'buddy-nickname-input'
 ) as HTMLInputElement | null;
@@ -115,6 +119,7 @@ let isPlayMode = false;
 let isGhostMode = false;
 let isFixedAppearance = false;
 let isUsagiHidden = false;
+let currentLocale: SupportedLocale = 'en';
 
 const PRESET_STICKY_SIZES = [
   { label: 'Compact (350×480)', w: 350, h: 480 },
@@ -181,6 +186,13 @@ if (buddyCountrySelect) {
   });
 }
 
+if (buddyLanguageSelect) {
+  buddyLanguageSelect.addEventListener('change', () => {
+    const val = buddyLanguageSelect.value as SupportedLocale;
+    window.usagiAPI?.setLocale(val);
+  });
+}
+
 // 3. Date & Sticky Config Controls
 function renderReminderConfigUI(state: ReminderState): void {
   currentReminderState = state;
@@ -191,20 +203,25 @@ function renderReminderConfigUI(state: ReminderState): void {
   }
 
   if (configWeekStartBtn) {
-    configWeekStartBtn.textContent = state.weekStartsOn === 0 ? 'Sunday (Su–Sa)' : 'Monday (Mo–Su)';
+    configWeekStartBtn.textContent =
+      state.weekStartsOn === 0
+        ? `${t(currentLocale, 'dash.config.sunday')} (Su–Sa)`
+        : `${t(currentLocale, 'dash.config.monday')} (Mo–Su)`;
   }
 
   if (configFontScaleBtn) {
     configFontScaleBtn.textContent =
       state.fontScale === 'sm'
-        ? 'Small (A)'
+        ? `${t(currentLocale, 'dash.config.fontSmall')} (A)`
         : state.fontScale === 'lg'
-          ? 'Large (A++)'
-          : 'Medium (A+)';
+          ? `${t(currentLocale, 'dash.config.fontLarge')} (A++)`
+          : `${t(currentLocale, 'dash.config.fontMedium')} (A+)`;
   }
 
   if (configStickyPinBtn) {
-    configStickyPinBtn.textContent = state.stickyAlwaysOnTop ? 'Pinned on Top' : 'Desktop Widget';
+    configStickyPinBtn.textContent = state.stickyAlwaysOnTop
+      ? t(currentLocale, 'dash.config.pinnedTop')
+      : t(currentLocale, 'dash.config.desktopWidget');
     configStickyPinBtn.classList.toggle('active', Boolean(state.stickyAlwaysOnTop));
   }
 
@@ -212,16 +229,24 @@ function renderReminderConfigUI(state: ReminderState): void {
     const w = state.stickyWidth ?? 350;
     const h = state.stickyHeight ?? 480;
     const matchingIdx = PRESET_STICKY_SIZES.findIndex((p) => p.w === w && p.h === h);
-    if (matchingIdx >= 0) {
-      currentStickySizeIdx = matchingIdx;
-      configStickySizeBtn.textContent = PRESET_STICKY_SIZES[matchingIdx].label;
+    if (matchingIdx === 0) {
+      currentStickySizeIdx = 0;
+      configStickySizeBtn.textContent = `${t(currentLocale, 'dash.config.sizeCompact')} (350×480)`;
+    } else if (matchingIdx === 1) {
+      currentStickySizeIdx = 1;
+      configStickySizeBtn.textContent = `${t(currentLocale, 'dash.config.sizeMedium')} (410×560)`;
+    } else if (matchingIdx === 2) {
+      currentStickySizeIdx = 2;
+      configStickySizeBtn.textContent = `${t(currentLocale, 'dash.config.sizeLarge')} (480×650)`;
     } else {
-      configStickySizeBtn.textContent = `Custom (${w}×${h})`;
+      configStickySizeBtn.textContent = `${t(currentLocale, 'dash.config.sizeCustom')} (${w}×${h})`;
     }
   }
 
   if (toggleStickyWindowBtn) {
-    toggleStickyWindowBtn.textContent = state.stickyVisible ? 'Hide Note' : 'Show Note';
+    toggleStickyWindowBtn.textContent = state.stickyVisible
+      ? t(currentLocale, 'dash.modes.hideNote')
+      : t(currentLocale, 'dash.modes.showNote');
     toggleStickyWindowBtn.classList.toggle('active', Boolean(state.stickyVisible));
   }
 }
@@ -336,13 +361,13 @@ function updatePomodoroUI(state: PomodoroState): void {
 
   if (clockStatus) {
     if (state.phase === 'running') {
-      clockStatus.textContent = 'FOCUS SESSION IN PROGRESS';
+      clockStatus.textContent = t(currentLocale, 'dash.timer.running');
     } else if (state.phase === 'paused') {
-      clockStatus.textContent = 'SESSION PAUSED';
+      clockStatus.textContent = t(currentLocale, 'dash.timer.paused');
     } else if (state.phase === 'completed') {
-      clockStatus.textContent = 'GREAT JOB! SESSION FINISHED';
+      clockStatus.textContent = t(currentLocale, 'dash.timer.completed');
     } else {
-      clockStatus.textContent = 'READY TO FOCUS';
+      clockStatus.textContent = t(currentLocale, 'dash.timer.ready');
     }
   }
 
@@ -351,7 +376,10 @@ function updatePomodoroUI(state: PomodoroState): void {
   }
 
   if (pauseTimerBtn) {
-    pauseTimerBtn.textContent = state.phase === 'running' ? 'Pause' : 'Resume';
+    pauseTimerBtn.textContent =
+      state.phase === 'running'
+        ? t(currentLocale, 'dash.timer.pause')
+        : t(currentLocale, 'dash.timer.resume');
   }
 }
 
@@ -404,7 +432,7 @@ function updateCostumeUI(costume: CostumeId, selection: OutfitSelection): void {
   if (costumeBadge) {
     if (selection === 'random') {
       const def = getCostumeDefinition(costume);
-      costumeBadge.textContent = `RANDOM (${def.label.toUpperCase()})`;
+      costumeBadge.textContent = `${t(currentLocale, 'dash.costume.random').toUpperCase()} (${def.label.toUpperCase()})`;
     } else {
       const def = getCostumeDefinition(costume);
       costumeBadge.textContent = def.label.toUpperCase();
@@ -434,7 +462,9 @@ costumeButtons.forEach((btn) => {
 function updateStationaryUI(stationary: boolean): void {
   isStationary = stationary;
   if (stationaryToggleBtn) {
-    stationaryToggleBtn.textContent = stationary ? 'Stationary' : 'Pin Still';
+    stationaryToggleBtn.textContent = stationary
+      ? t(currentLocale, 'dash.modes.stationary')
+      : t(currentLocale, 'dash.modes.pinStill');
     stationaryToggleBtn.classList.toggle('active', stationary);
   }
 }
@@ -442,7 +472,9 @@ function updateStationaryUI(stationary: boolean): void {
 function updatePlayModeUI(enabled: boolean): void {
   isPlayMode = enabled;
   if (playModeToggleBtn) {
-    playModeToggleBtn.textContent = enabled ? 'Following' : 'Follow Mouse';
+    playModeToggleBtn.textContent = enabled
+      ? t(currentLocale, 'dash.modes.following')
+      : t(currentLocale, 'dash.modes.followMouse');
     playModeToggleBtn.classList.toggle('active', enabled);
   }
 }
@@ -450,7 +482,9 @@ function updatePlayModeUI(enabled: boolean): void {
 function updateGhostModeUI(locked: boolean): void {
   isGhostMode = locked;
   if (ghostModeToggleBtn) {
-    ghostModeToggleBtn.textContent = locked ? 'Pass-thru' : 'Ghost Mode';
+    ghostModeToggleBtn.textContent = locked
+      ? 'Pass-thru'
+      : t(currentLocale, 'dash.modes.ghostMode');
     ghostModeToggleBtn.classList.toggle('active', locked);
   }
 }
@@ -458,7 +492,9 @@ function updateGhostModeUI(locked: boolean): void {
 function updateFixedAppearanceUI(fixed: boolean): void {
   isFixedAppearance = fixed;
   if (fixAppearanceToggleBtn) {
-    fixAppearanceToggleBtn.textContent = fixed ? 'Appearance Fixed' : 'Auto-Change';
+    fixAppearanceToggleBtn.textContent = fixed
+      ? t(currentLocale, 'dash.audio.fixed')
+      : t(currentLocale, 'dash.audio.autoChange');
     fixAppearanceToggleBtn.classList.toggle('active', fixed);
   }
 }
@@ -466,7 +502,9 @@ function updateFixedAppearanceUI(fixed: boolean): void {
 function updateUsagiHiddenUI(hidden: boolean): void {
   isUsagiHidden = hidden;
   if (hideUsagiToggleBtn) {
-    hideUsagiToggleBtn.textContent = hidden ? 'Show Usagi' : 'Hide Usagi';
+    hideUsagiToggleBtn.textContent = hidden
+      ? t(currentLocale, 'dash.modes.showUsagi')
+      : t(currentLocale, 'dash.modes.hideUsagi');
     hideUsagiToggleBtn.classList.toggle('active', hidden);
   }
 }
@@ -507,7 +545,129 @@ if (hideUsagiToggleBtn) {
   });
 }
 
-// 8. Static Icon Initialization
+// 8. Internationalization & Locale Rendering
+function renderLocaleUI(locale: SupportedLocale): void {
+  currentLocale = locale;
+
+  if (buddyLanguageSelect && buddyLanguageSelect.value !== locale) {
+    buddyLanguageSelect.value = locale;
+  }
+
+  // App Header & Tabs
+  const headerTitle = document.getElementById('dash-header-title');
+  if (headerTitle) headerTitle.textContent = `${t(locale, 'dash.title')} Dashboard`;
+  if (dashTabCompanion) dashTabCompanion.textContent = t(locale, 'dash.tab.companion');
+  if (dashTabConfig) dashTabConfig.textContent = t(locale, 'dash.tab.config');
+
+  // Timer Card
+  const timerTitle = document.getElementById('dash-timer-title');
+  if (timerTitle) timerTitle.textContent = t(locale, 'dash.timer.title');
+  const chip25 = document.getElementById('chip-preset-25');
+  if (chip25) chip25.textContent = t(locale, 'dash.timer.preset25');
+  const chip52 = document.getElementById('chip-preset-52');
+  if (chip52) chip52.textContent = t(locale, 'dash.timer.preset52');
+  const chip90 = document.getElementById('chip-preset-90');
+  if (chip90) chip90.textContent = t(locale, 'dash.timer.preset90');
+  const unitTag = document.getElementById('timer-unit-tag');
+  if (unitTag) unitTag.textContent = t(locale, 'dash.timer.min');
+  if (startTimerBtn) startTimerBtn.textContent = t(locale, 'dash.timer.start');
+  if (resetTimerBtn) resetTimerBtn.textContent = t(locale, 'dash.timer.reset');
+
+  // Wardrobe Card
+  const wardrobeTitle = document.getElementById('dash-wardrobe-title');
+  if (wardrobeTitle) wardrobeTitle.textContent = t(locale, 'dash.wardrobe.title');
+  const cClassic = document.getElementById('costume-name-classic');
+  if (cClassic) cClassic.textContent = t(locale, 'dash.costume.classic');
+  const cStudy = document.getElementById('costume-name-study');
+  if (cStudy) cStudy.textContent = t(locale, 'dash.costume.study');
+  const cVest = document.getElementById('costume-name-vest');
+  if (cVest) cVest.textContent = t(locale, 'dash.costume.vest');
+  const cSigma = document.getElementById('costume-name-sigma');
+  if (cSigma) cSigma.textContent = t(locale, 'dash.costume.sigma');
+  const cStar = document.getElementById('costume-name-star');
+  if (cStar) cStar.textContent = t(locale, 'dash.costume.star');
+  const cRandom = document.getElementById('costume-name-random');
+  if (cRandom) cRandom.textContent = t(locale, 'dash.costume.random');
+
+  // Companion Modes Card
+  const modesTitle = document.getElementById('dash-modes-title');
+  if (modesTitle) modesTitle.textContent = t(locale, 'dash.modes.title');
+  const mSticky = document.getElementById('mode-title-sticky');
+  if (mSticky) mSticky.textContent = t(locale, 'dash.modes.stickyNote');
+  const mStill = document.getElementById('mode-title-still');
+  if (mStill) mStill.textContent = t(locale, 'dash.modes.stayStill');
+  const mPlay = document.getElementById('mode-title-play');
+  if (mPlay) mPlay.textContent = t(locale, 'dash.modes.playMode');
+  const mGhost = document.getElementById('mode-title-ghost');
+  if (mGhost) mGhost.textContent = t(locale, 'dash.modes.ghostMode');
+  const mSnack = document.getElementById('mode-title-snack');
+  if (mSnack) mSnack.textContent = t(locale, 'dash.modes.puddingSnack');
+  const mHide = document.getElementById('mode-title-hide');
+  if (mHide) mHide.textContent = t(locale, 'dash.modes.hideUsagi');
+
+  // Profile Card
+  const profileTitle = document.getElementById('dash-profile-title');
+  if (profileTitle) profileTitle.textContent = t(locale, 'dash.profile.title');
+  const langLabel = document.getElementById('buddy-lang-label');
+  if (langLabel) langLabel.textContent = t(locale, 'dash.profile.language');
+  const nickLabel = document.getElementById('buddy-nick-label');
+  if (nickLabel) nickLabel.textContent = t(locale, 'dash.profile.nickname');
+  const bdayLabel = document.getElementById('buddy-bday-label');
+  if (bdayLabel) bdayLabel.textContent = t(locale, 'dash.profile.birthday');
+  const bdayDayOpt = document.getElementById('buddy-bday-day-opt');
+  if (bdayDayOpt) bdayDayOpt.textContent = t(locale, 'dash.profile.day');
+  const bdayMonthOpt = document.getElementById('buddy-bday-month-opt');
+  if (bdayMonthOpt) bdayMonthOpt.textContent = t(locale, 'dash.profile.month');
+  const regionLabel = document.getElementById('buddy-region-label');
+  if (regionLabel) regionLabel.textContent = t(locale, 'dash.profile.region');
+
+  // Short month names for birthday dropdown
+  if (buddyBdayMonth) {
+    const shortMonths = getShortMonthNames(locale);
+    for (let i = 1; i <= 12; i++) {
+      const opt = buddyBdayMonth.querySelector<HTMLOptionElement>(`option[value="${i}"]`);
+      if (opt && shortMonths[i - 1]) {
+        opt.textContent = shortMonths[i - 1];
+      }
+    }
+  }
+
+  // Config Card
+  const configTitle = document.getElementById('dash-config-title');
+  if (configTitle) configTitle.textContent = t(locale, 'dash.config.title');
+  const dfLabel = document.getElementById('config-date-format-label');
+  if (dfLabel) dfLabel.textContent = t(locale, 'dash.config.dateFormat');
+  const wsLabel = document.getElementById('config-week-start-label');
+  if (wsLabel) wsLabel.textContent = t(locale, 'dash.config.weekStart');
+  const fsLabel = document.getElementById('config-font-scale-label');
+  if (fsLabel) fsLabel.textContent = t(locale, 'dash.config.fontScale');
+  const ssLabel = document.getElementById('config-sticky-size-label');
+  if (ssLabel) ssLabel.textContent = t(locale, 'dash.config.stickySize');
+  const spLabel = document.getElementById('config-sticky-pin-label');
+  if (spLabel) spLabel.textContent = t(locale, 'dash.config.stickyPin');
+
+  // Audio Card
+  const audioTitle = document.getElementById('dash-audio-title');
+  if (audioTitle) audioTitle.textContent = t(locale, 'dash.audio.title');
+  if (testSoundBtn) testSoundBtn.textContent = t(locale, 'dash.audio.testSound');
+  if (muteToggleBtn)
+    muteToggleBtn.textContent = isMuted
+      ? t(locale, 'dash.audio.unmute')
+      : t(locale, 'dash.audio.mute');
+  const rotLabel = document.getElementById('outfit-rot-label');
+  if (rotLabel) rotLabel.textContent = t(locale, 'dash.audio.outfitRotation');
+
+  // Re-render stateful elements
+  if (currentPomodoroState) updatePomodoroUI(currentPomodoroState);
+  renderReminderConfigUI(currentReminderState);
+  updateStationaryUI(isStationary);
+  updatePlayModeUI(isPlayMode);
+  updateGhostModeUI(isGhostMode);
+  updateFixedAppearanceUI(isFixedAppearance);
+  updateUsagiHiddenUI(isUsagiHidden);
+}
+
+// 9. Static Icon Initialization
 function initDashboardIcons(): void {
   const volCardIcon = document.getElementById('volume-card-icon');
   if (volCardIcon) volCardIcon.innerHTML = getKawaiiIcon('volume', 16);
@@ -606,6 +766,10 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onDashboardTabChanged((tab) => {
     switchDashboardTab(tab, false);
+  });
+
+  window.usagiAPI.onLocaleChanged((locale) => {
+    renderLocaleUI(locale);
   });
 
   window.usagiAPI

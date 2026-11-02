@@ -87,6 +87,7 @@ import {
   NewScheduleEntryInput,
 } from '../core/scheduleStore';
 import { computeTrayPopoverPosition } from '../core/trayPositioner';
+import { SupportedLocale, detectSystemLocale, isSupportedLocale, t } from '../core/i18n';
 
 let mainWindow: BrowserWindow | null = null;
 let dashboardWindow: BrowserWindow | null = null;
@@ -107,6 +108,7 @@ let usagiHidden = false;
 let usagiX: number | null = null;
 let usagiY: number | null = null;
 let activeDashboardTab: DashboardTabId = 'companion';
+let currentLocale: SupportedLocale = detectSystemLocale();
 
 let pomodoroState: PomodoroState = createPomodoroTimer();
 let wellnessState: WellnessState = createWellnessState();
@@ -179,6 +181,9 @@ function loadSettingsFromDisk(): void {
       usagiX = settings.usagiX ?? null;
       usagiY = settings.usagiY ?? null;
       activeDashboardTab = settings.activeDashboardTab ?? 'companion';
+      if (settings.locale) {
+        currentLocale = settings.locale;
+      }
       pomodoroState = {
         ...createPomodoroTimer(settings.timerDurationMs),
         remainingMs: settings.timerRemainingMs,
@@ -209,6 +214,7 @@ function saveSettingsToDisk(): void {
       usagiX,
       usagiY,
       activeDashboardTab,
+      locale: currentLocale,
     };
     fs.writeFileSync(p, serializeUserSettingsJson(settings), 'utf-8');
   } catch (err) {
@@ -336,7 +342,9 @@ function checkBirthdayGreeting(): void {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('wellness-update', {
         mood: 'active',
-        message: `🎂 Happy Birthday, ${calendarProfile.nickname || 'Buddy'}! Una~!! ✨`,
+        message: t(currentLocale, 'usagi.birthdayGreeting', {
+          nickname: calendarProfile.nickname || 'Buddy',
+        }),
         soundEvent: 'welcome-back',
       });
     }
@@ -472,6 +480,7 @@ function sendFullStateToWindow(win: BrowserWindow | null): void {
     win.webContents.send('usagi-position-changed', { x: usagiX, y: usagiY });
   }
   win.webContents.send('dashboard-tab-changed', activeDashboardTab);
+  win.webContents.send('locale-changed', currentLocale);
 }
 
 function createDashboardWindow(): void {
@@ -609,6 +618,7 @@ function createStickyWindow(): void {
 
   stickyWindow.webContents.on('did-finish-load', () => {
     if (stickyWindow && !stickyWindow.isDestroyed()) {
+      stickyWindow.webContents.send('locale-changed', currentLocale);
       stickyWindow.webContents.send('reminder-state-changed', reminderState);
       stickyWindow.webContents.send('calendar-state-changed', {
         profile: calendarProfile,
@@ -969,9 +979,13 @@ function setupWellnessCoachTicker(): void {
 
     if (mainWindow && !mainWindow.isDestroyed()) {
       if (result.reminderMessage) {
+        const msg =
+          result.reminderMessage === WATER_REMINDER_MESSAGE
+            ? t(currentLocale, 'usagi.waterReminder')
+            : result.reminderMessage;
         mainWindow.webContents.send('wellness-update', {
           mood: wellnessState.mood,
-          message: result.reminderMessage,
+          message: msg,
           soundEvent: 'wellness-reminder',
         });
       }
@@ -983,14 +997,14 @@ function setupWellnessCoachTicker(): void {
       } else if (result.welcomeBack) {
         mainWindow.webContents.send('wellness-update', {
           mood: 'active',
-          message: 'Yaha! Welcome back~',
+          message: t(currentLocale, 'usagi.welcomeBack'),
         });
       }
     }
 
     // Evaluate Smart Multi-Stage Deadline Engine (#11)
     if (!usagiHidden && mainWindow && !mainWindow.isDestroyed()) {
-      const deadlineResult = evaluateDeadlineAlerts(reminderState, new Date());
+      const deadlineResult = evaluateDeadlineAlerts(reminderState, new Date(), 19, currentLocale);
       if (deadlineResult.alerts.length > 0) {
         reminderState = deadlineResult.state;
         saveRemindersToDisk();
@@ -1221,6 +1235,14 @@ app.whenReady().then(() => {
       activeDashboardTab = tab;
       saveSettingsToDisk();
       broadcastToAllWindows('dashboard-tab-changed', activeDashboardTab);
+    }
+  });
+
+  ipcMain.on('set-locale', (_e, nextLocale: SupportedLocale) => {
+    if (isSupportedLocale(nextLocale)) {
+      currentLocale = nextLocale;
+      saveSettingsToDisk();
+      broadcastToAllWindows('locale-changed', currentLocale);
     }
   });
 

@@ -511,6 +511,22 @@ describe('reminderStore', () => {
       expect(formatReminderDueBadge('2026-11-10', '2026-11-02')).toBe('Due 10/11');
     });
 
+    it('formats badge in localized language when locale is provided', () => {
+      expect(formatReminderDueBadge('2026-11-02', '2026-11-02', 'DD/MM', 'vi')).toBe(
+        'Hôm nay (02/11)'
+      );
+      expect(formatReminderDueBadge('2026-11-03', '2026-11-02', 'DD/MM', 'vi')).toBe(
+        'Ngày mai (03/11)'
+      );
+      expect(formatReminderDueBadge('2026-10-28', '2026-11-02', 'DD/MM', 'vi')).toBe(
+        'Quá hạn (28/10)'
+      );
+      expect(formatReminderDueBadge('2026-11-10', '2026-11-02', 'DD/MM', 'vi')).toBe('Hạn 10/11');
+      expect(formatReminderDueBadge('2026-11-02', '2026-11-02', 'DD/MM', 'ja')).toBe(
+        '今日 (02/11)'
+      );
+    });
+
     it('supports MM/DD format in formatReminderDueBadge', () => {
       expect(formatReminderDueBadge('2026-11-10', '2026-11-02', 'MM/DD')).toBe('Due 11/10');
       expect(formatReminderDueBadge('2026-11-02', '2026-11-02', 'MM/DD')).toBe('Today (11/02)');
@@ -657,6 +673,38 @@ describe('reminderStore', () => {
       const res3 = extractDueDateToken('Đi chợ mỗi ngày', undefined, fixedNow);
       expect(res3.cleanText).toBe('Đi chợ');
       expect(res3.repeat).toEqual({ type: 'daily' });
+
+      // Multilingual daily
+      expect(extractDueDateToken('Pflanzen gießen jeden Tag', undefined, fixedNow)).toEqual({
+        cleanText: 'Pflanzen gießen',
+        repeat: { type: 'daily' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken("Boire de l'eau tous les jours", undefined, fixedNow)).toEqual({
+        cleanText: "Boire de l'eau",
+        repeat: { type: 'daily' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('Tomar agua todos los días', undefined, fixedNow)).toEqual({
+        cleanText: 'Tomar agua',
+        repeat: { type: 'daily' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('毎日ストレッチする', undefined, fixedNow)).toEqual({
+        cleanText: 'ストレッチする',
+        repeat: { type: 'daily' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('매일 물 마시기', undefined, fixedNow)).toEqual({
+        cleanText: '물 마시기',
+        repeat: { type: 'daily' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('每天背单词', undefined, fixedNow)).toEqual({
+        cleanText: '背单词',
+        repeat: { type: 'daily' },
+        dueDate: '2026-11-02',
+      });
     });
 
     it('extracts "every weekday", "weekdays", "@weekdays" recurrence and sets initial dueDate', () => {
@@ -670,6 +718,43 @@ describe('reminderStore', () => {
       const saturdayDate = new Date(2026, 10, 7);
       const resSat = extractDueDateToken('Review PRs @weekdays', undefined, saturdayDate);
       expect(resSat.dueDate).toBe('2026-11-09');
+
+      // Multilingual weekdays
+      expect(extractDueDateToken('Đọc sách mỗi ngày trong tuần', undefined, fixedNow)).toEqual({
+        cleanText: 'Đọc sách',
+        repeat: { type: 'weekdays' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('Arbeiten jeden Werktag', undefined, fixedNow)).toEqual({
+        cleanText: 'Arbeiten',
+        repeat: { type: 'weekdays' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('Travail tous les jours ouvrés', undefined, fixedNow)).toEqual({
+        cleanText: 'Travail',
+        repeat: { type: 'weekdays' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('Trabajar entre semana', undefined, fixedNow)).toEqual({
+        cleanText: 'Trabajar',
+        repeat: { type: 'weekdays' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('平日ジムに行く', undefined, fixedNow)).toEqual({
+        cleanText: 'ジムに行く',
+        repeat: { type: 'weekdays' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('평일 운동하기', undefined, fixedNow)).toEqual({
+        cleanText: '운동하기',
+        repeat: { type: 'weekdays' },
+        dueDate: '2026-11-02',
+      });
+      expect(extractDueDateToken('工作日晨跑', undefined, fixedNow)).toEqual({
+        cleanText: '晨跑',
+        repeat: { type: 'weekdays' },
+        dueDate: '2026-11-02',
+      });
     });
 
     it('extracts "every <Weekday>" recurrence and calculates upcoming occurrence', () => {
@@ -691,6 +776,38 @@ describe('reminderStore', () => {
       expect(resSat.cleanText).toBe('Học đàn');
       expect(resSat.repeat).toEqual({ type: 'weekly', dayOfWeek: 6 });
       expect(resSat.dueDate).toBe('2026-11-07');
+
+      // Multilingual German, French, Spanish, Japanese, Korean, Chinese
+      expect(extractDueDateToken('Hausputz jeden Samstag', undefined, fixedNow)).toEqual({
+        cleanText: 'Hausputz',
+        repeat: { type: 'weekly', dayOfWeek: 6 },
+        dueDate: '2026-11-07',
+      });
+      expect(extractDueDateToken('Cours de piano chaque vendredi', undefined, fixedNow)).toEqual({
+        cleanText: 'Cours de piano',
+        repeat: { type: 'weekly', dayOfWeek: 5 },
+        dueDate: '2026-11-06',
+      });
+      expect(extractDueDateToken('Comprar fruta cada martes', undefined, fixedNow)).toEqual({
+        cleanText: 'Comprar fruta',
+        repeat: { type: 'weekly', dayOfWeek: 2 },
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('毎週水曜日ゴミ出し', undefined, fixedNow)).toEqual({
+        cleanText: 'ゴミ出し',
+        repeat: { type: 'weekly', dayOfWeek: 3 },
+        dueDate: '2026-11-04',
+      });
+      expect(extractDueDateToken('매주 목요일 청소', undefined, fixedNow)).toEqual({
+        cleanText: '청소',
+        repeat: { type: 'weekly', dayOfWeek: 4 },
+        dueDate: '2026-11-05',
+      });
+      expect(extractDueDateToken('每周日大扫除', undefined, fixedNow)).toEqual({
+        cleanText: '大扫除',
+        repeat: { type: 'weekly', dayOfWeek: 0 },
+        dueDate: '2026-11-08',
+      });
     });
 
     it('adds recurring reminder item with repeat property preserved', () => {
