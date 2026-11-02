@@ -189,6 +189,20 @@ describe('calendarStore', () => {
       const bdayCell = grid.find((c) => c.dateStr === '2026-11-15');
       expect(bdayCell?.hasBirthday).toBe(true);
     });
+
+    it('builds month calendar grid with weekStartsOn = 1 (Monday-first) vs weekStartsOn = 0 (Sunday-first)', () => {
+      // November 1, 2026 is Sunday
+      // Sunday-first (weekStartsOn = 0):
+      const sunGrid = buildMonthCalendarGrid(2026, 11, '2026-11-02', null, [], [], 0);
+      expect(sunGrid[0].dateStr).toBe('2026-11-01'); // Nov 1 is Sunday, so it's the very first cell
+
+      // Monday-first (weekStartsOn = 1):
+      const monGrid = buildMonthCalendarGrid(2026, 11, '2026-11-02', null, [], [], 1);
+      // Row 1 should start on Monday Oct 26, and Nov 1 is cell 6 (Sunday)
+      expect(monGrid[0].dateStr).toBe('2026-10-26');
+      expect(monGrid[6].dateStr).toBe('2026-11-01');
+      expect(monGrid[7].dateStr).toBe('2026-11-02');
+    });
   });
 
   describe('getUpcomingCountdownItems', () => {

@@ -81,7 +81,7 @@ usagi-buddy/
 - `ModeFlags`: `{ ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
 - `WardrobeRotationState`: `{ fixedAppearance: boolean, elapsedMs: number }`
-- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard', fontScale?: 'sm' | 'md' | 'lg' }`
+- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard', fontScale?: 'sm' | 'md' | 'lg', dateFormat?: 'DD/MM' | 'MM/DD', weekStartsOn?: 0 | 1, stickyAlwaysOnTop?: boolean }`
 - `ReminderItem`: `{ id: string, text: string, completed: boolean, createdAtMs: number, dueDate?: string }`
 - `ScheduleEntry`: `{ id: string, title: string, dayOfWeek: number, startTime: string, endTime: string, location?: string }`
 - `ScheduleState`: `{ entries: ScheduleEntry[] }`

@@ -1,4 +1,9 @@
-import { ReminderItem, ReminderState, formatReminderDueBadge } from '../core/reminderStore';
+import {
+  ReminderItem,
+  ReminderState,
+  formatReminderDueBadge,
+  formatDisplayDate,
+} from '../core/reminderStore';
 import { getKawaiiIcon } from '../core/kawaiiIcons';
 import {
   HolidayEvent,
@@ -74,6 +79,9 @@ const stickyCalTodayBtn = document.getElementById('stickyCalTodayBtn') as HTMLBu
 const stickyCalMonthTitle = document.getElementById(
   'stickyCalMonthTitle'
 ) as HTMLSpanElement | null;
+const stickyCalWeekdaysGrid = document.getElementById(
+  'stickyCalWeekdaysGrid'
+) as HTMLDivElement | null;
 const stickyCalDaysGrid = document.getElementById('stickyCalDaysGrid') as HTMLDivElement | null;
 const stickyCalDetailBanner = document.getElementById(
   'stickyCalDetailBanner'
@@ -149,13 +157,22 @@ function renderCalendar(): void {
   const todayYMD = getTodayYMD();
   stickyCalMonthTitle.textContent = `${MONTH_NAMES[currentCalendarMonth - 1]} ${currentCalendarYear}`;
 
+  if (stickyCalWeekdaysGrid) {
+    const startOnMonday = (currentState.weekStartsOn ?? 1) === 1;
+    const days = startOnMonday
+      ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+      : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    stickyCalWeekdaysGrid.innerHTML = days.map((d) => `<div>${d}</div>`).join('');
+  }
+
   const cells = buildMonthCalendarGrid(
     currentCalendarYear,
     currentCalendarMonth,
     todayYMD,
     selectedDateStr,
     currentEvents,
-    currentState.items
+    currentState.items,
+    currentState.weekStartsOn ?? 1
   );
 
   stickyCalDaysGrid.innerHTML = '';
@@ -207,12 +224,13 @@ function renderCalendar(): void {
   if (selectedDateStr) {
     if (stickyCalDetailBanner) stickyCalDetailBanner.style.display = 'flex';
     const summary = getSelectedDaySummary(currentEvents, currentState.items, selectedDateStr);
+    const fmt = currentState.dateFormat || 'DD/MM';
 
     if (stickyCalDetailText) {
-      stickyCalDetailText.textContent = `📅 Selected: ${selectedDateStr}`;
+      stickyCalDetailText.textContent = `📅 Selected: ${formatDisplayDate(selectedDateStr, fmt, true)}`;
     }
     if (stickyCalJumpAddBtn) {
-      stickyCalJumpAddBtn.textContent = `+ Add Quest on ${selectedDateStr.slice(5)}`;
+      stickyCalJumpAddBtn.textContent = `+ Add Quest on ${formatDisplayDate(selectedDateStr, fmt, false)}`;
     }
 
     if (stickyCalDayItemsList) {
@@ -533,6 +551,13 @@ function render(state: ReminderState): void {
       state.fontScale === 'sm' ? 'A' : state.fontScale === 'lg' ? 'A++' : 'A+';
   }
 
+  if (questInput) {
+    questInput.placeholder =
+      state.dateFormat === 'MM/DD'
+        ? 'Add quest (e.g. Submit exam 11/15)...'
+        : 'Add quest (e.g. Submit exam 15/11)...';
+  }
+
   renderCalendar();
   if (activeTab === 'schedule') {
     renderSchedule();
@@ -540,6 +565,8 @@ function render(state: ReminderState): void {
 
   if (!questList) return;
   questList.innerHTML = '';
+
+  const fmt = state.dateFormat || 'DD/MM';
 
   const itemsToRender = activeQuickDueDate
     ? state.items.filter((item) => item.dueDate === activeQuickDueDate)
@@ -550,7 +577,7 @@ function render(state: ReminderState): void {
     empty.className = 'empty-state';
     empty.innerHTML = `
       <div class="emoji">🍮</div>
-      <div>${activeQuickDueDate ? `No quests due on ${activeQuickDueDate}~` : 'No quests yet! Relax or add one below~'}</div>
+      <div>${activeQuickDueDate ? `No quests due on ${formatDisplayDate(activeQuickDueDate, fmt, true)}~` : 'No quests yet! Relax or add one below~'}</div>
     `;
     questList.appendChild(empty);
   } else {
@@ -575,7 +602,7 @@ function render(state: ReminderState): void {
       if (item.dueDate) {
         const badge = document.createElement('span');
         badge.className = 'quest-due-badge';
-        badge.textContent = formatReminderDueBadge(item.dueDate, getTodayYMD());
+        badge.textContent = formatReminderDueBadge(item.dueDate, getTodayYMD(), fmt);
         text.appendChild(badge);
       }
 
@@ -601,7 +628,7 @@ function render(state: ReminderState): void {
   const completed = state.items.filter((it) => it.completed).length;
   if (questCounter) {
     questCounter.textContent = activeQuickDueDate
-      ? `${itemsToRender.filter((it) => it.completed).length}/${itemsToRender.length} due on ${activeQuickDueDate}`
+      ? `${itemsToRender.filter((it) => it.completed).length}/${itemsToRender.length} due on ${formatDisplayDate(activeQuickDueDate, fmt, false)}`
       : `${completed}/${state.items.length} completed`;
   }
 }
@@ -737,7 +764,8 @@ function init(): void {
         activeQuickDueDate = selectedDateStr;
         if (stickySelectedDateRow) stickySelectedDateRow.style.display = 'flex';
         if (stickySelectedDateLabel) {
-          stickySelectedDateLabel.textContent = `📅 Target Date: ${activeQuickDueDate}`;
+          const fmt = currentState.dateFormat || 'DD/MM';
+          stickySelectedDateLabel.textContent = `📅 Target Date: ${formatDisplayDate(activeQuickDueDate, fmt, true)}`;
         }
       }
       switchTab('quests');

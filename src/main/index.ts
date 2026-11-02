@@ -59,6 +59,8 @@ import {
   deleteReminderItem,
   clearCompletedReminders,
   cycleReminderFontScale,
+  updateReminderPreferences,
+  ReminderPreferencesUpdate,
   parseRemindersJson,
   serializeRemindersJson,
 } from '../core/reminderStore';
@@ -464,6 +466,7 @@ function createDashboardWindow(): void {
 function createStickyWindow(): void {
   if (stickyWindow && !stickyWindow.isDestroyed()) {
     if (reminderState.stickyVisible) {
+      stickyWindow.setAlwaysOnTop(Boolean(reminderState.stickyAlwaysOnTop), 'floating');
       stickyWindow.show();
     } else {
       stickyWindow.hide();
@@ -490,7 +493,7 @@ function createStickyWindow(): void {
     frame: false,
     transparent: true,
     resizable: true,
-    alwaysOnTop: false,
+    alwaysOnTop: Boolean(reminderState.stickyAlwaysOnTop),
     skipTaskbar: true,
     fullscreenable: false,
     hasShadow: false,
@@ -505,6 +508,10 @@ function createStickyWindow(): void {
 
   const htmlPath = path.join(__dirname, '../sticky/index.html');
   stickyWindow.loadFile(htmlPath);
+
+  if (reminderState.stickyAlwaysOnTop) {
+    stickyWindow.setAlwaysOnTop(true, 'floating');
+  }
 
   stickyWindow.webContents.on('did-finish-load', () => {
     if (stickyWindow && !stickyWindow.isDestroyed()) {
@@ -1144,6 +1151,17 @@ app.whenReady().then(() => {
     reminderState = cycleReminderFontScale(reminderState);
     saveRemindersToDisk();
     broadcastReminderState();
+  });
+
+  ipcMain.on('update-reminder-preferences', (_e, prefs: ReminderPreferencesUpdate) => {
+    if (prefs && typeof prefs === 'object') {
+      reminderState = updateReminderPreferences(reminderState, prefs);
+      if (stickyWindow && !stickyWindow.isDestroyed()) {
+        stickyWindow.setAlwaysOnTop(Boolean(reminderState.stickyAlwaysOnTop), 'floating');
+      }
+      saveRemindersToDisk();
+      broadcastReminderState();
+    }
   });
 
   ipcMain.on('toggle-sticky-window', () => {

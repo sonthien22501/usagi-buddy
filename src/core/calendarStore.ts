@@ -1,4 +1,4 @@
-import { ReminderItem } from './reminderStore';
+import { ReminderItem, WeekStartDay } from './reminderStore';
 
 export interface BuddyProfile {
   nickname: string;
@@ -436,7 +436,7 @@ export function buildCalendarEvents(
 
 /**
  * Builds standard 42-cell (6 rows x 7 cols) calendar grid for a given year & month.
- * Starts on Sunday (0) to Saturday (6).
+ * weekStartsOn: 1 = Monday, 0 = Sunday (default 0 for backward compatibility).
  */
 export function buildMonthCalendarGrid(
   year: number,
@@ -444,13 +444,15 @@ export function buildMonthCalendarGrid(
   todayYMD: string,
   selectedYMD?: string | null,
   events: HolidayEvent[] = [],
-  reminders: ReminderItem[] = []
+  reminders: ReminderItem[] = [],
+  weekStartsOn: WeekStartDay = 0
 ): CalendarDayCell[] {
   const firstDayOfWeek = new Date(year, month - 1, 1).getDay(); // 0 is Sunday
+  const leadingBlanks = (firstDayOfWeek - weekStartsOn + 7) % 7;
   const cells: CalendarDayCell[] = [];
 
   for (let i = 0; i < 42; i++) {
-    const dayDate = new Date(year, month - 1, 1 - firstDayOfWeek + i);
+    const dayDate = new Date(year, month - 1, 1 - leadingBlanks + i);
     const cellYear = dayDate.getFullYear();
     const cellMonth = dayDate.getMonth() + 1;
     const cellDay = dayDate.getDate();

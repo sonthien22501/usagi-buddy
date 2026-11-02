@@ -11,7 +11,11 @@ import {
   serializeRemindersJson,
   extractDueDateToken,
   formatReminderDueBadge,
+  formatDisplayDate,
   cycleReminderFontScale,
+  updateReminderPreferences,
+  DateFormatPreference,
+  WeekStartDay,
 } from '../src/core/reminderStore';
 
 describe('reminderStore', () => {
@@ -461,16 +465,73 @@ describe('reminderStore', () => {
         cleanText: 'Submit thesis',
         dueDate: '2026-12-20',
       });
+
+      // Format-aware slash dates: DD/MM (default) vs MM/DD
+      expect(extractDueDateToken('Project due 05/11', undefined, fixedNow, 'DD/MM')).toEqual({
+        cleanText: 'Project',
+        dueDate: '2026-11-05',
+      });
+      expect(extractDueDateToken('Project due 11/05', undefined, fixedNow, 'MM/DD')).toEqual({
+        cleanText: 'Project',
+        dueDate: '2026-11-05',
+      });
     });
   });
 
-  describe('formatReminderDueBadge', () => {
-    it('formats badge with relative label and actual resolved date', () => {
-      expect(formatReminderDueBadge('2026-11-02', '2026-11-02')).toBe('Today (11/02)');
-      expect(formatReminderDueBadge('2026-11-03', '2026-11-02')).toBe('Tmrw (11/03)');
-      expect(formatReminderDueBadge('2026-11-01', '2026-11-02')).toBe('Yesterday (11/01)');
-      expect(formatReminderDueBadge('2026-10-28', '2026-11-02')).toBe('Overdue (10/28)');
-      expect(formatReminderDueBadge('2026-11-10', '2026-11-02')).toBe('Due 11/10');
+  describe('formatReminderDueBadge and formatDisplayDate', () => {
+    it('formats display dates in DD/MM by default and MM/DD when configured', () => {
+      expect(formatDisplayDate('2026-11-05', 'DD/MM', false)).toBe('05/11');
+      expect(formatDisplayDate('2026-11-05', 'DD/MM', true)).toBe('05/11/2026');
+      expect(formatDisplayDate('2026-11-05', 'MM/DD', false)).toBe('11/05');
+      expect(formatDisplayDate('2026-11-05', 'MM/DD', true)).toBe('11/05/2026');
+      expect(formatDisplayDate('invalid-date')).toBe('invalid-date');
+    });
+
+    it('formats badge with relative label and actual resolved date in DD/MM by default', () => {
+      expect(formatReminderDueBadge('2026-11-02', '2026-11-02')).toBe('Today (02/11)');
+      expect(formatReminderDueBadge('2026-11-03', '2026-11-02')).toBe('Tmrw (03/11)');
+      expect(formatReminderDueBadge('2026-11-01', '2026-11-02')).toBe('Yesterday (01/11)');
+      expect(formatReminderDueBadge('2026-10-28', '2026-11-02')).toBe('Overdue (28/10)');
+      expect(formatReminderDueBadge('2026-11-10', '2026-11-02')).toBe('Due 10/11');
+    });
+
+    it('supports MM/DD format in formatReminderDueBadge', () => {
+      expect(formatReminderDueBadge('2026-11-10', '2026-11-02', 'MM/DD')).toBe('Due 11/10');
+      expect(formatReminderDueBadge('2026-11-02', '2026-11-02', 'MM/DD')).toBe('Today (11/02)');
+    });
+  });
+
+  describe('updateReminderPreferences', () => {
+    it('updates dateFormat, weekStartsOn, stickyAlwaysOnTop and fontScale', () => {
+      let state = createInitialReminderState();
+      expect(state.dateFormat).toBe('DD/MM');
+      expect(state.weekStartsOn).toBe(1);
+      expect(state.stickyAlwaysOnTop).toBe(false);
+
+      state = updateReminderPreferences(state, {
+        dateFormat: 'MM/DD',
+        weekStartsOn: 0,
+        stickyAlwaysOnTop: true,
+        fontScale: 'lg',
+      });
+      expect(state.dateFormat).toBe('MM/DD');
+      expect(state.weekStartsOn).toBe(0);
+      expect(state.stickyAlwaysOnTop).toBe(true);
+      expect(state.fontScale).toBe('lg');
+
+      const json = serializeRemindersJson(state);
+      const restored = parseRemindersJson(json);
+      expect(restored.dateFormat).toBe('MM/DD');
+      expect(restored.weekStartsOn).toBe(0);
+      expect(restored.stickyAlwaysOnTop).toBe(true);
+      expect(restored.fontScale).toBe('lg');
+    });
+
+    it('defaults missing or corrupted preferences to safe defaults in parseRemindersJson', () => {
+      const parsed = parseRemindersJson('{"items": []}');
+      expect(parsed.dateFormat).toBe('DD/MM');
+      expect(parsed.weekStartsOn).toBe(1);
+      expect(parsed.stickyAlwaysOnTop).toBe(false);
     });
   });
 

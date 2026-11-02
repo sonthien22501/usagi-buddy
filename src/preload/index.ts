@@ -3,7 +3,13 @@ import { CostumeId, OutfitSelection } from '../core/costumeManager';
 import { SnackTarget, Vector2D } from '../core/physicsEngine';
 import { PomodoroState } from '../core/pomodoroTimer';
 import { VolumeConfig } from '../core/soundManager';
-import { ReminderState } from '../core/reminderStore';
+import {
+  ReminderState,
+  DateFormatPreference,
+  WeekStartDay,
+  StickyFontScale,
+  ReminderPreferencesUpdate,
+} from '../core/reminderStore';
 import { BuddyProfile, HolidayEvent } from '../core/calendarStore';
 import { ScheduleState, NewScheduleEntryInput } from '../core/scheduleStore';
 
@@ -60,6 +66,7 @@ export interface UsagiAPI {
   deleteReminder: (id: string) => void;
   clearCompletedReminders: () => void;
   cycleStickyFontScale: () => void;
+  updateReminderPreferences: (prefs: ReminderPreferencesUpdate) => void;
   resizeStickyWindow: (width: number, height: number) => void;
   getScheduleState: () => Promise<ScheduleState>;
   onScheduleStateChanged: (callback: (state: ScheduleState) => void) => () => void;
@@ -232,6 +239,9 @@ const api: UsagiAPI = {
   },
   cycleStickyFontScale: () => {
     ipcRenderer.send('cycle-sticky-font-scale');
+  },
+  updateReminderPreferences: (prefs: ReminderPreferencesUpdate) => {
+    ipcRenderer.send('update-reminder-preferences', prefs);
   },
   resizeStickyWindow: (width: number, height: number) => {
     ipcRenderer.send('resize-sticky-window', width, height);

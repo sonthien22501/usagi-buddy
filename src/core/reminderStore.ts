@@ -13,12 +13,17 @@ export interface ReminderItem {
 }
 
 export type StickyFontScale = 'sm' | 'md' | 'lg';
+export type DateFormatPreference = 'DD/MM' | 'MM/DD';
+export type WeekStartDay = 0 | 1;
 
 export interface ReminderState {
   items: ReminderItem[];
   stickyVisible: boolean;
   theme: 'custard';
   fontScale?: StickyFontScale;
+  dateFormat?: DateFormatPreference;
+  weekStartsOn?: WeekStartDay;
+  stickyAlwaysOnTop?: boolean;
 }
 
 export const MAX_REMINDER_ITEMS = 30;
@@ -98,7 +103,8 @@ function applyExtractor(
 export function extractDueDateToken(
   rawText: string,
   defaultDateStr?: string,
-  now = new Date()
+  now = new Date(),
+  format: DateFormatPreference = 'DD/MM'
 ): { cleanText: string; dueDate?: string } {
   let dueDate: string | undefined = undefined;
   let text = rawText.trim();
@@ -293,9 +299,11 @@ export function extractDueDateToken(
 
       const mLeadingSlash = text.match(leadingSlash);
       if (mLeadingSlash) {
-        const day = parseInt(mLeadingSlash[1], 10);
-        const month = parseInt(mLeadingSlash[2], 10);
+        const p1 = parseInt(mLeadingSlash[1], 10);
+        const p2 = parseInt(mLeadingSlash[2], 10);
         const year = mLeadingSlash[3] ? parseInt(mLeadingSlash[3], 10) : now.getFullYear();
+        const day = format === 'MM/DD' ? p2 : p1;
+        const month = format === 'MM/DD' ? p1 : p2;
         if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
           dueDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           text = text.slice(mLeadingSlash[0].length);
@@ -304,9 +312,11 @@ export function extractDueDateToken(
       } else {
         const mTrailingSlash = text.match(trailingSlash);
         if (mTrailingSlash && mTrailingSlash.index !== undefined) {
-          const day = parseInt(mTrailingSlash[1], 10);
-          const month = parseInt(mTrailingSlash[2], 10);
+          const p1 = parseInt(mTrailingSlash[1], 10);
+          const p2 = parseInt(mTrailingSlash[2], 10);
           const year = mTrailingSlash[3] ? parseInt(mTrailingSlash[3], 10) : now.getFullYear();
+          const day = format === 'MM/DD' ? p2 : p1;
+          const month = format === 'MM/DD' ? p1 : p2;
           if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
             dueDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             text = text.slice(0, mTrailingSlash.index);
@@ -335,9 +345,30 @@ export function extractDueDateToken(
   return { cleanText, dueDate };
 }
 
-export function formatReminderDueBadge(dueDateStr: string, todayYMD: string): string {
+export function formatDisplayDate(
+  ymd: string,
+  format: DateFormatPreference = 'DD/MM',
+  includeYear = false
+): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return ymd;
+  }
+  const year = ymd.slice(0, 4);
+  const month = ymd.slice(5, 7);
+  const day = ymd.slice(8, 10);
+  if (format === 'MM/DD') {
+    return includeYear ? `${month}/${day}/${year}` : `${month}/${day}`;
+  }
+  return includeYear ? `${day}/${month}/${year}` : `${day}/${month}`;
+}
+
+export function formatReminderDueBadge(
+  dueDateStr: string,
+  todayYMD: string,
+  format: DateFormatPreference = 'DD/MM'
+): string {
   const diff = daysBetweenYMD(todayYMD, dueDateStr);
-  const shortDate = dueDateStr.slice(5).replace('-', '/');
+  const shortDate = formatDisplayDate(dueDateStr, format, false);
   if (diff === 0) return `Today (${shortDate})`;
   if (diff === 1) return `Tmrw (${shortDate})`;
   if (diff === -1) return `Yesterday (${shortDate})`;
@@ -372,6 +403,9 @@ export function createInitialReminderState(): ReminderState {
     stickyVisible: true,
     theme: 'custard',
     fontScale: 'md',
+    dateFormat: 'DD/MM',
+    weekStartsOn: 1,
+    stickyAlwaysOnTop: false,
   };
 }
 
@@ -397,7 +431,12 @@ export function addReminderItem(
     }
   }
 
-  const { cleanText, dueDate } = extractDueDateToken(text, fallbackDueDate, nowDate);
+  const { cleanText, dueDate } = extractDueDateToken(
+    text,
+    fallbackDueDate,
+    nowDate,
+    state.dateFormat || 'DD/MM'
+  );
   if (!cleanText || state.items.length >= MAX_REMINDER_ITEMS) {
     return state;
   }
@@ -472,6 +511,28 @@ export function cycleReminderFontScale(state: ReminderState): ReminderState {
   };
 }
 
+export interface ReminderPreferencesUpdate {
+  dateFormat?: DateFormatPreference;
+  weekStartsOn?: WeekStartDay;
+  stickyAlwaysOnTop?: boolean;
+  fontScale?: StickyFontScale;
+}
+
+export function updateReminderPreferences(
+  state: ReminderState,
+  prefs: ReminderPreferencesUpdate
+): ReminderState {
+  return {
+    ...state,
+    ...(prefs.dateFormat !== undefined ? { dateFormat: prefs.dateFormat } : {}),
+    ...(prefs.weekStartsOn !== undefined ? { weekStartsOn: prefs.weekStartsOn } : {}),
+    ...(prefs.stickyAlwaysOnTop !== undefined
+      ? { stickyAlwaysOnTop: prefs.stickyAlwaysOnTop }
+      : {}),
+    ...(prefs.fontScale !== undefined ? { fontScale: prefs.fontScale } : {}),
+  };
+}
+
 function isValidReminderItem(item: unknown): item is ReminderItem {
   if (typeof item !== 'object' || item === null) return false;
   const candidate = item as Record<string, unknown>;
@@ -505,6 +566,9 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
       parsed.fontScale === 'sm' || parsed.fontScale === 'md' || parsed.fontScale === 'lg'
         ? parsed.fontScale
         : 'md';
+    const dateFormat: DateFormatPreference = parsed.dateFormat === 'MM/DD' ? 'MM/DD' : 'DD/MM';
+    const weekStartsOn: WeekStartDay = parsed.weekStartsOn === 0 ? 0 : 1;
+    const stickyAlwaysOnTop: boolean = Boolean(parsed.stickyAlwaysOnTop);
 
     if (!Array.isArray(parsed.items)) {
       return {
@@ -512,6 +576,9 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
         stickyVisible,
         theme,
         fontScale,
+        dateFormat,
+        weekStartsOn,
+        stickyAlwaysOnTop,
       };
     }
 
@@ -536,6 +603,9 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
       stickyVisible,
       theme,
       fontScale,
+      dateFormat,
+      weekStartsOn,
+      stickyAlwaysOnTop,
     };
   } catch {
     return createInitialReminderState();
