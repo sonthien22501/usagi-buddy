@@ -79,6 +79,10 @@ export interface UsagiAPI {
   toggleUsagiHidden: () => void;
   onUsagiHiddenChanged: (callback: (hidden: boolean) => void) => () => void;
   openDashboardWindow: () => void;
+  updateUsagiPosition: (x: number, y: number) => void;
+  onUsagiPositionChanged: (callback: (pos: { x: number; y: number }) => void) => () => void;
+  updateDashboardTab: (tab: 'companion' | 'config') => void;
+  onDashboardTabChanged: (callback: (tab: 'companion' | 'config') => void) => () => void;
   quitApp: () => void;
   closeTrayPopover: () => void;
 }
@@ -284,6 +288,24 @@ const api: UsagiAPI = {
   },
   openDashboardWindow: () => {
     ipcRenderer.send('open-dashboard-window');
+  },
+  updateUsagiPosition: (x: number, y: number) => {
+    ipcRenderer.send('update-usagi-position', x, y);
+  },
+  onUsagiPositionChanged: (callback: (pos: { x: number; y: number }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, pos: { x: number; y: number }) =>
+      callback(pos);
+    ipcRenderer.on('usagi-position-changed', handler);
+    return () => ipcRenderer.removeListener('usagi-position-changed', handler);
+  },
+  updateDashboardTab: (tab: 'companion' | 'config') => {
+    ipcRenderer.send('update-dashboard-tab', tab);
+  },
+  onDashboardTabChanged: (callback: (tab: 'companion' | 'config') => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, tab: 'companion' | 'config') =>
+      callback(tab);
+    ipcRenderer.on('dashboard-tab-changed', handler);
+    return () => ipcRenderer.removeListener('dashboard-tab-changed', handler);
   },
   quitApp: () => {
     ipcRenderer.send('quit-app');

@@ -16,6 +16,14 @@ import {
   updateReminderPreferences,
   DateFormatPreference,
   WeekStartDay,
+  clampStickyDimensions,
+  DEFAULT_STICKY_WIDTH,
+  DEFAULT_STICKY_HEIGHT,
+  MIN_STICKY_WIDTH,
+  MAX_STICKY_WIDTH,
+  MIN_STICKY_HEIGHT,
+  MAX_STICKY_HEIGHT,
+  StickyTabId,
 } from '../src/core/reminderStore';
 
 describe('reminderStore', () => {
@@ -24,6 +32,11 @@ describe('reminderStore', () => {
     expect(state.stickyVisible).toBe(true);
     expect(state.theme).toBe('custard');
     expect(state.fontScale).toBe('md');
+    expect(state.stickyWidth).toBe(350);
+    expect(state.stickyHeight).toBe(480);
+    expect(state.stickyX).toBeNull();
+    expect(state.stickyY).toBeNull();
+    expect(state.activeStickyTab).toBe('quests');
     expect(state.items.length).toBe(3);
     expect(state.items[0].text).toContain('Drink a glass of water');
     expect(state.items[1].text).toContain('25m Focus Session');
@@ -527,11 +540,71 @@ describe('reminderStore', () => {
       expect(restored.fontScale).toBe('lg');
     });
 
+    it('updates and clamps sticky dimensions, coordinates and activeStickyTab', () => {
+      let state = createInitialReminderState();
+      state = updateReminderPreferences(state, {
+        stickyWidth: 200, // below MIN 290
+        stickyHeight: 1200, // above MAX 880
+        stickyX: 140.4,
+        stickyY: 280.9,
+        activeStickyTab: 'schedule',
+      });
+      expect(state.stickyWidth).toBe(290);
+      expect(state.stickyHeight).toBe(880);
+      expect(state.stickyX).toBe(140);
+      expect(state.stickyY).toBe(281);
+      expect(state.activeStickyTab).toBe('schedule');
+
+      state = updateReminderPreferences(state, {
+        stickyWidth: 999, // above MAX 640
+        stickyHeight: 100, // below MIN 380
+        stickyX: null,
+        stickyY: null,
+        activeStickyTab: 'calendar',
+      });
+      expect(state.stickyWidth).toBe(640);
+      expect(state.stickyHeight).toBe(380);
+      expect(state.stickyX).toBeNull();
+      expect(state.stickyY).toBeNull();
+      expect(state.activeStickyTab).toBe('calendar');
+    });
+
     it('defaults missing or corrupted preferences to safe defaults in parseRemindersJson', () => {
       const parsed = parseRemindersJson('{"items": []}');
       expect(parsed.dateFormat).toBe('DD/MM');
       expect(parsed.weekStartsOn).toBe(1);
       expect(parsed.stickyAlwaysOnTop).toBe(false);
+      expect(parsed.stickyWidth).toBe(350);
+      expect(parsed.stickyHeight).toBe(480);
+      expect(parsed.stickyX).toBeNull();
+      expect(parsed.stickyY).toBeNull();
+      expect(parsed.activeStickyTab).toBe('quests');
+    });
+
+    it('round-trips sticky geometry and active tab through JSON', () => {
+      let state = createInitialReminderState();
+      state = updateReminderPreferences(state, {
+        stickyWidth: 420,
+        stickyHeight: 600,
+        stickyX: 300,
+        stickyY: 150,
+        activeStickyTab: 'calendar',
+      });
+      const json = serializeRemindersJson(state);
+      const restored = parseRemindersJson(json);
+      expect(restored.stickyWidth).toBe(420);
+      expect(restored.stickyHeight).toBe(600);
+      expect(restored.stickyX).toBe(300);
+      expect(restored.stickyY).toBe(150);
+      expect(restored.activeStickyTab).toBe('calendar');
+    });
+
+    it('clampStickyDimensions enforces min/max bounds and handles invalid inputs', () => {
+      expect(clampStickyDimensions(undefined, undefined)).toEqual({ width: 350, height: 480 });
+      expect(clampStickyDimensions(100, 1000)).toEqual({ width: 290, height: 880 });
+      expect(clampStickyDimensions(800, 200)).toEqual({ width: 640, height: 380 });
+      expect(clampStickyDimensions(400.6, 500.4)).toEqual({ width: 401, height: 500 });
+      expect(clampStickyDimensions('abc', NaN)).toEqual({ width: 350, height: 480 });
     });
   });
 

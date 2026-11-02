@@ -120,7 +120,7 @@ function getTodayYMD(): string {
   return formatDateYMD(now.getFullYear(), now.getMonth() + 1, now.getDate());
 }
 
-function switchTab(tab: 'quests' | 'calendar' | 'schedule'): void {
+function switchTab(tab: 'quests' | 'calendar' | 'schedule', persist = true): void {
   activeTab = tab;
   tabBtnQuests?.classList.toggle('active', tab === 'quests');
   tabBtnCalendar?.classList.toggle('active', tab === 'calendar');
@@ -134,6 +134,11 @@ function switchTab(tab: 'quests' | 'calendar' | 'schedule'): void {
     renderCalendar();
   } else if (tab === 'schedule') {
     renderSchedule();
+  }
+
+  if (persist && currentState.activeStickyTab !== tab) {
+    currentState.activeStickyTab = tab;
+    window.usagiAPI?.updateReminderPreferences({ activeStickyTab: tab });
   }
 }
 
@@ -546,6 +551,10 @@ function render(state: ReminderState): void {
   document.body.setAttribute('data-theme', 'custard');
   document.body.setAttribute('data-font-scale', state.fontScale || 'md');
 
+  if (state.activeStickyTab && state.activeStickyTab !== activeTab) {
+    switchTab(state.activeStickyTab, false);
+  }
+
   if (textZoomBtn) {
     textZoomBtn.textContent =
       state.fontScale === 'sm' ? 'A' : state.fontScale === 'lg' ? 'A++' : 'A+';
@@ -688,7 +697,7 @@ function init(): void {
   ];
   if (windowSizeBtn) {
     windowSizeBtn.addEventListener('click', () => {
-      const curW = window.innerWidth;
+      const curW = currentState.stickyWidth || window.innerWidth;
       let nextIdx = 0;
       if (curW < 380) {
         nextIdx = 1;

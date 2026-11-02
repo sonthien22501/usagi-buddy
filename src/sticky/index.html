@@ -144,7 +144,7 @@
       }
 
       .sched-time-pill {
-        font-size: 9.5px;
+        font-size: calc(9.5px * var(--font-scale));
         font-weight: 800;
         padding: 2px 5px;
         border-radius: 4px;
@@ -164,7 +164,7 @@
       }
 
       .sched-location {
-        font-size: 9.5px;
+        font-size: calc(9.5px * var(--font-scale));
         color: var(--text-muted);
         background: var(--card-inner);
         border-radius: 4px;
@@ -220,7 +220,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 13px;
+        font-size: calc(13px * var(--font-scale));
         font-weight: 800;
         color: var(--text-color);
         letter-spacing: 0.3px;
@@ -409,7 +409,7 @@
       .empty-state {
         text-align: center;
         padding: 30px 10px;
-        font-size: 12px;
+        font-size: calc(12px * var(--font-scale));
         color: var(--text-muted);
         line-height: 1.6;
       }
@@ -426,7 +426,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        font-size: 11px;
+        font-size: calc(11px * var(--font-scale));
         color: var(--text-muted);
         font-weight: 600;
       }
@@ -436,7 +436,7 @@
         border: 1px solid var(--border-color);
         border-radius: 6px;
         padding: 3px 8px;
-        font-size: 10px;
+        font-size: calc(10px * var(--font-scale));
         font-weight: 700;
         color: var(--text-color);
         cursor: pointer;
@@ -466,7 +466,7 @@
         border: 1.5px solid transparent;
         border-radius: 6px;
         padding: 4px;
-        font-size: 11px;
+        font-size: calc(11px * var(--font-scale));
         font-weight: 700;
         background: transparent;
         color: var(--text-muted);
@@ -495,7 +495,7 @@
         padding: 4px 10px;
         background: var(--bg-sticky);
         border-bottom: 1px dashed var(--border-color);
-        font-size: 10px;
+        font-size: calc(10px * var(--font-scale));
         flex-wrap: wrap;
       }
       .sticky-chip-btn {
@@ -503,7 +503,7 @@
         border: 1px solid var(--border-color);
         border-radius: 4px;
         padding: 2px 6px;
-        font-size: 10px;
+        font-size: calc(10px * var(--font-scale));
         font-weight: 700;
         color: var(--text-color);
         cursor: pointer;
@@ -571,7 +571,7 @@
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         text-align: center;
-        font-size: 9px;
+        font-size: calc(9px * var(--font-scale));
         font-weight: 800;
         color: var(--text-muted);
         margin-bottom: 2px;
@@ -649,7 +649,7 @@
         border: 1px solid var(--border-color);
       }
       .upcoming-badge {
-        font-size: 8.5px;
+        font-size: calc(8.5px * var(--font-scale));
         font-weight: 800;
         padding: 1px 5px;
         border-radius: 3px;
@@ -753,14 +753,14 @@
             <button class="cal-nav-btn" id="stickyCalPrevBtn">‹</button>
             <span
               id="stickyCalMonthTitle"
-              style="font-weight: 800; font-size: 11px; color: var(--text-color)"
+              style="font-weight: 800; font-size: calc(11px * var(--font-scale)); color: var(--text-color)"
               >November 2026</span
             >
             <div style="display: flex; gap: 4px">
               <button
                 class="cal-nav-btn"
                 id="stickyCalTodayBtn"
-                style="font-size: 9px; padding: 2px 6px; width: auto; font-weight: 700"
+                style="font-size: calc(9px * var(--font-scale)); padding: 2px 6px; width: auto; font-weight: 700"
               >
                 Today
               </button>
@@ -787,7 +787,7 @@
               display: none;
               padding: 6px 8px;
               border-radius: 8px;
-              font-size: 10px;
+              font-size: calc(10px * var(--font-scale));
               background: var(--card-inner);
               border: 1.5px dashed var(--border-color);
               flex-direction: column;
@@ -802,7 +802,7 @@
               <button
                 id="stickyCalJumpAddBtn"
                 class="sticky-chip-btn"
-                style="padding: 1px 6px; font-size: 9.5px"
+                style="padding: 1px 6px; font-size: calc(9.5px * var(--font-scale))"
               >
                 + Add Quest
               </button>
@@ -853,7 +853,7 @@
             padding: 6px 8px;
             background: var(--card-inner);
             border-bottom: 1.5px dashed var(--border-color);
-            font-size: 10px;
+            font-size: calc(10px * var(--font-scale));
             font-weight: 700;
             color: var(--text-color);
             display: flex;
@@ -892,15 +892,15 @@
               type="time"
               class="input-text"
               value="09:00"
-              style="padding: 3px 5px; font-size: 10px; flex: 0 0 62px"
+              style="padding: 3px 5px; font-size: calc(10px * var(--font-scale)); flex: 0 0 62px"
             />
-            <span style="font-weight: 800; align-self: center; font-size: 10px">–</span>
+            <span style="font-weight: 800; align-self: center; font-size: calc(10px * var(--font-scale))">–</span>
             <input
               id="schedEndInput"
               type="time"
               class="input-text"
               value="10:30"
-              style="padding: 3px 5px; font-size: 10px; flex: 0 0 62px"
+              style="padding: 3px 5px; font-size: calc(10px * var(--font-scale)); flex: 0 0 62px"
             />
             <input
               id="schedLocationInput"
@@ -908,7 +908,7 @@
               class="input-text"
               placeholder="Room/Note"
               maxlength="30"
-              style="padding: 3px 5px; font-size: 10px; flex: 1; min-width: 0"
+              style="padding: 3px 5px; font-size: calc(10px * var(--font-scale)); flex: 1; min-width: 0"
             />
           </div>
           <div style="display: flex; gap: 4px; width: 100%">
@@ -918,7 +918,7 @@
               class="input-text"
               placeholder="Course / Study title..."
               maxlength="60"
-              style="padding: 3px 5px; font-size: 11px; flex: 1"
+              style="padding: 3px 5px; font-size: calc(11px * var(--font-scale)); flex: 1"
             />
             <button id="addSchedBtn" class="btn-add" style="padding: 0 10px; font-size: 12px">
               +

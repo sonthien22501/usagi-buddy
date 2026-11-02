@@ -124,11 +124,14 @@ const PRESET_STICKY_SIZES = [
 let currentStickySizeIdx = 0;
 
 // 1. Tab Switcher
-function switchDashboardTab(tab: 'companion' | 'config'): void {
+function switchDashboardTab(tab: 'companion' | 'config', persist = true): void {
   dashTabCompanion?.classList.toggle('active', tab === 'companion');
   dashTabConfig?.classList.toggle('active', tab === 'config');
   if (dashViewCompanion) dashViewCompanion.style.display = tab === 'companion' ? 'flex' : 'none';
   if (dashViewConfig) dashViewConfig.style.display = tab === 'config' ? 'flex' : 'none';
+  if (persist && window.usagiAPI?.updateDashboardTab) {
+    window.usagiAPI.updateDashboardTab(tab);
+  }
 }
 
 if (dashTabCompanion) {
@@ -205,6 +208,18 @@ function renderReminderConfigUI(state: ReminderState): void {
       ? '📌 Pinned on Top'
       : '🖥️ Desktop Widget';
     configStickyPinBtn.classList.toggle('active', Boolean(state.stickyAlwaysOnTop));
+  }
+
+  if (configStickySizeBtn) {
+    const w = state.stickyWidth ?? 350;
+    const h = state.stickyHeight ?? 480;
+    const matchingIdx = PRESET_STICKY_SIZES.findIndex((p) => p.w === w && p.h === h);
+    if (matchingIdx >= 0) {
+      currentStickySizeIdx = matchingIdx;
+      configStickySizeBtn.textContent = PRESET_STICKY_SIZES[matchingIdx].label;
+    } else {
+      configStickySizeBtn.textContent = `Custom (${w}×${h})`;
+    }
   }
 
   if (toggleStickyWindowBtn) {
@@ -655,6 +670,10 @@ if (window.usagiAPI) {
 
   window.usagiAPI.onUsagiHiddenChanged((hidden) => {
     updateUsagiHiddenUI(hidden);
+  });
+
+  window.usagiAPI.onDashboardTabChanged((tab) => {
+    switchDashboardTab(tab, false);
   });
 
   window.usagiAPI

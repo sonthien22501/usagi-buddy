@@ -7,6 +7,7 @@ import {
   shouldFollowCursor,
   type ModeFlags,
   type UserSettings,
+  type DashboardTabId,
 } from '../src/core/settingsStore';
 import { DEFAULT_POMODORO_MS } from '../src/core/pomodoroTimer';
 import { DEFAULT_VOLUME_CONFIG } from '../src/core/soundManager';
@@ -28,6 +29,9 @@ describe('settingsStore', () => {
         playModeEnabled: false,
         stationaryMode: false,
         usagiHidden: false,
+        usagiX: null,
+        usagiY: null,
+        activeDashboardTab: 'companion',
       });
     });
   });
@@ -52,6 +56,9 @@ describe('settingsStore', () => {
         playModeEnabled: true,
         stationaryMode: false,
         usagiHidden: false,
+        usagiX: 450,
+        usagiY: 300,
+        activeDashboardTab: 'config',
       };
 
       const serialized = serializeUserSettingsJson(settings);
@@ -129,6 +136,31 @@ describe('settingsStore', () => {
       expect(parsed.ghostLocked).toBe(false);
       expect(parsed.playModeEnabled).toBe(true);
       expect(parsed.stationaryMode).toBe(false);
+      expect(parsed.usagiX).toBeNull();
+      expect(parsed.usagiY).toBeNull();
+      expect(parsed.activeDashboardTab).toBe('companion');
+    });
+
+    it('preserves valid usagi coordinates and dashboard tab, falling back on invalid values', () => {
+      const valid = JSON.stringify({
+        usagiX: 120.6,
+        usagiY: 250.2,
+        activeDashboardTab: 'config',
+      });
+      const parsedValid = parseUserSettingsJson(valid);
+      expect(parsedValid.usagiX).toBe(121);
+      expect(parsedValid.usagiY).toBe(250);
+      expect(parsedValid.activeDashboardTab).toBe('config');
+
+      const invalid = JSON.stringify({
+        usagiX: 'invalid',
+        usagiY: NaN,
+        activeDashboardTab: 'other_tab',
+      });
+      const parsedInvalid = parseUserSettingsJson(invalid);
+      expect(parsedInvalid.usagiX).toBeNull();
+      expect(parsedInvalid.usagiY).toBeNull();
+      expect(parsedInvalid.activeDashboardTab).toBe('companion');
     });
   });
 
