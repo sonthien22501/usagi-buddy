@@ -14,7 +14,22 @@ async function build() {
   fs.mkdirSync(path.join(rootDir, 'dist/dashboard'), { recursive: true });
   fs.mkdirSync(path.join(rootDir, 'dist/sticky'), { recursive: true });
   fs.mkdirSync(path.join(rootDir, 'dist/tray'), { recursive: true });
+  fs.rmSync(path.join(rootDir, 'dist/assets'), { recursive: true, force: true });
   fs.mkdirSync(path.join(rootDir, 'dist/assets'), { recursive: true });
+
+  // Clean old .map files
+  function cleanMaps(dir) {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        cleanMaps(full);
+      } else if (entry.isFile() && entry.name.endsWith('.map')) {
+        fs.unlinkSync(full);
+      }
+    }
+  }
+  cleanMaps(path.join(rootDir, 'dist'));
 
   // Copy renderer index.html
   fs.copyFileSync(
@@ -40,9 +55,17 @@ async function build() {
     path.join(rootDir, 'dist/tray/index.html')
   );
 
-  // Copy PNG and MP3 assets
+  // Copy active PNG and MP3 assets (skipping unused legacy sprites)
+  const excludedSprites = new Set([
+    'Usagi1.png',
+    'Usagi2.png',
+    'Usagi4.png',
+    'Usagi5.png',
+    'Usagi6.png',
+  ]);
   const assetFiles = fs.readdirSync(path.join(rootDir, 'assets'));
   for (const file of assetFiles) {
+    if (excludedSprites.has(file)) continue;
     if (file.endsWith('.png') || file.endsWith('.mp3')) {
       fs.copyFileSync(path.join(rootDir, 'assets', file), path.join(rootDir, 'dist/assets', file));
     }
@@ -57,7 +80,8 @@ async function build() {
     target: 'node20',
     external: ['electron'],
     format: 'cjs',
-    sourcemap: true,
+    sourcemap: false,
+    minify: true,
   });
 
   // Bundle preload
@@ -69,7 +93,8 @@ async function build() {
     target: 'node20',
     external: ['electron'],
     format: 'cjs',
-    sourcemap: true,
+    sourcemap: false,
+    minify: true,
   });
 
   // Bundle renderer app
@@ -80,7 +105,8 @@ async function build() {
     platform: 'browser',
     target: 'es2022',
     format: 'esm',
-    sourcemap: true,
+    sourcemap: false,
+    minify: true,
   });
 
   // Bundle dashboard app
@@ -91,7 +117,8 @@ async function build() {
     platform: 'browser',
     target: 'es2022',
     format: 'esm',
-    sourcemap: true,
+    sourcemap: false,
+    minify: true,
   });
 
   // Bundle sticky note app
@@ -102,7 +129,8 @@ async function build() {
     platform: 'browser',
     target: 'es2022',
     format: 'esm',
-    sourcemap: true,
+    sourcemap: false,
+    minify: true,
   });
 
   // Bundle tray app
@@ -113,7 +141,8 @@ async function build() {
     platform: 'browser',
     target: 'es2022',
     format: 'esm',
-    sourcemap: true,
+    sourcemap: false,
+    minify: true,
   });
 
   console.log('Build completed successfully.');

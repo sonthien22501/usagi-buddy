@@ -202,8 +202,20 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(trayHtml).toContain('tray-toggle-sticky-btn');
     expect(trayHtml).toContain('tray-toggle-hidden-btn');
     expect(trayHtml).toContain('tray-drop-snack-btn');
-    expect(trayHtml).toContain('tray-toggle-ghost-btn');
+    expect(trayHtml).not.toContain('tray-toggle-ghost-btn');
     expect(trayHtml).toContain('tray-quit-btn');
+    expect(trayHtml).toContain('chip-25m');
+    expect(trayHtml).toContain('chip-52m');
+    expect(trayHtml).toContain('chip-90m');
+    expect(trayHtml).not.toContain('chip-5m');
+    expect(trayHtml).not.toContain('chip-17m');
+    expect(trayHtml).not.toContain('chip-1m');
+    expect(trayHtml).toContain('height: 410px');
+
+    const trayTs = fs.readFileSync(trayTsPath, 'utf-8');
+    expect(trayTs).not.toContain('tray-toggle-ghost-btn');
+    expect(trayTs).not.toContain('toggleGhostBtn');
+    expect(trayTs).not.toContain('updateGhostUI');
 
     // 3. Build script copies and bundles tray window
     const buildMjs = fs.readFileSync(path.resolve(__dirname, '../scripts/build.mjs'), 'utf-8');
@@ -344,5 +356,23 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(rendererHtml).not.toContain('<span>🔁</span>');
     expect(rendererHtml).not.toContain('<span>⏳</span>');
     expect(rendererHtml).not.toContain('<span>☕</span>');
+  });
+
+  it('verifies bundle diet, minification, sourcemap exclusion, and package file deduplication', () => {
+    const buildMjs = fs.readFileSync(path.resolve(__dirname, '../scripts/build.mjs'), 'utf-8');
+    expect(buildMjs).toContain('minify: true');
+    expect(buildMjs).not.toContain('sourcemap: true');
+    expect(buildMjs).toContain('sourcemap: false');
+
+    const pkgJson = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf-8')
+    );
+    expect(pkgJson.build.files).toContain('dist/**/*');
+    expect(pkgJson.build.files).toContain('package.json');
+    expect(pkgJson.build.files).not.toContain('assets/**/*');
+
+    expect(buildMjs).toContain('excludedSprites');
+    expect(fs.existsSync(path.resolve(__dirname, '../dist/assets/Usagi3.png'))).toBe(true);
+    expect(fs.existsSync(path.resolve(__dirname, '../dist/assets/Usagi1.png'))).toBe(false);
   });
 });
