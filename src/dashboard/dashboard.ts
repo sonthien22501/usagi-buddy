@@ -324,14 +324,16 @@ function renderCalendar(): void {
 
     const dayEvents = currentEvents.filter((e) => e.date === selectedDateStr);
     if (calEventBanner) {
+      calEventBanner.textContent = '';
       if (dayEvents.length > 0) {
         calEventBanner.style.display = 'block';
-        calEventBanner.innerHTML = dayEvents
-          .map(
-            (e) =>
-              `${e.type === 'birthday' ? '🎂' : '🎉'} ${e.name} ${e.localName && e.localName !== e.name ? `(${e.localName})` : ''}`
-          )
-          .join('<br>');
+        for (const e of dayEvents) {
+          const item = document.createElement('div');
+          const prefix = e.type === 'birthday' ? '🎂 ' : '🎉 ';
+          const suffix = e.localName && e.localName !== e.name ? ` (${e.localName})` : '';
+          item.textContent = `${prefix}${e.name}${suffix}`;
+          calEventBanner.appendChild(item);
+        }
       } else {
         calEventBanner.style.display = 'none';
       }
@@ -341,7 +343,10 @@ function renderCalendar(): void {
     if (chipClearDate && !activeQuickDueDate) {
       chipClearDate.style.display = 'none';
     }
-    if (calEventBanner) calEventBanner.style.display = 'none';
+    if (calEventBanner) {
+      calEventBanner.textContent = '';
+      calEventBanner.style.display = 'none';
+    }
   }
 
   renderUpcomingFeed();

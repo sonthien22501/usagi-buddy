@@ -35,7 +35,7 @@ export function extractDueDateToken(
   let text = rawText;
 
   const todayRegex = /(?:^|\s)@today\b/i;
-  const tomorrowRegex = /(?:^|\s)@tomorrow\b/i;
+  const tomorrowRegex = /(?:^|\s)@(?:tomorrow|tmrw)\b/i;
   const plusDaysRegex = /(?:^|\s)@\+(\d+)d\b/i;
   const dateRegex = /(?:^|\s)@(\d{4}-\d{2}-\d{2})\b/;
 

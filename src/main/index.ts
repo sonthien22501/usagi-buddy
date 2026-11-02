@@ -243,6 +243,8 @@ async function refreshHolidaysFromNager(countryCode: string, year: number): Prom
     }
   }
 
+  if (countryCode !== calendarProfile.countryCode) return;
+
   calendarHolidays = unique;
   saveCalendarToDisk();
   broadcastCalendarState();
@@ -250,7 +252,8 @@ async function refreshHolidaysFromNager(countryCode: string, year: number): Prom
 
 function getActiveCalendarEvents(): HolidayEvent[] {
   const currentYear = new Date().getFullYear();
-  return buildCalendarEvents(calendarHolidays, calendarProfile, currentYear);
+  const events = buildCalendarEvents(calendarHolidays, calendarProfile, currentYear);
+  return buildCalendarEvents(events, calendarProfile, currentYear + 1);
 }
 
 function broadcastCalendarState(): void {
@@ -723,6 +726,7 @@ function createMainWindow(): void {
 
   mainWindow.webContents.on('did-finish-load', () => {
     sendFullStateToWindow(mainWindow);
+    checkBirthdayGreeting();
   });
 
   mainWindow.on('closed', () => {
@@ -860,7 +864,6 @@ app.whenReady().then(() => {
   setupPomodoroTicker();
   setupWellnessCoachTicker();
   setupCursorTrackingTicker();
-  checkBirthdayGreeting();
   refreshHolidaysFromNager(calendarProfile.countryCode, new Date().getFullYear()).catch(() => {});
 
   globalShortcut.register('CommandOrControl+Shift+G', () => {
@@ -981,10 +984,26 @@ app.whenReady().then(() => {
         ? { nickname: partialProfile.nickname.trim().slice(0, 32) || 'Buddy' }
         : {}),
       ...(partialProfile.birthdayMonth !== undefined
-        ? { birthdayMonth: partialProfile.birthdayMonth }
+        ? {
+            birthdayMonth:
+              partialProfile.birthdayMonth === null
+                ? null
+                : typeof partialProfile.birthdayMonth === 'number' &&
+                    !Number.isNaN(partialProfile.birthdayMonth)
+                  ? Math.max(1, Math.min(12, Math.round(partialProfile.birthdayMonth)))
+                  : null,
+          }
         : {}),
       ...(partialProfile.birthdayDay !== undefined
-        ? { birthdayDay: partialProfile.birthdayDay }
+        ? {
+            birthdayDay:
+              partialProfile.birthdayDay === null
+                ? null
+                : typeof partialProfile.birthdayDay === 'number' &&
+                    !Number.isNaN(partialProfile.birthdayDay)
+                  ? Math.max(1, Math.min(31, Math.round(partialProfile.birthdayDay)))
+                  : null,
+          }
         : {}),
       ...(typeof partialProfile.countryCode === 'string' && partialProfile.countryCode.length === 2
         ? { countryCode: partialProfile.countryCode.toUpperCase() }

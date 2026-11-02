@@ -161,10 +161,15 @@ describe('reminderStore', () => {
       });
     });
 
-    it('parses @tomorrow token and cleans text', () => {
+    it('parses @tomorrow and @tmrw tokens and cleans text', () => {
       const res = extractDueDateToken('Buy cake @tomorrow', undefined, fixedNow);
       expect(res).toEqual({
         cleanText: 'Buy cake',
+        dueDate: '2026-11-03',
+      });
+      const resTmrw = extractDueDateToken('Buy coffee @tmrw', undefined, fixedNow);
+      expect(resTmrw).toEqual({
+        cleanText: 'Buy coffee',
         dueDate: '2026-11-03',
       });
     });
