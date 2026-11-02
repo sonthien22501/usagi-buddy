@@ -2,6 +2,8 @@
  * Pure state manager for Usagi Desktop Sticky Reminders & Checklist
  */
 
+import { daysBetweenYMD } from './calendarStore';
+
 export interface ReminderItem {
   id: string;
   text: string;
@@ -32,7 +34,15 @@ export function extractDueDateToken(
   now = new Date()
 ): { cleanText: string; dueDate?: string } {
   let dueDate: string | undefined = undefined;
-  let text = rawText;
+  let text = rawText.trim();
+  let shouldCapitalize = false;
+
+  const conversationalPrefixRegex =
+    /^(?:please\s+)?(?:remind\s+me\s+to|i\s+have\s+to|i\s+need\s+to|i\s+must|i\s+should|i've\s+got\s+to|i\s+got\s+to|don'?t\s+forget\s+to|remember\s+to)\s+/i;
+  if (conversationalPrefixRegex.test(text)) {
+    text = text.replace(conversationalPrefixRegex, '');
+    shouldCapitalize = true;
+  }
 
   const todayRegex = /(?:^|\s)@today\b/i;
   const tomorrowRegex = /(?:^|\s)@(?:tomorrow|tmrw)\b/i;
@@ -42,10 +52,12 @@ export function extractDueDateToken(
   if (todayRegex.test(text)) {
     dueDate = formatLocalDateYMD(now);
     text = text.replace(todayRegex, '');
+    shouldCapitalize = true;
   } else if (tomorrowRegex.test(text)) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     dueDate = formatLocalDateYMD(d);
     text = text.replace(tomorrowRegex, '');
+    shouldCapitalize = true;
   } else if (plusDaysRegex.test(text)) {
     const match = text.match(plusDaysRegex);
     if (match) {
@@ -53,12 +65,55 @@ export function extractDueDateToken(
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
       dueDate = formatLocalDateYMD(d);
       text = text.replace(plusDaysRegex, '');
+      shouldCapitalize = true;
     }
   } else if (dateRegex.test(text)) {
     const match = text.match(dateRegex);
     if (match) {
       dueDate = match[1];
       text = text.replace(dateRegex, '');
+      shouldCapitalize = true;
+    }
+  }
+
+  if (!dueDate) {
+    const naturalTomorrowRegex =
+      /(?:^|\s)(?:(?:by|on|for|due|at)\s+)?(tomorrow|tmrw|tmr)\s*[.!?]*$/i;
+    const naturalTodayRegex = /(?:^|\s)(?:(?:by|on|for|due|at)\s+)?(today|tonight)\s*[.!?]*$/i;
+    const naturalInDaysRegex = /(?:^|\s)(?:(?:by|on|for|due|at)\s+)?in\s+(\d+)\s+days?\s*[.!?]*$/i;
+    const naturalNextWeekRegex = /(?:^|\s)(?:(?:by|on|for|due|at)\s+)?next\s+week\s*[.!?]*$/i;
+    const naturalDateRegex = /(?:^|\s)(?:(?:by|on|for|due|at)\s+)?(\d{4}-\d{2}-\d{2})\s*[.!?]*$/i;
+
+    if (naturalTomorrowRegex.test(text)) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      dueDate = formatLocalDateYMD(d);
+      text = text.replace(naturalTomorrowRegex, '');
+      shouldCapitalize = true;
+    } else if (naturalTodayRegex.test(text)) {
+      dueDate = formatLocalDateYMD(now);
+      text = text.replace(naturalTodayRegex, '');
+      shouldCapitalize = true;
+    } else if (naturalInDaysRegex.test(text)) {
+      const match = text.match(naturalInDaysRegex);
+      if (match) {
+        const days = parseInt(match[1], 10);
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
+        dueDate = formatLocalDateYMD(d);
+        text = text.replace(naturalInDaysRegex, '');
+        shouldCapitalize = true;
+      }
+    } else if (naturalNextWeekRegex.test(text)) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+      dueDate = formatLocalDateYMD(d);
+      text = text.replace(naturalNextWeekRegex, '');
+      shouldCapitalize = true;
+    } else if (naturalDateRegex.test(text)) {
+      const match = text.match(naturalDateRegex);
+      if (match) {
+        dueDate = match[1];
+        text = text.replace(naturalDateRegex, '');
+        shouldCapitalize = true;
+      }
     }
   }
 
@@ -66,8 +121,21 @@ export function extractDueDateToken(
     dueDate = defaultDateStr;
   }
 
-  const cleanText = text.replace(/\s+/g, ' ').trim();
+  let cleanText = text.replace(/\s+/g, ' ').trim();
+  if (shouldCapitalize && cleanText.length > 0) {
+    cleanText = cleanText.charAt(0).toUpperCase() + cleanText.slice(1);
+  }
   return { cleanText, dueDate };
+}
+
+export function formatReminderDueBadge(dueDateStr: string, todayYMD: string): string {
+  const diff = daysBetweenYMD(todayYMD, dueDateStr);
+  const shortDate = dueDateStr.slice(5).replace('-', '/');
+  if (diff === 0) return `Today (${shortDate})`;
+  if (diff === 1) return `Tmrw (${shortDate})`;
+  if (diff === -1) return `Yesterday (${shortDate})`;
+  if (diff < -1) return `Overdue (${shortDate})`;
+  return `Due ${shortDate}`;
 }
 
 export const DEFAULT_STARTER_ITEMS: ReminderItem[] = [

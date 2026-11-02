@@ -10,6 +10,7 @@ import {
   parseRemindersJson,
   serializeRemindersJson,
   extractDueDateToken,
+  formatReminderDueBadge,
 } from '../src/core/reminderStore';
 
 describe('reminderStore', () => {
@@ -212,6 +213,67 @@ describe('reminderStore', () => {
         cleanText: 'Simple reminder',
         dueDate: undefined,
       });
+    });
+
+    it('extracts natural language deadlines with conversational prefixes and capitalizes clean text', () => {
+      expect(extractDueDateToken('I have to do chores tomorrow', undefined, fixedNow)).toEqual({
+        cleanText: 'Do chores',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('i need to submit the report today', undefined, fixedNow)).toEqual(
+        {
+          cleanText: 'Submit the report',
+          dueDate: '2026-11-02',
+        }
+      );
+      expect(extractDueDateToken('Remind me to call mom tonight', undefined, fixedNow)).toEqual({
+        cleanText: 'Call mom',
+        dueDate: '2026-11-02',
+      });
+      expect(
+        extractDueDateToken("Don't forget to pay rent in 5 days", undefined, fixedNow)
+      ).toEqual({
+        cleanText: 'Pay rent',
+        dueDate: '2026-11-07',
+      });
+      expect(extractDueDateToken('Remember to clean desk next week', undefined, fixedNow)).toEqual({
+        cleanText: 'Clean desk',
+        dueDate: '2026-11-09',
+      });
+    });
+
+    it('extracts trailing or inline natural date tokens without conversational prefix', () => {
+      expect(extractDueDateToken('Buy groceries tmrw', undefined, fixedNow)).toEqual({
+        cleanText: 'Buy groceries',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('Finish homework by tomorrow', undefined, fixedNow)).toEqual({
+        cleanText: 'Finish homework',
+        dueDate: '2026-11-03',
+      });
+      expect(extractDueDateToken('Dentist appointment on 2026-11-15', undefined, fixedNow)).toEqual(
+        {
+          cleanText: 'Dentist appointment',
+          dueDate: '2026-11-15',
+        }
+      );
+    });
+
+    it('cleans conversational prefix without a date token and capitalizes action', () => {
+      expect(extractDueDateToken('I have to water the plants', undefined, fixedNow)).toEqual({
+        cleanText: 'Water the plants',
+        dueDate: undefined,
+      });
+    });
+  });
+
+  describe('formatReminderDueBadge', () => {
+    it('formats badge with relative label and actual resolved date', () => {
+      expect(formatReminderDueBadge('2026-11-02', '2026-11-02')).toBe('Today (11/02)');
+      expect(formatReminderDueBadge('2026-11-03', '2026-11-02')).toBe('Tmrw (11/03)');
+      expect(formatReminderDueBadge('2026-11-01', '2026-11-02')).toBe('Yesterday (11/01)');
+      expect(formatReminderDueBadge('2026-10-28', '2026-11-02')).toBe('Overdue (10/28)');
+      expect(formatReminderDueBadge('2026-11-10', '2026-11-02')).toBe('Due 11/10');
     });
   });
 
