@@ -12,10 +12,13 @@ export interface ReminderItem {
   dueDate?: string; // YYYY-MM-DD
 }
 
+export type StickyFontScale = 'sm' | 'md' | 'lg';
+
 export interface ReminderState {
   items: ReminderItem[];
   stickyVisible: boolean;
   theme: 'custard';
+  fontScale?: StickyFontScale;
 }
 
 export const MAX_REMINDER_ITEMS = 30;
@@ -368,6 +371,7 @@ export function createInitialReminderState(): ReminderState {
     items: DEFAULT_STARTER_ITEMS.map((item) => ({ ...item })),
     stickyVisible: true,
     theme: 'custard',
+    fontScale: 'md',
   };
 }
 
@@ -459,6 +463,15 @@ export function clearCompletedReminders(state: ReminderState): ReminderState {
   };
 }
 
+export function cycleReminderFontScale(state: ReminderState): ReminderState {
+  const current = state.fontScale || 'md';
+  const nextScale: StickyFontScale = current === 'sm' ? 'md' : current === 'md' ? 'lg' : 'sm';
+  return {
+    ...state,
+    fontScale: nextScale,
+  };
+}
+
 function isValidReminderItem(item: unknown): item is ReminderItem {
   if (typeof item !== 'object' || item === null) return false;
   const candidate = item as Record<string, unknown>;
@@ -488,12 +501,17 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
     const theme: 'custard' = 'custard';
     const stickyVisible: boolean =
       typeof parsed.stickyVisible === 'boolean' ? parsed.stickyVisible : true;
+    const fontScale: StickyFontScale =
+      parsed.fontScale === 'sm' || parsed.fontScale === 'md' || parsed.fontScale === 'lg'
+        ? parsed.fontScale
+        : 'md';
 
     if (!Array.isArray(parsed.items)) {
       return {
         items: DEFAULT_STARTER_ITEMS.map((item) => ({ ...item })),
         stickyVisible,
         theme,
+        fontScale,
       };
     }
 
@@ -517,6 +535,7 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
       items: validItems.slice(0, MAX_REMINDER_ITEMS),
       stickyVisible,
       theme,
+      fontScale,
     };
   } catch {
     return createInitialReminderState();

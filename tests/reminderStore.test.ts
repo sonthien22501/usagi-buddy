@@ -11,6 +11,7 @@ import {
   serializeRemindersJson,
   extractDueDateToken,
   formatReminderDueBadge,
+  cycleReminderFontScale,
 } from '../src/core/reminderStore';
 
 describe('reminderStore', () => {
@@ -18,11 +19,37 @@ describe('reminderStore', () => {
     const state = createInitialReminderState();
     expect(state.stickyVisible).toBe(true);
     expect(state.theme).toBe('custard');
+    expect(state.fontScale).toBe('md');
     expect(state.items.length).toBe(3);
     expect(state.items[0].text).toContain('Drink a glass of water');
     expect(state.items[1].text).toContain('25m Focus Session');
     expect(state.items[2].text).toContain('Stretch shoulders');
     expect(state.items.every((it) => it.completed === false)).toBe(true);
+  });
+
+  it('cycles fontScale sm -> md -> lg -> sm', () => {
+    let state = createInitialReminderState();
+    expect(state.fontScale).toBe('md');
+    state = cycleReminderFontScale(state);
+    expect(state.fontScale).toBe('lg');
+    state = cycleReminderFontScale(state);
+    expect(state.fontScale).toBe('sm');
+    state = cycleReminderFontScale(state);
+    expect(state.fontScale).toBe('md');
+  });
+
+  it('preserves valid fontScale and defaults invalid or missing fontScale to md in JSON', () => {
+    const sLg = JSON.stringify({ ...createInitialReminderState(), fontScale: 'lg' });
+    expect(parseRemindersJson(sLg).fontScale).toBe('lg');
+
+    const sSm = JSON.stringify({ ...createInitialReminderState(), fontScale: 'sm' });
+    expect(parseRemindersJson(sSm).fontScale).toBe('sm');
+
+    const sInvalid = JSON.stringify({ ...createInitialReminderState(), fontScale: 'huge' });
+    expect(parseRemindersJson(sInvalid).fontScale).toBe('md');
+
+    const sMissing = JSON.stringify({ items: [] });
+    expect(parseRemindersJson(sMissing).fontScale).toBe('md');
   });
 
   it('adds valid task and trims whitespace, ignoring empty or whitespace-only inputs', () => {

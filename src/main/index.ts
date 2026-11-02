@@ -58,6 +58,7 @@ import {
   toggleReminderItem,
   deleteReminderItem,
   clearCompletedReminders,
+  cycleReminderFontScale,
   parseRemindersJson,
   serializeRemindersJson,
 } from '../core/reminderStore';
@@ -427,8 +428,8 @@ function createStickyWindow(): void {
 
   const primaryDisplay = screen.getPrimaryDisplay();
   const { workArea } = primaryDisplay;
-  const width = 310;
-  const height = 430;
+  const width = 350;
+  const height = 480;
   const x = Math.max(0, workArea.x + workArea.width - width - 24);
   const y = Math.max(0, workArea.y + 48);
 
@@ -437,9 +438,13 @@ function createStickyWindow(): void {
     y,
     width,
     height,
+    minWidth: 290,
+    minHeight: 380,
+    maxWidth: 620,
+    maxHeight: 860,
     frame: false,
     transparent: true,
-    resizable: false,
+    resizable: true,
     alwaysOnTop: false,
     skipTaskbar: true,
     fullscreenable: false,
@@ -1058,6 +1063,12 @@ app.whenReady().then(() => {
 
   ipcMain.on('clear-completed-reminders', () => {
     reminderState = clearCompletedReminders(reminderState);
+    saveRemindersToDisk();
+    broadcastReminderState();
+  });
+
+  ipcMain.on('cycle-sticky-font-scale', () => {
+    reminderState = cycleReminderFontScale(reminderState);
     saveRemindersToDisk();
     broadcastReminderState();
   });

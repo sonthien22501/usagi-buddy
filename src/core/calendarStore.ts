@@ -92,6 +92,18 @@ export function daysBetweenYMD(fromYMD: string, toYMD: string): number {
 }
 
 /**
+ * Returns the YYYY-MM-DD corresponding to the last day of the calendar month immediately
+ * following today's month (e.g. Nov 2 -> Dec 31; Dec 15 -> Jan 31).
+ */
+export function getEndOfNextMonthYMD(todayYMD: string): string {
+  const { year, month } = parseDateYMD(todayYMD);
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const lastDay = new Date(nextYear, nextMonth, 0).getDate();
+  return formatDateYMD(nextYear, nextMonth, lastDay);
+}
+
+/**
  * Detect country code from locale string or timezone name, with 'US' fallback.
  */
 export function detectCountryCode(locale?: string, timeZone?: string): string {
@@ -473,10 +485,11 @@ export function getUpcomingCountdownItems(
   limit = 5
 ): UpcomingCountdownItem[] {
   const items: UpcomingCountdownItem[] = [];
+  const maxDateYMD = getEndOfNextMonthYMD(todayYMD);
 
   for (const ev of events) {
     const diff = daysBetweenYMD(todayYMD, ev.date);
-    if (diff >= 0 && diff <= 365) {
+    if (diff >= 0 && ev.date <= maxDateYMD) {
       items.push({
         id: ev.id,
         date: ev.date,
@@ -491,7 +504,7 @@ export function getUpcomingCountdownItems(
   for (const r of reminders) {
     if (r.dueDate && !r.completed) {
       const diff = daysBetweenYMD(todayYMD, r.dueDate);
-      if (diff >= 0 && diff <= 365) {
+      if (diff >= 0 && r.dueDate <= maxDateYMD) {
         items.push({
           id: r.id,
           date: r.dueDate,

@@ -55,8 +55,6 @@ const calClearFilterBtn = document.getElementById(
 ) as HTMLButtonElement | null;
 const calEventBanner = document.getElementById('cal-event-banner') as HTMLDivElement | null;
 const upcomingEventsList = document.getElementById('upcoming-events-list') as HTMLDivElement | null;
-const chipClearDate = document.getElementById('chip-clear-date') as HTMLButtonElement | null;
-const chipDateButtons = document.querySelectorAll<HTMLButtonElement>('.chip-date-btn');
 
 // Volume elements
 const volumeSlider = document.getElementById('volume-slider') as HTMLInputElement | null;
@@ -286,10 +284,6 @@ function renderCalendar(): void {
       calSelectedBanner.style.display = 'flex';
       calSelectedInfo.textContent = `📅 Filtering & adding to: ${selectedDateStr}`;
     }
-    if (chipClearDate) {
-      chipClearDate.style.display = 'inline-block';
-      chipClearDate.textContent = `✕ Clear (${selectedDateStr.slice(5)})`;
-    }
 
     const dayEvents = currentEvents.filter((e) => e.date === selectedDateStr);
     if (calEventBanner) {
@@ -309,9 +303,6 @@ function renderCalendar(): void {
     }
   } else {
     if (calSelectedBanner) calSelectedBanner.style.display = 'none';
-    if (chipClearDate && !activeQuickDueDate) {
-      chipClearDate.style.display = 'none';
-    }
     if (calEventBanner) {
       calEventBanner.textContent = '';
       calEventBanner.style.display = 'none';
@@ -412,8 +403,6 @@ function handleAddQuest(): void {
     dashboardQuestInput.value = '';
     if (!selectedDateStr) {
       activeQuickDueDate = null;
-      chipDateButtons.forEach((b) => b.classList.remove('active'));
-      if (chipClearDate) chipClearDate.style.display = 'none';
     }
   }
 }
@@ -430,46 +419,10 @@ if (dashboardQuestInput) {
   });
 }
 
-// Quick Date Chips
-chipDateButtons.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const chipType = btn.getAttribute('data-date-chip');
-    const now = new Date();
-    if (chipType === 'today') {
-      activeQuickDueDate = getTodayYMD();
-    } else if (chipType === 'tomorrow') {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      activeQuickDueDate = formatDateYMD(d.getFullYear(), d.getMonth() + 1, d.getDate());
-    } else if (chipType === '+3d') {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 3);
-      activeQuickDueDate = formatDateYMD(d.getFullYear(), d.getMonth() + 1, d.getDate());
-    }
-
-    chipDateButtons.forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    if (chipClearDate) {
-      chipClearDate.style.display = 'inline-block';
-      chipClearDate.textContent = `✕ Clear (${activeQuickDueDate?.slice(5)})`;
-    }
-  });
-});
-
-if (chipClearDate) {
-  chipClearDate.addEventListener('click', () => {
-    activeQuickDueDate = null;
-    selectedDateStr = null;
-    chipDateButtons.forEach((b) => b.classList.remove('active'));
-    chipClearDate.style.display = 'none';
-    updateReminderUI(currentReminderState);
-  });
-}
-
 if (calClearFilterBtn) {
   calClearFilterBtn.addEventListener('click', () => {
     selectedDateStr = null;
     activeQuickDueDate = null;
-    chipDateButtons.forEach((b) => b.classList.remove('active'));
-    if (chipClearDate) chipClearDate.style.display = 'none';
     updateReminderUI(currentReminderState);
   });
 }

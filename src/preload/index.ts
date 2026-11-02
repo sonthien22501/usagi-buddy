@@ -58,6 +58,7 @@ export interface UsagiAPI {
   toggleReminder: (id: string) => void;
   deleteReminder: (id: string) => void;
   clearCompletedReminders: () => void;
+  cycleStickyFontScale: () => void;
   toggleStickyWindow: () => void;
   onTaskCelebration: (callback: (taskText: string) => void) => () => void;
   toggleFixedAppearance: () => void;
@@ -222,6 +223,9 @@ const api: UsagiAPI = {
   },
   clearCompletedReminders: () => {
     ipcRenderer.send('clear-completed-reminders');
+  },
+  cycleStickyFontScale: () => {
+    ipcRenderer.send('cycle-sticky-font-scale');
   },
   toggleStickyWindow: () => {
     ipcRenderer.send('toggle-sticky-window');

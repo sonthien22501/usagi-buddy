@@ -43,6 +43,8 @@
       .sticky-card {
         width: 100%;
         height: 100%;
+        position: relative;
+        --font-scale: 1.12;
         background: var(--bg-sticky);
         border: 2.5px solid var(--border-color);
         border-radius: 16px;
@@ -51,6 +53,32 @@
         flex-direction: column;
         overflow: hidden;
         transition: background-color 0.2s ease, border-color 0.2s ease;
+      }
+
+      body[data-font-scale='sm'] .sticky-card,
+      [data-font-scale='sm'] {
+        --font-scale: 1;
+      }
+
+      body[data-font-scale='md'] .sticky-card,
+      [data-font-scale='md'] {
+        --font-scale: 1.12;
+      }
+
+      body[data-font-scale='lg'] .sticky-card,
+      [data-font-scale='lg'] {
+        --font-scale: 1.26;
+      }
+
+      .sticky-resize-grip {
+        pointer-events: none;
+        position: absolute;
+        right: 6px;
+        bottom: 6px;
+        width: 10px;
+        height: 10px;
+        opacity: 0.45;
+        z-index: 10;
       }
 
       .kawaii-svg {
@@ -137,7 +165,7 @@
         padding: 6px 10px;
         border: 2px solid var(--border-color);
         border-radius: 8px;
-        font-size: 12px;
+        font-size: calc(12.5px * var(--font-scale));
         background: var(--card-bg);
         color: var(--text-color);
         outline: none;
@@ -215,7 +243,7 @@
       .quest-text {
         position: relative;
         flex: 1;
-        font-size: 12px;
+        font-size: calc(12.5px * var(--font-scale));
         color: var(--text-color);
         word-break: break-word;
         transition: color 0.15s ease, text-decoration 0.15s ease;
@@ -369,7 +397,7 @@
         display: inline-flex;
         align-items: center;
         padding: 1px 4px;
-        font-size: 9px;
+        font-size: calc(9.5px * var(--font-scale));
         font-weight: 800;
         border-radius: 4px;
         background: var(--badge-bg);
@@ -438,7 +466,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
+        font-size: calc(10.5px * var(--font-scale));
         font-weight: 700;
         cursor: pointer;
         position: relative;
@@ -464,23 +492,24 @@
       }
       .cal-dots {
         display: flex;
-        gap: 2px;
+        flex-direction: row;
+        gap: 3px;
         align-items: center;
         justify-content: center;
-        height: 4px;
+        height: 5px;
         margin-top: 1px;
       }
       .dot-quest {
-        width: 3.5px;
-        height: 3.5px;
+        width: 4.5px;
+        height: 4.5px;
         border-radius: 50%;
-        background: #d97706;
+        background: #2a9d8f;
       }
       .dot-holiday {
-        width: 3.5px;
-        height: 3.5px;
+        width: 4.5px;
+        height: 4.5px;
         border-radius: 50%;
-        background: #ff758f;
+        background: #e63946;
       }
       .dot-bday {
         font-size: 7px;
@@ -493,7 +522,7 @@
         justify-content: space-between;
         padding: 4px 6px;
         border-radius: 5px;
-        font-size: 10px;
+        font-size: calc(10.5px * var(--font-scale));
         background: var(--card-bg);
         border: 1px solid var(--border-color);
       }
@@ -515,6 +544,7 @@
           <span>Usagi Quests</span>
         </div>
         <div class="header-actions">
+          <button id="textZoomBtn" class="btn-icon" title="Change Text Size" style="width: auto; padding: 0 6px; font-size: 11px; font-weight: 800; border: 1.5px solid var(--border-color);">A+</button>
           <button id="minimizeBtn" class="btn-icon" title="Hide Note">✕</button>
         </div>
       </div>
@@ -538,11 +568,9 @@
           <button id="addQuestBtn" class="btn-add">+</button>
         </div>
 
-        <div class="sticky-chip-row">
-          <button class="sticky-chip-btn" data-sticky-chip="today">Today</button>
-          <button class="sticky-chip-btn" data-sticky-chip="tomorrow">Tmrw</button>
-          <button class="sticky-chip-btn" id="stickyChipClearDate" style="display: none;">✕ Clear Date</button>
-          <span style="margin-left: auto; color: var(--text-muted); font-size: 9px; opacity: 0.8;">@today / @tmrw</span>
+        <div id="stickySelectedDateRow" style="display: none; align-items: center; justify-content: space-between; padding: 4px 10px; background: var(--card-inner); border-bottom: 1.5px dashed var(--border-color); font-size: 10px; font-weight: 700; color: var(--text-color);">
+          <span id="stickySelectedDateLabel">📅 Target Date: --</span>
+          <button id="stickyChipClearDate" class="sticky-chip-btn" style="padding: 1px 6px; font-size: 10px;">✕ Clear Date</button>
         </div>
 
         <div id="questList" class="quest-list">
@@ -592,6 +620,12 @@
           </div>
         </div>
       </div>
+
+      <!-- Subtle visual resize grip indicator -->
+      <svg class="sticky-resize-grip" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="8" y1="2" x2="2" y2="8" stroke="var(--border-color)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="8" y1="5.5" x2="5.5" y2="8" stroke="var(--border-color)" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
     </div>
 
     <script type="module" src="./sticky.js"></script>
