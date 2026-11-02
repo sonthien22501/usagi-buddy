@@ -77,12 +77,14 @@ usagi-buddy/
 
 - `BuddyProfile`: `{ nickname, birthdayMonth, birthdayDay, countryCode }`
 - `HolidayEvent`: `{ id, date, name, localName, countryCode, type: 'public_holiday' | 'birthday' }`
-- `UserSettings`: `{ costumeSelection, activeCostume, fixedAppearance, timerDurationMs, timerRemainingMs, timerPhase, volumeConfig, soundMuted, ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
+- `UserSettings`: `{ costumeSelection, activeCostume, fixedAppearance, timerDurationMs, timerRemainingMs, timerPhase, volumeConfig, soundMuted, ghostLocked, playModeEnabled, stationaryMode, usagiHidden, usagiX?: number | null, usagiY?: number | null, activeDashboardTab?: 'companion' | 'config' }`
 - `ModeFlags`: `{ ghostLocked, playModeEnabled, stationaryMode, usagiHidden }`
 - `UsagiState`: `{ x, y, vx, vy, rotation, angularVelocity, swimPhaseRad, scaleX, scaleY, frameIndex, frameTimerMs, spinBoostTimerMs, comboClicks, speechBubble, speechTimerMs, scaleFlipX, snacksEaten, sleeping, stationary }`
 - `WardrobeRotationState`: `{ fixedAppearance: boolean, elapsedMs: number }`
-- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard' }`
+- `ReminderState`: `{ items: ReminderItem[], stickyVisible: boolean, theme: 'custard', fontScale?: 'sm' | 'md' | 'lg', dateFormat?: 'DD/MM' | 'MM/DD', weekStartsOn?: 0 | 1, stickyAlwaysOnTop?: boolean, stickyWidth?: number, stickyHeight?: number, stickyX?: number | null, stickyY?: number | null, activeStickyTab?: 'quests' | 'calendar' | 'schedule' }`
 - `ReminderItem`: `{ id: string, text: string, completed: boolean, createdAtMs: number, dueDate?: string }`
+- `ScheduleEntry`: `{ id: string, title: string, dayOfWeek: number, startTime: string, endTime: string, location?: string }`
+- `ScheduleState`: `{ entries: ScheduleEntry[] }`
 - `WellnessState`: `{ activeScreenMs, mood: 'active' | 'sleeping', nextReminderAtMs, stats: { snacksFed, pomodorosCompleted, breaksTaken } }`
 - `SoundEvent`: `'click-normal' | 'click-combo' | 'snack-eaten' | 'wellness-reminder' | 'welcome-back' | 'timer-complete'`
 - `VolumeConfig`: `{ master, buddy, alarm, equalizeLoudness }`
@@ -111,3 +113,4 @@ usagi-buddy/
 - [x] M16: Custom Custard & Caramel Taskbar Tray Popover (`src/tray/`, `src/core/trayPositioner.ts`) & Unified Kawaii Rounded SVG Icon System (`src/core/kawaiiIcons.ts`) across Tray, Dashboard, and Sticky Note
 - [x] M17: Session Persistence & Multi-Feature Harmony (JSON settings store in userData, OS-level screen cursor streaming for Ghost Mode + Follow Cursor harmony, mutual exclusion between Stationary and Follow modes, manual wardrobe selection lock vs 30m auto-rotation, hidden snack suppression, and cross-window full state hydration) (`src/core/settingsStore.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/app.ts`, `src/dashboard/dashboard.ts`)
 - [x] M18: Unified Calendar, Holiday Service, Buddy Birthday & Date-Linked Quests (Nager.Date public holiday client + offline fallback, zero-permission country detection, Buddy Profile with birthday event injection, inline `@today`/`@tomorrow`/`@+Nd`/`@YYYY-MM-DD` quest parser, quick-date chips, and identical Custard & Caramel Kawaii mini calendar + countdown UI across Dashboard and Sticky Note) (`src/core/calendarStore.ts`, `src/core/reminderStore.ts`, `src/dashboard/`, `src/sticky/`, `src/main/index.ts`)
+- [x] M19: Cross-Session State Persistence & Geometry Memory (Sticky note dimensions & screen coordinates persistence, active sticky tab and active dashboard tab hydration, proportional text scaling via CSS var(--font-scale), Usagi companion coordinates persistence across drag/pin, and unified dev vs packaged userData migration) (`src/core/reminderStore.ts`, `src/core/settingsStore.ts`, `src/main/index.ts`, `src/preload/index.ts`, `src/sticky/`, `src/dashboard/`, `src/renderer/`)

@@ -12,10 +12,46 @@ export interface ReminderItem {
   dueDate?: string; // YYYY-MM-DD
 }
 
+export type StickyFontScale = 'sm' | 'md' | 'lg';
+export type DateFormatPreference = 'DD/MM' | 'MM/DD';
+export type WeekStartDay = 0 | 1;
+export type StickyTabId = 'quests' | 'calendar' | 'schedule';
+
+export const DEFAULT_STICKY_WIDTH = 350;
+export const DEFAULT_STICKY_HEIGHT = 480;
+export const MIN_STICKY_WIDTH = 290;
+export const MAX_STICKY_WIDTH = 640;
+export const MIN_STICKY_HEIGHT = 380;
+export const MAX_STICKY_HEIGHT = 880;
+
+export function clampStickyDimensions(
+  width: unknown,
+  height: unknown
+): { width: number; height: number } {
+  let w = DEFAULT_STICKY_WIDTH;
+  if (typeof width === 'number' && Number.isFinite(width)) {
+    w = Math.min(Math.max(Math.round(width), MIN_STICKY_WIDTH), MAX_STICKY_WIDTH);
+  }
+  let h = DEFAULT_STICKY_HEIGHT;
+  if (typeof height === 'number' && Number.isFinite(height)) {
+    h = Math.min(Math.max(Math.round(height), MIN_STICKY_HEIGHT), MAX_STICKY_HEIGHT);
+  }
+  return { width: w, height: h };
+}
+
 export interface ReminderState {
   items: ReminderItem[];
   stickyVisible: boolean;
   theme: 'custard';
+  fontScale?: StickyFontScale;
+  dateFormat?: DateFormatPreference;
+  weekStartsOn?: WeekStartDay;
+  stickyAlwaysOnTop?: boolean;
+  stickyWidth?: number;
+  stickyHeight?: number;
+  stickyX?: number | null;
+  stickyY?: number | null;
+  activeStickyTab?: StickyTabId;
 }
 
 export const MAX_REMINDER_ITEMS = 30;
@@ -95,7 +131,8 @@ function applyExtractor(
 export function extractDueDateToken(
   rawText: string,
   defaultDateStr?: string,
-  now = new Date()
+  now = new Date(),
+  format: DateFormatPreference = 'DD/MM'
 ): { cleanText: string; dueDate?: string } {
   let dueDate: string | undefined = undefined;
   let text = rawText.trim();
@@ -290,9 +327,11 @@ export function extractDueDateToken(
 
       const mLeadingSlash = text.match(leadingSlash);
       if (mLeadingSlash) {
-        const day = parseInt(mLeadingSlash[1], 10);
-        const month = parseInt(mLeadingSlash[2], 10);
+        const p1 = parseInt(mLeadingSlash[1], 10);
+        const p2 = parseInt(mLeadingSlash[2], 10);
         const year = mLeadingSlash[3] ? parseInt(mLeadingSlash[3], 10) : now.getFullYear();
+        const day = format === 'MM/DD' ? p2 : p1;
+        const month = format === 'MM/DD' ? p1 : p2;
         if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
           dueDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           text = text.slice(mLeadingSlash[0].length);
@@ -301,9 +340,11 @@ export function extractDueDateToken(
       } else {
         const mTrailingSlash = text.match(trailingSlash);
         if (mTrailingSlash && mTrailingSlash.index !== undefined) {
-          const day = parseInt(mTrailingSlash[1], 10);
-          const month = parseInt(mTrailingSlash[2], 10);
+          const p1 = parseInt(mTrailingSlash[1], 10);
+          const p2 = parseInt(mTrailingSlash[2], 10);
           const year = mTrailingSlash[3] ? parseInt(mTrailingSlash[3], 10) : now.getFullYear();
+          const day = format === 'MM/DD' ? p2 : p1;
+          const month = format === 'MM/DD' ? p1 : p2;
           if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
             dueDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             text = text.slice(0, mTrailingSlash.index);
@@ -332,9 +373,30 @@ export function extractDueDateToken(
   return { cleanText, dueDate };
 }
 
-export function formatReminderDueBadge(dueDateStr: string, todayYMD: string): string {
+export function formatDisplayDate(
+  ymd: string,
+  format: DateFormatPreference = 'DD/MM',
+  includeYear = false
+): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return ymd;
+  }
+  const year = ymd.slice(0, 4);
+  const month = ymd.slice(5, 7);
+  const day = ymd.slice(8, 10);
+  if (format === 'MM/DD') {
+    return includeYear ? `${month}/${day}/${year}` : `${month}/${day}`;
+  }
+  return includeYear ? `${day}/${month}/${year}` : `${day}/${month}`;
+}
+
+export function formatReminderDueBadge(
+  dueDateStr: string,
+  todayYMD: string,
+  format: DateFormatPreference = 'DD/MM'
+): string {
   const diff = daysBetweenYMD(todayYMD, dueDateStr);
-  const shortDate = dueDateStr.slice(5).replace('-', '/');
+  const shortDate = formatDisplayDate(dueDateStr, format, false);
   if (diff === 0) return `Today (${shortDate})`;
   if (diff === 1) return `Tmrw (${shortDate})`;
   if (diff === -1) return `Yesterday (${shortDate})`;
@@ -368,6 +430,15 @@ export function createInitialReminderState(): ReminderState {
     items: DEFAULT_STARTER_ITEMS.map((item) => ({ ...item })),
     stickyVisible: true,
     theme: 'custard',
+    fontScale: 'md',
+    dateFormat: 'DD/MM',
+    weekStartsOn: 1,
+    stickyAlwaysOnTop: false,
+    stickyWidth: DEFAULT_STICKY_WIDTH,
+    stickyHeight: DEFAULT_STICKY_HEIGHT,
+    stickyX: null,
+    stickyY: null,
+    activeStickyTab: 'quests',
   };
 }
 
@@ -393,7 +464,12 @@ export function addReminderItem(
     }
   }
 
-  const { cleanText, dueDate } = extractDueDateToken(text, fallbackDueDate, nowDate);
+  const { cleanText, dueDate } = extractDueDateToken(
+    text,
+    fallbackDueDate,
+    nowDate,
+    state.dateFormat || 'DD/MM'
+  );
   if (!cleanText || state.items.length >= MAX_REMINDER_ITEMS) {
     return state;
   }
@@ -459,6 +535,86 @@ export function clearCompletedReminders(state: ReminderState): ReminderState {
   };
 }
 
+export function cycleReminderFontScale(state: ReminderState): ReminderState {
+  const current = state.fontScale || 'md';
+  const nextScale: StickyFontScale = current === 'sm' ? 'md' : current === 'md' ? 'lg' : 'sm';
+  return {
+    ...state,
+    fontScale: nextScale,
+  };
+}
+
+export interface ReminderPreferencesUpdate {
+  dateFormat?: DateFormatPreference;
+  weekStartsOn?: WeekStartDay;
+  stickyAlwaysOnTop?: boolean;
+  fontScale?: StickyFontScale;
+  stickyWidth?: number;
+  stickyHeight?: number;
+  stickyX?: number | null;
+  stickyY?: number | null;
+  activeStickyTab?: StickyTabId;
+}
+
+export function updateReminderPreferences(
+  state: ReminderState,
+  prefs: ReminderPreferencesUpdate
+): ReminderState {
+  const next: ReminderState = {
+    ...state,
+    ...(prefs.dateFormat !== undefined ? { dateFormat: prefs.dateFormat } : {}),
+    ...(prefs.weekStartsOn !== undefined ? { weekStartsOn: prefs.weekStartsOn } : {}),
+    ...(prefs.stickyAlwaysOnTop !== undefined
+      ? { stickyAlwaysOnTop: prefs.stickyAlwaysOnTop }
+      : {}),
+    ...(prefs.fontScale !== undefined ? { fontScale: prefs.fontScale } : {}),
+  };
+
+  if (
+    prefs.stickyWidth !== undefined &&
+    typeof prefs.stickyWidth === 'number' &&
+    Number.isFinite(prefs.stickyWidth)
+  ) {
+    next.stickyWidth = Math.min(
+      Math.max(Math.round(prefs.stickyWidth), MIN_STICKY_WIDTH),
+      MAX_STICKY_WIDTH
+    );
+  }
+  if (
+    prefs.stickyHeight !== undefined &&
+    typeof prefs.stickyHeight === 'number' &&
+    Number.isFinite(prefs.stickyHeight)
+  ) {
+    next.stickyHeight = Math.min(
+      Math.max(Math.round(prefs.stickyHeight), MIN_STICKY_HEIGHT),
+      MAX_STICKY_HEIGHT
+    );
+  }
+  if (prefs.stickyX !== undefined) {
+    next.stickyX =
+      typeof prefs.stickyX === 'number' && Number.isFinite(prefs.stickyX)
+        ? Math.round(prefs.stickyX)
+        : null;
+  }
+  if (prefs.stickyY !== undefined) {
+    next.stickyY =
+      typeof prefs.stickyY === 'number' && Number.isFinite(prefs.stickyY)
+        ? Math.round(prefs.stickyY)
+        : null;
+  }
+  if (prefs.activeStickyTab !== undefined) {
+    if (
+      prefs.activeStickyTab === 'quests' ||
+      prefs.activeStickyTab === 'calendar' ||
+      prefs.activeStickyTab === 'schedule'
+    ) {
+      next.activeStickyTab = prefs.activeStickyTab;
+    }
+  }
+
+  return next;
+}
+
 function isValidReminderItem(item: unknown): item is ReminderItem {
   if (typeof item !== 'object' || item === null) return false;
   const candidate = item as Record<string, unknown>;
@@ -488,12 +644,43 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
     const theme: 'custard' = 'custard';
     const stickyVisible: boolean =
       typeof parsed.stickyVisible === 'boolean' ? parsed.stickyVisible : true;
+    const fontScale: StickyFontScale =
+      parsed.fontScale === 'sm' || parsed.fontScale === 'md' || parsed.fontScale === 'lg'
+        ? parsed.fontScale
+        : 'md';
+    const dateFormat: DateFormatPreference = parsed.dateFormat === 'MM/DD' ? 'MM/DD' : 'DD/MM';
+    const weekStartsOn: WeekStartDay = parsed.weekStartsOn === 0 ? 0 : 1;
+    const stickyAlwaysOnTop: boolean = Boolean(parsed.stickyAlwaysOnTop);
+    const stickyDims = clampStickyDimensions(parsed.stickyWidth, parsed.stickyHeight);
+    const stickyWidth = stickyDims.width;
+    const stickyHeight = stickyDims.height;
+    const stickyX =
+      typeof parsed.stickyX === 'number' && Number.isFinite(parsed.stickyX)
+        ? Math.round(parsed.stickyX)
+        : null;
+    const stickyY =
+      typeof parsed.stickyY === 'number' && Number.isFinite(parsed.stickyY)
+        ? Math.round(parsed.stickyY)
+        : null;
+    const activeStickyTab: StickyTabId =
+      parsed.activeStickyTab === 'calendar' || parsed.activeStickyTab === 'schedule'
+        ? parsed.activeStickyTab
+        : 'quests';
 
     if (!Array.isArray(parsed.items)) {
       return {
         items: DEFAULT_STARTER_ITEMS.map((item) => ({ ...item })),
         stickyVisible,
         theme,
+        fontScale,
+        dateFormat,
+        weekStartsOn,
+        stickyAlwaysOnTop,
+        stickyWidth,
+        stickyHeight,
+        stickyX,
+        stickyY,
+        activeStickyTab,
       };
     }
 
@@ -517,6 +704,15 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
       items: validItems.slice(0, MAX_REMINDER_ITEMS),
       stickyVisible,
       theme,
+      fontScale,
+      dateFormat,
+      weekStartsOn,
+      stickyAlwaysOnTop,
+      stickyWidth,
+      stickyHeight,
+      stickyX,
+      stickyY,
+      activeStickyTab,
     };
   } catch {
     return createInitialReminderState();

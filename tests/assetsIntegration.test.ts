@@ -127,18 +127,16 @@ describe('Usagi PNG and MP3 assets verification', () => {
     expect(html).toContain('--bg-color');
     expect(html).toContain('--border-color');
 
-    // Desktop Sticky Reminders Card & controls
-    expect(html).toContain('sticky-reminders-card');
+    // Clean 2-tab Dashboard navigation & controls
+    expect(html).toContain('dashTabCompanion');
+    expect(html).toContain('dashTabConfig');
     expect(html).toContain('toggle-sticky-window-btn');
-    expect(html).toContain('dashboard-quest-input');
-    expect(html).toContain('dashboard-add-quest-btn');
-    expect(html).toContain('dashboard-quest-list');
-    expect(html).toContain('dashboard-clear-done-btn');
+    expect(html).not.toContain('dashboard-quest-input');
+    expect(html).not.toContain('study-schedule-card');
 
     // Clean Wardrobe Auto-Change button
     expect(html).toContain('fix-appearance-toggle-btn');
     expect(html).toContain('🔄 Auto-Change');
-    expect(html).not.toContain('🔄 Auto-Change (30m)');
 
     // Cursor Keychain Hug removed
     expect(html).not.toContain('cursor-hug-toggle-btn');
@@ -154,22 +152,11 @@ describe('Usagi PNG and MP3 assets verification', () => {
       path.resolve(__dirname, '../src/sticky/index.html'),
       'utf-8'
     );
-    const dashboardHtml = fs.readFileSync(
-      path.resolve(__dirname, '../src/dashboard/index.html'),
-      'utf-8'
-    );
     expect(stickyHtml).toContain('.comfy-line');
-    expect(dashboardHtml).toContain('.comfy-line');
 
     const stickyTs = fs.readFileSync(path.resolve(__dirname, '../src/sticky/sticky.ts'), 'utf-8');
-    const dashboardTs = fs.readFileSync(
-      path.resolve(__dirname, '../src/dashboard/dashboard.ts'),
-      'utf-8'
-    );
     expect(stickyTs).toContain('comfy-line');
     expect(stickyTs).not.toContain("checkbox.type = 'checkbox'");
-    expect(dashboardTs).toContain('comfy-line');
-    expect(dashboardTs).not.toContain("cb.type = 'checkbox'");
   });
 
   it('verifies fixed appearance and hide usagi controls in dashboard and preload API', () => {

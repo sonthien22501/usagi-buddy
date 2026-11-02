@@ -595,7 +595,9 @@
         font-size: 13px;
         font-weight: 800;
         cursor: pointer;
-        transition: transform 0.08s ease, background 0.12s ease;
+        transition:
+          transform 0.08s ease,
+          background 0.12s ease;
       }
       .cal-nav-btn:hover {
         background: var(--badge-bg);
@@ -617,7 +619,9 @@
         border: 1.5px solid transparent;
         background: var(--card-bg);
         color: var(--text-color);
-        transition: background 0.12s ease, border-color 0.12s ease;
+        transition:
+          background 0.12s ease,
+          border-color 0.12s ease;
         padding: 2px 0;
       }
       .cal-day-cell:hover {
@@ -637,77 +641,86 @@
       }
       .cal-dots {
         display: flex;
-        gap: 2px;
+        gap: 3px;
         align-items: center;
         justify-content: center;
         height: 5px;
         margin-top: 1px;
       }
-      .dot-quest {
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: #d97706;
-      }
-      .dot-holiday {
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: #ff758f;
-      }
-      .dot-bday {
-        font-size: 8px;
-        line-height: 1;
-        color: #f59e0b;
-      }
-      .chip-date-btn {
+      .dash-tabs-bar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
         background: var(--card-inner);
-        border: 1.5px solid var(--border-color);
-        border-radius: 6px;
-        padding: 3px 8px;
-        font-size: 11px;
-        font-weight: 700;
+        padding: 4px;
+        border-radius: 12px;
+        border: 2px solid var(--border-color);
+      }
+
+      .dash-tab-btn {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
         color: var(--text-color);
-        cursor: pointer;
-        transition: background 0.12s, border-color 0.12s;
-      }
-      .chip-date-btn:hover {
-        background: var(--badge-bg);
-      }
-      .chip-date-btn.active {
-        background: var(--accent-strawberry);
-        color: #ffffff;
-      }
-      .quest-due-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 1px 5px;
-        font-size: 10px;
+        font-size: 13px;
         font-weight: 800;
-        border-radius: 4px;
-        background: var(--badge-bg);
-        color: var(--badge-text);
-        border: 1px solid var(--border-color);
-        margin-left: 6px;
-        vertical-align: middle;
-      }
-      .upcoming-item-row {
+        cursor: pointer;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: 5px 8px;
-        border-radius: 6px;
-        font-size: 11px;
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
+        justify-content: center;
+        gap: 6px;
+        transition:
+          background 0.15s ease,
+          box-shadow 0.15s ease;
       }
-      .upcoming-badge {
-        font-size: 9px;
-        font-weight: 800;
-        padding: 1px 6px;
-        border-radius: 4px;
-        background: var(--accent-strawberry);
-        color: #ffffff;
+
+      .dash-tab-btn.active {
+        background: var(--card-bg);
+        border: 1.5px solid var(--border-color);
+        box-shadow: 0 2px 4px rgba(92, 58, 33, 0.1);
+        color: var(--border-color);
+      }
+
+      .dash-tab-btn:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.4);
+      }
+
+      .dash-view {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .config-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1.5px dashed rgba(92, 58, 33, 0.15);
+      }
+
+      .config-row:last-child {
+        border-bottom: none;
+      }
+
+      .config-label {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+      }
+
+      .config-select {
+        border: 1.5px solid var(--border-color);
+        border-radius: 6px;
+        padding: 4px 6px;
+        font-size: 12px;
+        font-weight: 700;
+        background: var(--input-bg);
+        color: var(--text-color);
+        outline: none;
       }
 
       .app-footer {
@@ -735,342 +748,421 @@
       </div>
     </div>
 
-    <!-- 1. Desktop Sticky Reminders & Cozy Calendar Card -->
-    <div class="card" id="sticky-reminders-card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="kawaii-icon-wrap" id="sticky-card-icon"></span>
-          <span>Cozy Calendar & Quests</span>
+    <!-- 2-Tab Switcher Navigation -->
+    <div class="dash-tabs-bar">
+      <button class="dash-tab-btn active" id="dashTabCompanion">🏠 Companion & Focus</button>
+      <button class="dash-tab-btn" id="dashTabConfig">⚙️ Settings & Config</button>
+    </div>
+
+    <!-- Tab 1: Companion & Focus View -->
+    <div class="dash-view" id="dashViewCompanion">
+      <!-- 1. Custom Focus Timer Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="kawaii-icon-wrap" id="timer-card-icon"></span>
+            <span>Custom Focus Timer</span>
+          </div>
+          <span class="badge" id="timer-badge">25:00 IDLE</span>
         </div>
-        <button class="btn" id="toggle-sticky-window-btn">Hide Note</button>
+
+        <div class="clock-display">
+          <div class="clock-time" id="clock-time">25:00</div>
+          <div class="clock-status" id="clock-status">READY TO FOCUS</div>
+        </div>
+
+        <!-- Scientific Focus Method Chips -->
+        <div class="preset-chips">
+          <button
+            class="chip-btn"
+            data-min="25"
+            title="Pomodoro Technique: 25m work / 5m break (Beginners, high-friction tasks, or admin work)"
+          >
+            25m Pomodoro
+          </button>
+          <button
+            class="chip-btn"
+            data-min="52"
+            title="52/17 Method: 52m work / 17m break (Deep reading, writing, coding, and sustained knowledge work)"
+          >
+            52m Rule (17m rest)
+          </button>
+          <button
+            class="chip-btn"
+            data-min="90"
+            title="Ultradian Rhythm: 90m work / 20m break (Complex problem-solving, marathon study sessions, or creative flow)"
+          >
+            90m Ultradian (20m rest)
+          </button>
+        </div>
+
+        <!-- Manual Input Row (Starts at 0 with +10m Button) -->
+        <div class="input-group">
+          <input
+            type="number"
+            class="number-input"
+            id="manual-time-input"
+            min="0"
+            max="720"
+            value="0"
+            placeholder="0"
+          />
+          <span class="unit-tag">min</span>
+          <button class="btn-step" id="add-10-btn" type="button" title="Add 10 minutes to timer">
+            +10m
+          </button>
+          <button class="btn btn-primary" id="start-timer-btn" style="width: 85px; height: 34px">
+            Start
+          </button>
+        </div>
+
+        <div class="card-actions" style="margin-top: 6px">
+          <button class="btn btn-action-pair" id="pause-timer-btn">Pause</button>
+          <button class="btn btn-action-pair" id="reset-timer-btn">Reset</button>
+        </div>
       </div>
 
-      <!-- Buddy Profile Bar -->
-      <div class="buddy-profile-bar" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; background: var(--card-inner); border-radius: 10px; margin-bottom: 12px; font-size: 11px; font-weight: 700;">
-        <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 110px;">
-          <span class="kawaii-icon-wrap" id="buddy-profile-icon"></span>
-          <input type="text" id="buddy-nickname-input" placeholder="Buddy Nickname" maxlength="24" style="width: 100%; border: 1.5px solid var(--border-color); border-radius: 6px; padding: 4px 6px; font-size: 11px; background: var(--input-bg); color: var(--text-color);" />
+      <!-- 2. Wardrobe & Outfits Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="kawaii-icon-wrap" id="wardrobe-card-icon"></span>
+            <span>Wardrobe & Outfits</span>
+          </div>
+          <span class="badge" id="costume-badge">CLASSIC</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 4px;">
-          <span class="kawaii-icon-wrap" id="buddy-cake-icon"></span>
-          <select id="buddy-bday-month" style="border: 1.5px solid var(--border-color); border-radius: 6px; padding: 3px 4px; font-size: 11px; background: var(--input-bg); color: var(--text-color);">
-            <option value="">Month</option>
-            <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option>
-            <option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option>
-            <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
-          </select>
-          <select id="buddy-bday-day" style="border: 1.5px solid var(--border-color); border-radius: 6px; padding: 3px 4px; font-size: 11px; background: var(--input-bg); color: var(--text-color);">
-            <option value="">Day</option>
-            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
-            <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
-            <option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option>
-            <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
-            <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option>
-            <option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
-            <option value="31">31</option>
-          </select>
-        </div>
-        <div style="display: flex; align-items: center; gap: 4px;">
-          <span class="kawaii-icon-wrap" id="buddy-globe-icon"></span>
-          <select id="buddy-country-select" style="border: 1.5px solid var(--border-color); border-radius: 6px; padding: 3px 4px; font-size: 11px; background: var(--input-bg); color: var(--text-color);">
-            <option value="VN">Vietnam 🇻🇳</option>
-            <option value="US">United States 🇺🇸</option>
-            <option value="GB">United Kingdom 🇬🇧</option>
-            <option value="DE">Germany 🇩🇪</option>
-            <option value="FR">France 🇫🇷</option>
-            <option value="ES">Spain 🇪🇸</option>
-            <option value="JP">Japan 🇯🇵</option>
-            <option value="KR">South Korea 🇰🇷</option>
-            <option value="AU">Australia 🇦🇺</option>
-            <option value="CA">Canada 🇨🇦</option>
-          </select>
+        <div class="costume-grid">
+          <button
+            class="costume-card-btn active"
+            data-costume="classic"
+            title="Classic swimming Usagi"
+          >
+            <span class="costume-icon" id="costume-icon-classic"></span>
+            <span class="costume-name">Classic</span>
+          </button>
+          <button class="costume-card-btn" data-costume="study" title="Study Mode with book & pencil">
+            <span class="costume-icon" id="costume-icon-study"></span>
+            <span class="costume-name">Study</span>
+          </button>
+          <button class="costume-card-btn" data-costume="vest" title="Corporate suit & vest mode">
+            <span class="costume-icon" id="costume-icon-vest"></span>
+            <span class="costume-name">Work</span>
+          </button>
+          <button
+            class="costume-card-btn"
+            data-costume="sigma"
+            title="Sigma grindset with cool shades"
+          >
+            <span class="costume-icon" id="costume-icon-sigma"></span>
+            <span class="costume-name">Sigma</span>
+          </button>
+          <button class="costume-card-btn" data-costume="star" title="Sparkling magical star Usagi">
+            <span class="costume-icon" id="costume-icon-star"></span>
+            <span class="costume-name">Star</span>
+          </button>
+          <button class="costume-card-btn" data-costume="random" title="Surprise / Shuffle on click">
+            <span class="costume-icon" id="costume-icon-random"></span>
+            <span class="costume-name">Shuffle</span>
+          </button>
         </div>
       </div>
 
-      <!-- Mini Calendar Widget -->
-      <div class="calendar-widget" style="margin-bottom: 12px; border: 1.5px solid var(--border-color); border-radius: 12px; padding: 10px; background: var(--card-bg);">
-        <div class="cal-nav-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <button class="cal-nav-btn" id="cal-prev-btn" title="Previous Month">‹</button>
-          <span id="cal-month-title" style="font-weight: 800; font-size: 13px; color: var(--text-color);">November 2026</span>
-          <div style="display: flex; gap: 4px;">
-            <button class="cal-nav-btn" id="cal-today-btn" style="font-size: 10px; padding: 2px 8px; width: auto; font-weight: 700;">Today</button>
-            <button class="cal-nav-btn" id="cal-next-btn" title="Next Month">›</button>
+      <!-- 3. Companion Modes & Actions Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="kawaii-icon-wrap" id="modes-card-icon"></span>
+            <span>Companion Modes & Actions</span>
           </div>
         </div>
-        <div class="cal-weekdays-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 10px; font-weight: 800; color: var(--text-muted); margin-bottom: 4px;">
-          <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
-        </div>
-        <div id="cal-days-grid" class="cal-days-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;">
-          <!-- 42 day cells -->
-        </div>
-        <div id="cal-selected-banner" style="display: none; margin-top: 8px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; background: var(--card-inner); border: 1px dashed var(--border-color); justify-content: space-between; align-items: center;">
-          <span id="cal-selected-info"></span>
-          <button id="cal-clear-filter-btn" style="background: transparent; border: none; font-size: 11px; cursor: pointer; color: var(--accent-strawberry); font-weight: 700;">✕ All Dates</button>
-        </div>
-        <div id="cal-event-banner" style="display: none; margin-top: 6px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; background: #ffe699; color: #5c3a21; border: 1px solid var(--border-color);">
-        </div>
-      </div>
+        <div class="mode-list">
+          <!-- Sticky Quests Note Window Toggle -->
+          <div class="mode-item">
+            <div class="mode-title">
+              <span class="kawaii-icon-wrap" id="sticky-title-icon"></span>
+              <span>Sticky Quests Note</span>
+            </div>
+            <button class="feature-btn" id="toggle-sticky-window-btn">Hide Note</button>
+          </div>
 
-      <!-- Upcoming Holidays & Quests Countdowns -->
-      <div id="upcoming-events-container" style="margin-bottom: 12px; background: var(--card-inner); border-radius: 10px; padding: 8px 10px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 11px; font-weight: 800; color: var(--text-color);">
-          <span>Upcoming Holidays & Quests</span>
-          <span style="font-size: 10px; opacity: 0.7;">Next up</span>
+          <!-- Stay Still -->
+          <div class="mode-item">
+            <div class="mode-title">
+              <span class="kawaii-icon-wrap" id="pin-title-icon"></span>
+              <span>Stay Still</span>
+            </div>
+            <button class="feature-btn" id="stationary-toggle-btn">Pin Still</button>
+          </div>
+
+          <!-- Play Mode / Follow Cursor -->
+          <div class="mode-item">
+            <div class="mode-title">
+              <span class="kawaii-icon-wrap" id="wand-title-icon"></span>
+              <span>Play Mode</span>
+            </div>
+            <button class="feature-btn" id="play-mode-toggle-btn">Follow Mouse</button>
+          </div>
+
+          <!-- Ghost Mode / Click-Through -->
+          <div class="mode-item">
+            <div class="mode-title">
+              <span class="kawaii-icon-wrap" id="ghost-title-icon"></span>
+              <span>Ghost Mode</span>
+            </div>
+            <button class="feature-btn" id="ghost-mode-toggle-btn">Ghost Mode</button>
+          </div>
+
+          <!-- Drop Pudding Snack -->
+          <div class="mode-item">
+            <div class="mode-title">
+              <span class="kawaii-icon-wrap" id="pudding-title-icon"></span>
+              <span>Pudding Snack</span>
+            </div>
+            <button class="feature-btn" id="drop-snack-btn">Drop Snack</button>
+          </div>
+
+          <!-- Hide Usagi / Do Not Disturb -->
+          <div class="mode-item">
+            <div class="mode-title">
+              <span class="kawaii-icon-wrap" id="hide-title-icon"></span>
+              <span>Hide Usagi</span>
+            </div>
+            <button class="feature-btn" id="hide-usagi-toggle-btn">Hide Usagi</button>
+          </div>
         </div>
-        <div id="upcoming-events-list" style="display: flex; flex-direction: column; gap: 4px;">
-          <!-- Upcoming items -->
-        </div>
-      </div>
-
-      <!-- Quest Input & Quick Chips -->
-      <div class="input-group">
-        <input
-          type="text"
-          class="number-input"
-          id="dashboard-quest-input"
-          placeholder='Add a quest (e.g. "I have to do chores tomorrow")...'
-          maxlength="120"
-        />
-        <button
-          class="btn btn-primary"
-          id="dashboard-add-quest-btn"
-          style="width: 38px; height: 34px"
-        >
-          +
-        </button>
-      </div>
-
-      <div class="quick-date-chips" style="display: flex; gap: 6px; margin-top: 6px; margin-bottom: 8px; flex-wrap: wrap;">
-        <button class="chip-date-btn" data-date-chip="today">📅 Today</button>
-        <button class="chip-date-btn" data-date-chip="tomorrow">🌤️ Tomorrow</button>
-        <button class="chip-date-btn" data-date-chip="+3d">⚡ +3 Days</button>
-        <button class="chip-date-btn" id="chip-clear-date" style="display: none;">✕ Clear Date</button>
-      </div>
-
-      <div id="dashboard-quest-list" class="quest-dashboard-list">
-        <!-- Rendered items -->
-      </div>
-
-      <div class="card-actions" style="justify-content: space-between; align-items: center">
-        <span
-          id="dashboard-quest-counter"
-          style="font-size: 11px; font-weight: 700; color: var(--text-muted)"
-        >
-          0/0 completed
-        </span>
-        <button class="btn" id="dashboard-clear-done-btn">Clear Done</button>
       </div>
     </div>
 
-    <!-- 2. Unified Volume Card -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="kawaii-icon-wrap" id="volume-card-icon"></span>
-          <span>Sound Volume</span>
-        </div>
-        <span class="badge" id="volume-val-badge">80%</span>
-      </div>
-      <div class="slider-row">
-        <span class="kawaii-icon-wrap" id="vol-low-icon"></span>
-        <input
-          type="range"
-          class="volume-slider"
-          id="volume-slider"
-          min="0"
-          max="100"
-          value="80"
-          step="1"
-        />
-        <span class="kawaii-icon-wrap" id="vol-high-icon"></span>
-      </div>
-      <div class="card-actions">
-        <button class="btn btn-action-pair" id="test-sound-btn">Test Sound</button>
-        <button class="btn btn-action-pair" id="mute-toggle-btn">Mute</button>
-      </div>
-    </div>
-
-    <!-- 3. Pomodoro Focus Timer Card -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="kawaii-icon-wrap" id="timer-card-icon"></span>
-          <span>Custom Focus Timer</span>
-        </div>
-        <span class="badge" id="timer-badge">25:00 IDLE</span>
-      </div>
-
-      <div class="clock-display">
-        <div class="clock-time" id="clock-time">25:00</div>
-        <div class="clock-status" id="clock-status">READY TO FOCUS</div>
-      </div>
-
-      <!-- Scientific Focus Method Chips -->
-      <div class="preset-chips">
-        <button
-          class="chip-btn"
-          data-min="25"
-          title="Pomodoro Technique: 25m work / 5m break (Beginners, high-friction tasks, or admin work)"
-        >
-          25m Pomodoro
-        </button>
-        <button
-          class="chip-btn"
-          data-min="52"
-          title="52/17 Method: 52m work / 17m break (Deep reading, writing, coding, and sustained knowledge work)"
-        >
-          52m Rule (17m rest)
-        </button>
-        <button
-          class="chip-btn"
-          data-min="90"
-          title="Ultradian Rhythm: 90m work / 20m break (Complex problem-solving, marathon study sessions, or creative flow)"
-        >
-          90m Ultradian (20m rest)
-        </button>
-      </div>
-
-      <!-- Manual Input Row (Starts at 0 with +10m Button) -->
-      <div class="input-group">
-        <input
-          type="number"
-          class="number-input"
-          id="manual-time-input"
-          min="0"
-          max="720"
-          value="0"
-          placeholder="0"
-        />
-        <span class="unit-tag">min</span>
-        <button class="btn-step" id="add-10-btn" type="button" title="Add 10 minutes to timer">
-          +10m
-        </button>
-        <button class="btn btn-primary" id="start-timer-btn" style="width: 85px; height: 34px">
-          Start
-        </button>
-      </div>
-
-      <div class="card-actions" style="margin-top: 6px">
-        <button class="btn btn-action-pair" id="pause-timer-btn">Pause</button>
-        <button class="btn btn-action-pair" id="reset-timer-btn">Reset</button>
-      </div>
-    </div>
-
-    <!-- 4. Usagi Wardrobe & Outfits Card -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="kawaii-icon-wrap" id="wardrobe-card-icon"></span>
-          <span>Wardrobe & Outfits</span>
-        </div>
-        <span class="badge" id="costume-badge">CLASSIC</span>
-      </div>
-      <div class="costume-grid">
-        <button
-          class="costume-card-btn active"
-          data-costume="classic"
-          title="Classic swimming Usagi"
-        >
-          <span class="costume-icon" id="costume-icon-classic"></span>
-          <span class="costume-name">Classic</span>
-        </button>
-        <button class="costume-card-btn" data-costume="study" title="Study Mode with book & pencil">
-          <span class="costume-icon" id="costume-icon-study"></span>
-          <span class="costume-name">Study</span>
-        </button>
-        <button class="costume-card-btn" data-costume="vest" title="Corporate suit & vest mode">
-          <span class="costume-icon" id="costume-icon-vest"></span>
-          <span class="costume-name">Work</span>
-        </button>
-        <button
-          class="costume-card-btn"
-          data-costume="sigma"
-          title="Sigma grindset with cool shades"
-        >
-          <span class="costume-icon" id="costume-icon-sigma"></span>
-          <span class="costume-name">Sigma</span>
-        </button>
-        <button class="costume-card-btn" data-costume="star" title="Sparkling magical star Usagi">
-          <span class="costume-icon" id="costume-icon-star"></span>
-          <span class="costume-name">Star</span>
-        </button>
-        <button class="costume-card-btn" data-costume="random" title="Surprise / Shuffle on click">
-          <span class="costume-icon" id="costume-icon-random"></span>
-          <span class="costume-name">Shuffle</span>
-        </button>
-      </div>
-
-      <div
-        style="
-          margin-top: 10px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-top: 1.5px dashed var(--border-color);
-          padding-top: 8px;
-        "
-      >
-        <span style="font-size: 12px; font-weight: 800; color: var(--text-color)"
-          >Outfit Rotation:</span
-        >
-        <button class="feature-btn" id="fix-appearance-toggle-btn" style="width: 150px">
-          🔄 Auto-Change
-        </button>
-      </div>
-    </div>
-
-    <!-- 5. Companion Modes & Actions Card (Clean & Equal Buttons) -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="kawaii-icon-wrap" id="modes-card-icon"></span>
-          <span>Companion Modes & Actions</span>
-        </div>
-      </div>
-      <div class="mode-list">
-        <!-- Stay Still -->
-        <div class="mode-item">
-          <div class="mode-title">
-            <span class="kawaii-icon-wrap" id="pin-title-icon"></span>
-            <span>Stay Still</span>
+    <!-- Tab 2: Settings & Config View -->
+    <div class="dash-view" id="dashViewConfig" style="display: none">
+      <!-- 1. Buddy Profile & Holiday Region Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="kawaii-icon-wrap" id="buddy-profile-icon"></span>
+            <span>Buddy Profile & Holiday Region</span>
           </div>
-          <button class="feature-btn" id="stationary-toggle-btn">Pin Still</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <!-- Nickname -->
+          <div class="config-row">
+            <div class="config-label">
+              <span style="font-weight: 800; font-size: 12px">Buddy Nickname</span>
+              <span style="font-size: 11px; color: var(--text-muted)">Your preferred display name</span>
+            </div>
+            <input
+              type="text"
+              id="buddy-nickname-input"
+              placeholder="Buddy Nickname"
+              maxlength="24"
+              class="number-input"
+              style="width: 160px; height: 32px; font-size: 12px"
+            />
+          </div>
+
+          <!-- Birthday (DD / MM order!) -->
+          <div class="config-row">
+            <div class="config-label">
+              <span style="font-weight: 800; font-size: 12px">Birthday (DD / MM)</span>
+              <span style="font-size: 11px; color: var(--text-muted)">Usagi celebrates your special day! 🎂</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px">
+              <select
+                id="buddy-bday-day"
+                class="config-select"
+                style="width: 65px; height: 32px; font-size: 12px"
+              >
+                <option value="">Day</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+                <option value="16">16</option>
+                <option value="17">17</option>
+                <option value="18">18</option>
+                <option value="19">19</option>
+                <option value="20">20</option>
+                <option value="21">21</option>
+                <option value="22">22</option>
+                <option value="23">23</option>
+                <option value="24">24</option>
+                <option value="25">25</option>
+                <option value="26">26</option>
+                <option value="27">27</option>
+                <option value="28">28</option>
+                <option value="29">29</option>
+                <option value="30">30</option>
+                <option value="31">31</option>
+              </select>
+              <span style="font-weight: 800; color: var(--text-muted)">/</span>
+              <select
+                id="buddy-bday-month"
+                class="config-select"
+                style="width: 75px; height: 32px; font-size: 12px"
+              >
+                <option value="">Month</option>
+                <option value="1">Jan</option>
+                <option value="2">Feb</option>
+                <option value="3">Mar</option>
+                <option value="4">Apr</option>
+                <option value="5">May</option>
+                <option value="6">Jun</option>
+                <option value="7">Jul</option>
+                <option value="8">Aug</option>
+                <option value="9">Sep</option>
+                <option value="10">Oct</option>
+                <option value="11">Nov</option>
+                <option value="12">Dec</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Country / Holiday Region -->
+          <div class="config-row">
+            <div class="config-label">
+              <span style="font-weight: 800; font-size: 12px">Holiday Region</span>
+              <span style="font-size: 11px; color: var(--text-muted)">Calendar public holiday countdowns</span>
+            </div>
+            <select
+              id="buddy-country-select"
+              class="config-select"
+              style="width: 160px; height: 32px; font-size: 12px"
+            >
+              <option value="VN">Vietnam 🇻🇳</option>
+              <option value="US">United States 🇺🇸</option>
+              <option value="GB">United Kingdom 🇬🇧</option>
+              <option value="DE">Germany 🇩🇪</option>
+              <option value="FR">France 🇫🇷</option>
+              <option value="ES">Spain 🇪🇸</option>
+              <option value="JP">Japan 🇯🇵</option>
+              <option value="KR">South Korea 🇰🇷</option>
+              <option value="AU">Australia 🇦🇺</option>
+              <option value="CA">Canada 🇨🇦</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Date, Calendar & Sticky Note Config Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="kawaii-icon-wrap" id="config-calendar-icon"></span>
+            <span>Date, Calendar & Sticky Note Config</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <!-- Date Format -->
+          <div class="config-row">
+            <div class="config-label">
+              <span style="font-weight: 800; font-size: 12px">Date Format</span>
+              <span style="font-size: 11px; color: var(--text-muted)">Display across quests & calendar</span>
+            </div>
+            <button class="feature-btn" id="config-date-format-btn" style="width: 160px">
+              DD/MM (15/11)
+            </button>
+          </div>
+
+          <!-- Week Starts On -->
+          <div class="config-row">
+            <div class="config-label">
+              <span style="font-weight: 800; font-size: 12px">Week Starts On</span>
+              <span style="font-size: 11px; color: var(--text-muted)">Calendar grid header order</span>
+            </div>
+            <button class="feature-btn" id="config-week-start-btn" style="width: 160px">
+              Monday (Mo–Su)
+            </button>
+          </div>
+
+          <!-- Sticky Note Text Size -->
+          <div class="config-row">
+            <div class="config-label">
+              <span style="font-weight: 800; font-size: 12px">Sticky Note Text Size</span>
+              <span style="font-size: 11px; color: var(--text-muted)">Font scaling on sticky window</span>
+            </div>
+            <button class="feature-btn" id="config-font-scale-btn" style="width: 160px">
+              Medium (A+)
+            </button>
+          </div>
+
+          <!-- Sticky Window Size -->
+          <div class="config-row">
+            <div class="config-label">
+              <span style="font-weight: 800; font-size: 12px">Sticky Window Size</span>
+              <span style="font-size: 11px; color: var(--text-muted)">Compact / Medium / Large preset</span>
+            </div>
+            <button class="feature-btn" id="config-sticky-size-btn" style="width: 160px">
+              Compact (350×480)
+            </button>
+          </div>
+
+          <!-- Pin Sticky Note on Top -->
+          <div class="config-row">
+            <div class="config-label">
+              <span style="font-weight: 800; font-size: 12px">Sticky Window Pin</span>
+              <span style="font-size: 11px; color: var(--text-muted)">Float above all apps or stay on desktop</span>
+            </div>
+            <button class="feature-btn" id="config-sticky-pin-btn" style="width: 160px">
+              🖥️ Desktop Widget
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Audio & Wardrobe Behavior Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="kawaii-icon-wrap" id="volume-card-icon"></span>
+            <span>Audio & Wardrobe Behavior</span>
+          </div>
+          <span class="badge" id="volume-val-badge">80%</span>
+        </div>
+        <div class="slider-row" style="margin-bottom: 10px">
+          <span class="kawaii-icon-wrap" id="vol-low-icon"></span>
+          <input
+            type="range"
+            class="volume-slider"
+            id="volume-slider"
+            min="0"
+            max="100"
+            value="80"
+            step="1"
+          />
+          <span class="kawaii-icon-wrap" id="vol-high-icon"></span>
+        </div>
+        <div class="card-actions" style="margin-bottom: 12px">
+          <button class="btn btn-action-pair" id="test-sound-btn">Test Sound</button>
+          <button class="btn btn-action-pair" id="mute-toggle-btn">Mute</button>
         </div>
 
-        <!-- Play Mode / Follow Cursor -->
-        <div class="mode-item">
-          <div class="mode-title">
-            <span class="kawaii-icon-wrap" id="wand-title-icon"></span>
-            <span>Play Mode</span>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1.5px dashed var(--border-color);
+            padding-top: 10px;
+          "
+        >
+          <div class="config-label">
+            <span style="font-weight: 800; font-size: 12px">Outfit Rotation</span>
+            <span style="font-size: 11px; color: var(--text-muted)">Auto-change costume every 30m or fix</span>
           </div>
-          <button class="feature-btn" id="play-mode-toggle-btn">Follow Mouse</button>
-        </div>
-
-        <!-- Ghost Mode / Click-Through -->
-        <div class="mode-item">
-          <div class="mode-title">
-            <span class="kawaii-icon-wrap" id="ghost-title-icon"></span>
-            <span>Ghost Mode</span>
-          </div>
-          <button class="feature-btn" id="ghost-mode-toggle-btn">Ghost Mode</button>
-        </div>
-
-        <!-- Drop Pudding Snack -->
-        <div class="mode-item">
-          <div class="mode-title">
-            <span class="kawaii-icon-wrap" id="pudding-title-icon"></span>
-            <span>Pudding Snack</span>
-          </div>
-          <button class="feature-btn" id="drop-snack-btn">Drop Snack</button>
-        </div>
-
-        <!-- Hide Usagi / Do Not Disturb -->
-        <div class="mode-item">
-          <div class="mode-title">
-            <span class="kawaii-icon-wrap" id="hide-title-icon"></span>
-            <span>Hide Usagi</span>
-          </div>
-          <button class="feature-btn" id="hide-usagi-toggle-btn">Hide Usagi</button>
+          <button class="feature-btn" id="fix-appearance-toggle-btn" style="width: 160px">
+            🔄 Auto-Change
+          </button>
         </div>
       </div>
     </div>

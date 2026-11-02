@@ -50,6 +50,7 @@ import {
   serializeUserSettingsJson,
   shouldFollowCursor,
   UserSettings,
+  DashboardTabId,
 } from '../core/settingsStore';
 import {
   ReminderState,
@@ -58,8 +59,12 @@ import {
   toggleReminderItem,
   deleteReminderItem,
   clearCompletedReminders,
+  cycleReminderFontScale,
+  updateReminderPreferences,
+  ReminderPreferencesUpdate,
   parseRemindersJson,
   serializeRemindersJson,
+  clampStickyDimensions,
 } from '../core/reminderStore';
 import {
   BuddyProfile,
@@ -71,6 +76,15 @@ import {
   parseCalendarProfileJson,
   serializeCalendarProfileJson,
 } from '../core/calendarStore';
+import {
+  ScheduleState,
+  createInitialScheduleState,
+  addScheduleEntry,
+  deleteScheduleEntry,
+  parseScheduleJson,
+  serializeScheduleJson,
+  NewScheduleEntryInput,
+} from '../core/scheduleStore';
 import { computeTrayPopoverPosition } from '../core/trayPositioner';
 
 let mainWindow: BrowserWindow | null = null;
@@ -89,16 +103,54 @@ let costumeSelection: OutfitSelection = 'classic';
 let activeCostume: CostumeId = 'classic';
 let wardrobeRotation: WardrobeRotationState = createWardrobeRotationState(false);
 let usagiHidden = false;
+let usagiX: number | null = null;
+let usagiY: number | null = null;
+let activeDashboardTab: DashboardTabId = 'companion';
 
 let pomodoroState: PomodoroState = createPomodoroTimer();
 let wellnessState: WellnessState = createWellnessState();
 let reminderState: ReminderState = createInitialReminderState();
 let calendarProfile: BuddyProfile = createDefaultBuddyProfile();
 let calendarHolidays: HolidayEvent[] = [];
+let scheduleState: ScheduleState = createInitialScheduleState();
 
 let pomodoroInterval: NodeJS.Timeout | null = null;
 let wellnessInterval: NodeJS.Timeout | null = null;
 let cursorInterval: NodeJS.Timeout | null = null;
+
+try {
+  app.setName('usagi-buddy');
+} catch {
+  // Ignore in test environments if app is not available
+}
+
+function migrateLegacyUserData(): void {
+  try {
+    const currentDir = app.getPath('userData');
+    const appData = app.getPath('appData');
+    const legacyDir = path.join(appData, 'Electron');
+    if (legacyDir !== currentDir && fs.existsSync(legacyDir)) {
+      const filesToMigrate = [
+        'usagi-settings.json',
+        'usagi-reminders.json',
+        'usagi-calendar.json',
+        'usagi-schedule.json',
+      ];
+      if (!fs.existsSync(currentDir)) {
+        fs.mkdirSync(currentDir, { recursive: true });
+      }
+      for (const file of filesToMigrate) {
+        const src = path.join(legacyDir, file);
+        const dest = path.join(currentDir, file);
+        if (fs.existsSync(src) && !fs.existsSync(dest)) {
+          fs.copyFileSync(src, dest);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to migrate legacy userData:', err);
+  }
+}
 
 function getSettingsFilePath(): string {
   try {
@@ -123,6 +175,9 @@ function loadSettingsFromDisk(): void {
       playModeEnabled = settings.playModeEnabled;
       stationaryMode = settings.stationaryMode;
       usagiHidden = settings.usagiHidden;
+      usagiX = settings.usagiX ?? null;
+      usagiY = settings.usagiY ?? null;
+      activeDashboardTab = settings.activeDashboardTab ?? 'companion';
       pomodoroState = {
         ...createPomodoroTimer(settings.timerDurationMs),
         remainingMs: settings.timerRemainingMs,
@@ -150,6 +205,9 @@ function saveSettingsToDisk(): void {
       playModeEnabled,
       stationaryMode,
       usagiHidden,
+      usagiX,
+      usagiY,
+      activeDashboardTab,
     };
     fs.writeFileSync(p, serializeUserSettingsJson(settings), 'utf-8');
   } catch (err) {
@@ -306,6 +364,40 @@ function saveRemindersToDisk(): void {
   }
 }
 
+function getScheduleFilePath(): string {
+  try {
+    return path.join(app.getPath('userData'), 'usagi-schedule.json');
+  } catch {
+    return path.resolve(__dirname, '../../usagi-schedule.json');
+  }
+}
+
+function loadScheduleFromDisk(): void {
+  try {
+    const p = getScheduleFilePath();
+    if (fs.existsSync(p)) {
+      const raw = fs.readFileSync(p, 'utf-8');
+      scheduleState = parseScheduleJson(raw);
+    }
+  } catch (err) {
+    console.warn('Failed to load schedule from disk:', err);
+    scheduleState = createInitialScheduleState();
+  }
+}
+
+function saveScheduleToDisk(): void {
+  try {
+    const p = getScheduleFilePath();
+    fs.writeFileSync(p, serializeScheduleJson(scheduleState), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to save schedule to disk:', err);
+  }
+}
+
+function broadcastScheduleState(): void {
+  broadcastToAllWindows('schedule-state-changed', scheduleState);
+}
+
 function getScreenBounds(): ScreenBounds {
   const primaryDisplay = screen.getPrimaryDisplay();
   return {
@@ -372,8 +464,13 @@ function sendFullStateToWindow(win: BrowserWindow | null): void {
     profile: calendarProfile,
     events: getActiveCalendarEvents(),
   });
+  win.webContents.send('schedule-state-changed', scheduleState);
   win.webContents.send('fixed-appearance-toggle', wardrobeRotation.fixedAppearance);
   win.webContents.send('usagi-hidden-toggle', usagiHidden);
+  if (usagiX !== null && usagiY !== null) {
+    win.webContents.send('usagi-position-changed', { x: usagiX, y: usagiY });
+  }
+  win.webContents.send('dashboard-tab-changed', activeDashboardTab);
 }
 
 function createDashboardWindow(): void {
@@ -418,6 +515,7 @@ function createDashboardWindow(): void {
 function createStickyWindow(): void {
   if (stickyWindow && !stickyWindow.isDestroyed()) {
     if (reminderState.stickyVisible) {
+      stickyWindow.setAlwaysOnTop(Boolean(reminderState.stickyAlwaysOnTop), 'floating');
       stickyWindow.show();
     } else {
       stickyWindow.hide();
@@ -427,20 +525,41 @@ function createStickyWindow(): void {
 
   const primaryDisplay = screen.getPrimaryDisplay();
   const { workArea } = primaryDisplay;
-  const width = 310;
-  const height = 430;
-  const x = Math.max(0, workArea.x + workArea.width - width - 24);
-  const y = Math.max(0, workArea.y + 48);
+  const dims = clampStickyDimensions(reminderState.stickyWidth, reminderState.stickyHeight);
+  const width = dims.width;
+  const height = dims.height;
+
+  let x: number;
+  let y: number;
+  if (
+    typeof reminderState.stickyX === 'number' &&
+    Number.isFinite(reminderState.stickyX) &&
+    typeof reminderState.stickyY === 'number' &&
+    Number.isFinite(reminderState.stickyY)
+  ) {
+    x = Math.max(workArea.x, Math.min(workArea.x + workArea.width - width, reminderState.stickyX));
+    y = Math.max(
+      workArea.y,
+      Math.min(workArea.y + workArea.height - height, reminderState.stickyY)
+    );
+  } else {
+    x = Math.max(0, workArea.x + workArea.width - width - 24);
+    y = Math.max(0, workArea.y + 48);
+  }
 
   stickyWindow = new BrowserWindow({
     x,
     y,
     width,
     height,
+    minWidth: 290,
+    minHeight: 380,
+    maxWidth: 640,
+    maxHeight: 880,
     frame: false,
     transparent: true,
-    resizable: false,
-    alwaysOnTop: false,
+    resizable: true,
+    alwaysOnTop: Boolean(reminderState.stickyAlwaysOnTop),
     skipTaskbar: true,
     fullscreenable: false,
     hasShadow: false,
@@ -453,8 +572,39 @@ function createStickyWindow(): void {
     },
   });
 
+  const handleStickyBoundsChanged = () => {
+    if (!stickyWindow || stickyWindow.isDestroyed()) return;
+    const bounds = stickyWindow.getBounds();
+    const clamped = clampStickyDimensions(bounds.width, bounds.height);
+    let changed = false;
+    if (
+      reminderState.stickyWidth !== clamped.width ||
+      reminderState.stickyHeight !== clamped.height
+    ) {
+      reminderState.stickyWidth = clamped.width;
+      reminderState.stickyHeight = clamped.height;
+      changed = true;
+    }
+    if (reminderState.stickyX !== bounds.x || reminderState.stickyY !== bounds.y) {
+      reminderState.stickyX = bounds.x;
+      reminderState.stickyY = bounds.y;
+      changed = true;
+    }
+    if (changed) {
+      saveRemindersToDisk();
+      broadcastReminderState();
+    }
+  };
+
+  stickyWindow.on('resized', handleStickyBoundsChanged);
+  stickyWindow.on('moved', handleStickyBoundsChanged);
+
   const htmlPath = path.join(__dirname, '../sticky/index.html');
   stickyWindow.loadFile(htmlPath);
+
+  if (reminderState.stickyAlwaysOnTop) {
+    stickyWindow.setAlwaysOnTop(true, 'floating');
+  }
 
   stickyWindow.webContents.on('did-finish-load', () => {
     if (stickyWindow && !stickyWindow.isDestroyed()) {
@@ -463,6 +613,7 @@ function createStickyWindow(): void {
         profile: calendarProfile,
         events: getActiveCalendarEvents(),
       });
+      stickyWindow.webContents.send('schedule-state-changed', scheduleState);
     }
   });
 
@@ -764,6 +915,11 @@ function setupPomodoroTicker(): void {
       const { state: nextState, spawnedSnack } = tickPomodoro(pomodoroState, 1000, bounds);
       pomodoroState = nextState;
 
+      // Periodically persist timer remaining time so restarts never lose progress
+      if (Math.round(pomodoroState.remainingMs / 1000) % 5 === 0) {
+        saveSettingsToDisk();
+      }
+
       if (spawnedSnack && mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('trigger-giant-alarm');
         wellnessState = recordPomodoroCompleted(wellnessState);
@@ -857,9 +1013,11 @@ function setupCursorTrackingTicker(): void {
 }
 
 app.whenReady().then(() => {
+  migrateLegacyUserData();
   loadSettingsFromDisk();
   loadRemindersFromDisk();
   loadCalendarFromDisk();
+  loadScheduleFromDisk();
   createMainWindow();
   createStickyWindow();
   createTrayWindow();
@@ -978,6 +1136,59 @@ app.whenReady().then(() => {
     events: getActiveCalendarEvents(),
   }));
 
+  ipcMain.handle('get-schedule-state', () => scheduleState);
+
+  ipcMain.on('add-schedule-entry', (_e, input: NewScheduleEntryInput) => {
+    try {
+      scheduleState = addScheduleEntry(scheduleState, input);
+      saveScheduleToDisk();
+      broadcastScheduleState();
+    } catch (err) {
+      console.warn('Failed to add schedule entry:', err);
+    }
+  });
+
+  ipcMain.on('delete-schedule-entry', (_e, id: string) => {
+    scheduleState = deleteScheduleEntry(scheduleState, id);
+    saveScheduleToDisk();
+    broadcastScheduleState();
+  });
+
+  ipcMain.on('resize-sticky-window', (_e, width: number, height: number) => {
+    const clamped = clampStickyDimensions(width, height);
+    reminderState.stickyWidth = clamped.width;
+    reminderState.stickyHeight = clamped.height;
+    if (stickyWindow && !stickyWindow.isDestroyed()) {
+      stickyWindow.setSize(clamped.width, clamped.height);
+      const bounds = stickyWindow.getBounds();
+      reminderState.stickyX = bounds.x;
+      reminderState.stickyY = bounds.y;
+    }
+    saveRemindersToDisk();
+    broadcastReminderState();
+  });
+
+  ipcMain.on('update-usagi-position', (_e, x: number, y: number) => {
+    if (
+      typeof x === 'number' &&
+      Number.isFinite(x) &&
+      typeof y === 'number' &&
+      Number.isFinite(y)
+    ) {
+      usagiX = Math.round(x);
+      usagiY = Math.round(y);
+      saveSettingsToDisk();
+    }
+  });
+
+  ipcMain.on('update-dashboard-tab', (_e, tab: 'companion' | 'config') => {
+    if (tab === 'companion' || tab === 'config') {
+      activeDashboardTab = tab;
+      saveSettingsToDisk();
+      broadcastToAllWindows('dashboard-tab-changed', activeDashboardTab);
+    }
+  });
+
   ipcMain.on('update-buddy-profile', (_e, partialProfile: Partial<BuddyProfile>) => {
     if (typeof partialProfile !== 'object' || partialProfile === null) return;
     const oldCountry = calendarProfile.countryCode;
@@ -1060,6 +1271,23 @@ app.whenReady().then(() => {
     reminderState = clearCompletedReminders(reminderState);
     saveRemindersToDisk();
     broadcastReminderState();
+  });
+
+  ipcMain.on('cycle-sticky-font-scale', () => {
+    reminderState = cycleReminderFontScale(reminderState);
+    saveRemindersToDisk();
+    broadcastReminderState();
+  });
+
+  ipcMain.on('update-reminder-preferences', (_e, prefs: ReminderPreferencesUpdate) => {
+    if (prefs && typeof prefs === 'object') {
+      reminderState = updateReminderPreferences(reminderState, prefs);
+      if (stickyWindow && !stickyWindow.isDestroyed()) {
+        stickyWindow.setAlwaysOnTop(Boolean(reminderState.stickyAlwaysOnTop), 'floating');
+      }
+      saveRemindersToDisk();
+      broadcastReminderState();
+    }
   });
 
   ipcMain.on('toggle-sticky-window', () => {

@@ -11,6 +11,19 @@ import {
   serializeRemindersJson,
   extractDueDateToken,
   formatReminderDueBadge,
+  formatDisplayDate,
+  cycleReminderFontScale,
+  updateReminderPreferences,
+  DateFormatPreference,
+  WeekStartDay,
+  clampStickyDimensions,
+  DEFAULT_STICKY_WIDTH,
+  DEFAULT_STICKY_HEIGHT,
+  MIN_STICKY_WIDTH,
+  MAX_STICKY_WIDTH,
+  MIN_STICKY_HEIGHT,
+  MAX_STICKY_HEIGHT,
+  StickyTabId,
 } from '../src/core/reminderStore';
 
 describe('reminderStore', () => {
@@ -18,11 +31,42 @@ describe('reminderStore', () => {
     const state = createInitialReminderState();
     expect(state.stickyVisible).toBe(true);
     expect(state.theme).toBe('custard');
+    expect(state.fontScale).toBe('md');
+    expect(state.stickyWidth).toBe(350);
+    expect(state.stickyHeight).toBe(480);
+    expect(state.stickyX).toBeNull();
+    expect(state.stickyY).toBeNull();
+    expect(state.activeStickyTab).toBe('quests');
     expect(state.items.length).toBe(3);
     expect(state.items[0].text).toContain('Drink a glass of water');
     expect(state.items[1].text).toContain('25m Focus Session');
     expect(state.items[2].text).toContain('Stretch shoulders');
     expect(state.items.every((it) => it.completed === false)).toBe(true);
+  });
+
+  it('cycles fontScale sm -> md -> lg -> sm', () => {
+    let state = createInitialReminderState();
+    expect(state.fontScale).toBe('md');
+    state = cycleReminderFontScale(state);
+    expect(state.fontScale).toBe('lg');
+    state = cycleReminderFontScale(state);
+    expect(state.fontScale).toBe('sm');
+    state = cycleReminderFontScale(state);
+    expect(state.fontScale).toBe('md');
+  });
+
+  it('preserves valid fontScale and defaults invalid or missing fontScale to md in JSON', () => {
+    const sLg = JSON.stringify({ ...createInitialReminderState(), fontScale: 'lg' });
+    expect(parseRemindersJson(sLg).fontScale).toBe('lg');
+
+    const sSm = JSON.stringify({ ...createInitialReminderState(), fontScale: 'sm' });
+    expect(parseRemindersJson(sSm).fontScale).toBe('sm');
+
+    const sInvalid = JSON.stringify({ ...createInitialReminderState(), fontScale: 'huge' });
+    expect(parseRemindersJson(sInvalid).fontScale).toBe('md');
+
+    const sMissing = JSON.stringify({ items: [] });
+    expect(parseRemindersJson(sMissing).fontScale).toBe('md');
   });
 
   it('adds valid task and trims whitespace, ignoring empty or whitespace-only inputs', () => {
@@ -434,16 +478,133 @@ describe('reminderStore', () => {
         cleanText: 'Submit thesis',
         dueDate: '2026-12-20',
       });
+
+      // Format-aware slash dates: DD/MM (default) vs MM/DD
+      expect(extractDueDateToken('Project due 05/11', undefined, fixedNow, 'DD/MM')).toEqual({
+        cleanText: 'Project',
+        dueDate: '2026-11-05',
+      });
+      expect(extractDueDateToken('Project due 11/05', undefined, fixedNow, 'MM/DD')).toEqual({
+        cleanText: 'Project',
+        dueDate: '2026-11-05',
+      });
     });
   });
 
-  describe('formatReminderDueBadge', () => {
-    it('formats badge with relative label and actual resolved date', () => {
-      expect(formatReminderDueBadge('2026-11-02', '2026-11-02')).toBe('Today (11/02)');
-      expect(formatReminderDueBadge('2026-11-03', '2026-11-02')).toBe('Tmrw (11/03)');
-      expect(formatReminderDueBadge('2026-11-01', '2026-11-02')).toBe('Yesterday (11/01)');
-      expect(formatReminderDueBadge('2026-10-28', '2026-11-02')).toBe('Overdue (10/28)');
-      expect(formatReminderDueBadge('2026-11-10', '2026-11-02')).toBe('Due 11/10');
+  describe('formatReminderDueBadge and formatDisplayDate', () => {
+    it('formats display dates in DD/MM by default and MM/DD when configured', () => {
+      expect(formatDisplayDate('2026-11-05', 'DD/MM', false)).toBe('05/11');
+      expect(formatDisplayDate('2026-11-05', 'DD/MM', true)).toBe('05/11/2026');
+      expect(formatDisplayDate('2026-11-05', 'MM/DD', false)).toBe('11/05');
+      expect(formatDisplayDate('2026-11-05', 'MM/DD', true)).toBe('11/05/2026');
+      expect(formatDisplayDate('invalid-date')).toBe('invalid-date');
+    });
+
+    it('formats badge with relative label and actual resolved date in DD/MM by default', () => {
+      expect(formatReminderDueBadge('2026-11-02', '2026-11-02')).toBe('Today (02/11)');
+      expect(formatReminderDueBadge('2026-11-03', '2026-11-02')).toBe('Tmrw (03/11)');
+      expect(formatReminderDueBadge('2026-11-01', '2026-11-02')).toBe('Yesterday (01/11)');
+      expect(formatReminderDueBadge('2026-10-28', '2026-11-02')).toBe('Overdue (28/10)');
+      expect(formatReminderDueBadge('2026-11-10', '2026-11-02')).toBe('Due 10/11');
+    });
+
+    it('supports MM/DD format in formatReminderDueBadge', () => {
+      expect(formatReminderDueBadge('2026-11-10', '2026-11-02', 'MM/DD')).toBe('Due 11/10');
+      expect(formatReminderDueBadge('2026-11-02', '2026-11-02', 'MM/DD')).toBe('Today (11/02)');
+    });
+  });
+
+  describe('updateReminderPreferences', () => {
+    it('updates dateFormat, weekStartsOn, stickyAlwaysOnTop and fontScale', () => {
+      let state = createInitialReminderState();
+      expect(state.dateFormat).toBe('DD/MM');
+      expect(state.weekStartsOn).toBe(1);
+      expect(state.stickyAlwaysOnTop).toBe(false);
+
+      state = updateReminderPreferences(state, {
+        dateFormat: 'MM/DD',
+        weekStartsOn: 0,
+        stickyAlwaysOnTop: true,
+        fontScale: 'lg',
+      });
+      expect(state.dateFormat).toBe('MM/DD');
+      expect(state.weekStartsOn).toBe(0);
+      expect(state.stickyAlwaysOnTop).toBe(true);
+      expect(state.fontScale).toBe('lg');
+
+      const json = serializeRemindersJson(state);
+      const restored = parseRemindersJson(json);
+      expect(restored.dateFormat).toBe('MM/DD');
+      expect(restored.weekStartsOn).toBe(0);
+      expect(restored.stickyAlwaysOnTop).toBe(true);
+      expect(restored.fontScale).toBe('lg');
+    });
+
+    it('updates and clamps sticky dimensions, coordinates and activeStickyTab', () => {
+      let state = createInitialReminderState();
+      state = updateReminderPreferences(state, {
+        stickyWidth: 200, // below MIN 290
+        stickyHeight: 1200, // above MAX 880
+        stickyX: 140.4,
+        stickyY: 280.9,
+        activeStickyTab: 'schedule',
+      });
+      expect(state.stickyWidth).toBe(290);
+      expect(state.stickyHeight).toBe(880);
+      expect(state.stickyX).toBe(140);
+      expect(state.stickyY).toBe(281);
+      expect(state.activeStickyTab).toBe('schedule');
+
+      state = updateReminderPreferences(state, {
+        stickyWidth: 999, // above MAX 640
+        stickyHeight: 100, // below MIN 380
+        stickyX: null,
+        stickyY: null,
+        activeStickyTab: 'calendar',
+      });
+      expect(state.stickyWidth).toBe(640);
+      expect(state.stickyHeight).toBe(380);
+      expect(state.stickyX).toBeNull();
+      expect(state.stickyY).toBeNull();
+      expect(state.activeStickyTab).toBe('calendar');
+    });
+
+    it('defaults missing or corrupted preferences to safe defaults in parseRemindersJson', () => {
+      const parsed = parseRemindersJson('{"items": []}');
+      expect(parsed.dateFormat).toBe('DD/MM');
+      expect(parsed.weekStartsOn).toBe(1);
+      expect(parsed.stickyAlwaysOnTop).toBe(false);
+      expect(parsed.stickyWidth).toBe(350);
+      expect(parsed.stickyHeight).toBe(480);
+      expect(parsed.stickyX).toBeNull();
+      expect(parsed.stickyY).toBeNull();
+      expect(parsed.activeStickyTab).toBe('quests');
+    });
+
+    it('round-trips sticky geometry and active tab through JSON', () => {
+      let state = createInitialReminderState();
+      state = updateReminderPreferences(state, {
+        stickyWidth: 420,
+        stickyHeight: 600,
+        stickyX: 300,
+        stickyY: 150,
+        activeStickyTab: 'calendar',
+      });
+      const json = serializeRemindersJson(state);
+      const restored = parseRemindersJson(json);
+      expect(restored.stickyWidth).toBe(420);
+      expect(restored.stickyHeight).toBe(600);
+      expect(restored.stickyX).toBe(300);
+      expect(restored.stickyY).toBe(150);
+      expect(restored.activeStickyTab).toBe('calendar');
+    });
+
+    it('clampStickyDimensions enforces min/max bounds and handles invalid inputs', () => {
+      expect(clampStickyDimensions(undefined, undefined)).toEqual({ width: 350, height: 480 });
+      expect(clampStickyDimensions(100, 1000)).toEqual({ width: 290, height: 880 });
+      expect(clampStickyDimensions(800, 200)).toEqual({ width: 640, height: 380 });
+      expect(clampStickyDimensions(400.6, 500.4)).toEqual({ width: 401, height: 500 });
+      expect(clampStickyDimensions('abc', NaN)).toEqual({ width: 350, height: 480 });
     });
   });
 

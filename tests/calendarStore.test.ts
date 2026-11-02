@@ -3,11 +3,13 @@ import {
   formatDateYMD,
   parseDateYMD,
   daysBetweenYMD,
+  getEndOfNextMonthYMD,
   detectCountryCode,
   getStaticFallbackHolidays,
   buildCalendarEvents,
   buildMonthCalendarGrid,
   getUpcomingCountdownItems,
+  getSelectedDaySummary,
   parseCalendarProfileJson,
   serializeCalendarProfileJson,
   BuddyProfile,
@@ -30,6 +32,13 @@ describe('calendarStore', () => {
       expect(daysBetweenYMD('2026-11-02', '2026-11-07')).toBe(5);
       expect(daysBetweenYMD('2026-11-05', '2026-11-02')).toBe(-3);
       expect(daysBetweenYMD('2026-12-31', '2027-01-01')).toBe(1);
+    });
+
+    it('calculates end of next calendar month accurately including year rollover and leap years', () => {
+      expect(getEndOfNextMonthYMD('2026-11-02')).toBe('2026-12-31');
+      expect(getEndOfNextMonthYMD('2026-12-15')).toBe('2027-01-31');
+      expect(getEndOfNextMonthYMD('2028-01-10')).toBe('2028-02-29'); // Leap year Feb
+      expect(getEndOfNextMonthYMD('2027-01-05')).toBe('2027-02-28'); // Non-leap year Feb
     });
   });
 
@@ -180,6 +189,20 @@ describe('calendarStore', () => {
       const bdayCell = grid.find((c) => c.dateStr === '2026-11-15');
       expect(bdayCell?.hasBirthday).toBe(true);
     });
+
+    it('builds month calendar grid with weekStartsOn = 1 (Monday-first) vs weekStartsOn = 0 (Sunday-first)', () => {
+      // November 1, 2026 is Sunday
+      // Sunday-first (weekStartsOn = 0):
+      const sunGrid = buildMonthCalendarGrid(2026, 11, '2026-11-02', null, [], [], 0);
+      expect(sunGrid[0].dateStr).toBe('2026-11-01'); // Nov 1 is Sunday, so it's the very first cell
+
+      // Monday-first (weekStartsOn = 1):
+      const monGrid = buildMonthCalendarGrid(2026, 11, '2026-11-02', null, [], [], 1);
+      // Row 1 should start on Monday Oct 26, and Nov 1 is cell 6 (Sunday)
+      expect(monGrid[0].dateStr).toBe('2026-10-26');
+      expect(monGrid[6].dateStr).toBe('2026-11-01');
+      expect(monGrid[7].dateStr).toBe('2026-11-02');
+    });
   });
 
   describe('getUpcomingCountdownItems', () => {
@@ -247,6 +270,237 @@ describe('calendarStore', () => {
       expect(upcoming[3].title).toBe('Star Party');
       expect(upcoming[3].daysUntil).toBe(8);
       expect(upcoming[3].badgeText).toBe('In 8d');
+    });
+
+    it('strictly limits upcoming items to current month and next month only, excluding farther dates', () => {
+      const todayStr = '2026-11-02';
+      const events: HolidayEvent[] = [
+        {
+          id: 'ev-nov',
+          date: '2026-11-20',
+          name: 'Nov Event',
+          localName: 'Nov Event',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+        {
+          id: 'ev-dec-last',
+          date: '2026-12-31',
+          name: 'Dec 31 Event',
+          localName: 'Dec 31 Event',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+        {
+          id: 'ev-jan-newyear',
+          date: '2027-01-01',
+          name: 'Jan 1 Far Event',
+          localName: 'Jan 1 Far Event',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+        {
+          id: 'ev-feb',
+          date: '2027-02-14',
+          name: 'Valentine Far',
+          localName: 'Valentine Far',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+      ];
+
+      const reminders: ReminderItem[] = [
+        {
+          id: 'r-nov',
+          text: 'Nov quest',
+          completed: false,
+          createdAtMs: 1000,
+          dueDate: '2026-11-15',
+        },
+        {
+          id: 'r-dec',
+          text: 'Dec quest',
+          completed: false,
+          createdAtMs: 1000,
+          dueDate: '2026-12-25',
+        },
+        {
+          id: 'r-jan',
+          text: 'Jan quest too far',
+          completed: false,
+          createdAtMs: 1000,
+          dueDate: '2027-01-10',
+        },
+      ];
+
+      const upcoming = getUpcomingCountdownItems(events, reminders, todayStr, 10);
+      const dates = upcoming.map((u) => u.date);
+
+      expect(dates).toContain('2026-11-15');
+      expect(dates).toContain('2026-11-20');
+      expect(dates).toContain('2026-12-25');
+      expect(dates).toContain('2026-12-31');
+      // Should exclude anything in January 2027 or beyond
+      expect(dates).not.toContain('2027-01-01');
+      expect(dates).not.toContain('2027-01-10');
+      expect(dates).not.toContain('2027-02-14');
+    });
+
+    it('handles December to January rollover correctly (current month Dec, next month Jan)', () => {
+      const todayStr = '2026-12-15';
+      const events: HolidayEvent[] = [
+        {
+          id: 'ev-dec',
+          date: '2026-12-25',
+          name: 'Christmas',
+          localName: 'Christmas',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+        {
+          id: 'ev-jan-end',
+          date: '2027-01-31',
+          name: 'Jan End Event',
+          localName: 'Jan End Event',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+        {
+          id: 'ev-feb-first',
+          date: '2027-02-01',
+          name: 'Feb Event Too Far',
+          localName: 'Feb Event Too Far',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+      ];
+
+      const upcoming = getUpcomingCountdownItems(events, [], todayStr, 10);
+      const dates = upcoming.map((u) => u.date);
+
+      expect(dates).toContain('2026-12-25');
+      expect(dates).toContain('2027-01-31');
+      expect(dates).not.toContain('2027-02-01');
+    });
+
+    it('separates selected date items by excluding excludeDateYMD from upcoming list', () => {
+      const todayStr = '2026-11-02';
+      const events: HolidayEvent[] = [
+        {
+          id: 'h1',
+          date: '2026-11-02',
+          name: 'Today Event',
+          localName: 'Today Event',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+        {
+          id: 'h2',
+          date: '2026-11-05',
+          name: 'Selected Day Holiday',
+          localName: 'Selected Day Holiday',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+        {
+          id: 'h3',
+          date: '2026-11-10',
+          name: 'Other Future Event',
+          localName: 'Other Future Event',
+          countryCode: 'US',
+          type: 'public_holiday',
+        },
+      ];
+
+      const reminders: ReminderItem[] = [
+        {
+          id: 'q1',
+          text: 'Selected Day Quest',
+          completed: false,
+          createdAtMs: 1000,
+          dueDate: '2026-11-05',
+        },
+        {
+          id: 'q2',
+          text: 'Other Quest',
+          completed: false,
+          createdAtMs: 2000,
+          dueDate: '2026-11-08',
+        },
+      ];
+
+      const upcomingWithoutExclude = getUpcomingCountdownItems(events, reminders, todayStr, 10);
+      expect(upcomingWithoutExclude.some((i) => i.date === '2026-11-05')).toBe(true);
+
+      const upcomingWithExclude = getUpcomingCountdownItems(
+        events,
+        reminders,
+        todayStr,
+        10,
+        '2026-11-05'
+      );
+      expect(upcomingWithExclude.some((i) => i.date === '2026-11-05')).toBe(false);
+      expect(upcomingWithExclude.some((i) => i.title === 'Other Future Event')).toBe(true);
+      expect(upcomingWithExclude.some((i) => i.title === 'Other Quest')).toBe(true);
+    });
+  });
+
+  describe('getSelectedDaySummary', () => {
+    it('returns exact matching holidays and quests for a chosen day', () => {
+      const events: HolidayEvent[] = [
+        {
+          id: 'h1',
+          date: '2026-11-05',
+          name: 'Mid-Autumn Feast',
+          localName: 'Mid-Autumn Feast',
+          countryCode: 'VN',
+          type: 'public_holiday',
+        },
+        {
+          id: 'h2',
+          date: '2026-11-06',
+          name: 'Next Day Holiday',
+          localName: 'Next Day Holiday',
+          countryCode: 'VN',
+          type: 'public_holiday',
+        },
+      ];
+
+      const reminders: ReminderItem[] = [
+        {
+          id: 'q1',
+          text: 'Buy mooncakes',
+          completed: false,
+          createdAtMs: 1000,
+          dueDate: '2026-11-05',
+        },
+        {
+          id: 'q2',
+          text: 'Completed prep',
+          completed: true,
+          createdAtMs: 2000,
+          dueDate: '2026-11-05',
+        },
+        {
+          id: 'q3',
+          text: 'Future quest',
+          completed: false,
+          createdAtMs: 3000,
+          dueDate: '2026-11-20',
+        },
+      ];
+
+      const summary = getSelectedDaySummary(events, reminders, '2026-11-05');
+      expect(summary.dateStr).toBe('2026-11-05');
+      expect(summary.holidays.length).toBe(1);
+      expect(summary.holidays[0].name).toBe('Mid-Autumn Feast');
+      expect(summary.quests.length).toBe(2);
+      expect(summary.quests[0].text).toBe('Buy mooncakes');
+      expect(summary.quests[1].text).toBe('Completed prep');
+
+      const emptySummary = getSelectedDaySummary(events, reminders, '2026-11-15');
+      expect(emptySummary.holidays).toEqual([]);
+      expect(emptySummary.quests).toEqual([]);
     });
   });
 

@@ -403,6 +403,7 @@ function handlePointerUp(): void {
         state.vx = 25 * state.scaleFlipX;
         state.vy = 15;
       }
+      window.usagiAPI?.updateUsagiPosition(Math.round(state.x), Math.round(state.y));
     }
 
     updateMouseIgnoreState();
@@ -580,6 +581,16 @@ if (window.usagiAPI) {
   window.usagiAPI.onCursorPositionUpdated((pos) => {
     cursorPos = pos;
     updateMouseIgnoreState();
+  });
+
+  window.usagiAPI.onUsagiPositionChanged((pos) => {
+    if (typeof pos?.x === 'number' && typeof pos?.y === 'number') {
+      const r = DEFAULT_PHYSICS_CONFIG.spriteRadius;
+      state.x = Math.max(r, Math.min(screenBounds.width - r, pos.x));
+      state.y = Math.max(r, Math.min(screenBounds.height - r, pos.y));
+      state.vx = 0;
+      state.vy = 0;
+    }
   });
 
   window.usagiAPI.onStationaryModeChanged((stationary) => {

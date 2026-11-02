@@ -36,21 +36,159 @@
         height: 100%;
         overflow: hidden;
         background: transparent;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Hiragino Sans', 'Noto Sans JP',
+          sans-serif;
         padding: 5px;
       }
 
       .sticky-card {
         width: 100%;
         height: 100%;
+        position: relative;
+        --font-scale: 1.12;
         background: var(--bg-sticky);
         border: 2.5px solid var(--border-color);
         border-radius: 16px;
-        box-shadow: 0 4px 0 var(--shadow-color), 0 8px 16px rgba(0, 0, 0, 0.12);
+        box-shadow:
+          0 4px 0 var(--shadow-color),
+          0 8px 16px rgba(0, 0, 0, 0.12);
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        transition: background-color 0.2s ease, border-color 0.2s ease;
+        transition:
+          background-color 0.2s ease,
+          border-color 0.2s ease;
+      }
+
+      body[data-font-scale='sm'] .sticky-card,
+      [data-font-scale='sm'] {
+        --font-scale: 1;
+      }
+
+      body[data-font-scale='md'] .sticky-card,
+      [data-font-scale='md'] {
+        --font-scale: 1.12;
+      }
+
+      body[data-font-scale='lg'] .sticky-card,
+      [data-font-scale='lg'] {
+        --font-scale: 1.26;
+      }
+
+      .sticky-resize-edge-right {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 8px;
+        height: 100%;
+        cursor: ew-resize;
+        z-index: 20;
+        -webkit-app-region: no-drag;
+      }
+
+      .sticky-resize-edge-bottom {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 8px;
+        cursor: ns-resize;
+        z-index: 20;
+        -webkit-app-region: no-drag;
+      }
+
+      .sticky-resize-corner {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        width: 24px;
+        height: 24px;
+        cursor: nwse-resize;
+        z-index: 25;
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+        padding-right: 5px;
+        padding-bottom: 5px;
+        -webkit-app-region: no-drag;
+      }
+
+      .sticky-resize-corner .sticky-resize-grip {
+        width: 12px;
+        height: 12px;
+        opacity: 0.5;
+        pointer-events: none;
+      }
+
+      .sticky-resize-corner:hover .sticky-resize-grip {
+        opacity: 0.9;
+      }
+
+      .sched-entry-card {
+        background: var(--card-bg);
+        border: 1.5px solid var(--border-color);
+        border-radius: 8px;
+        padding: 6px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        font-size: calc(11px * var(--font-scale));
+        position: relative;
+        transition: background 0.15s ease;
+      }
+
+      .sched-entry-card:hover {
+        background: var(--item-hover);
+      }
+
+      .sched-time-pill {
+        font-size: calc(9.5px * var(--font-scale));
+        font-weight: 800;
+        padding: 2px 5px;
+        border-radius: 4px;
+        background: var(--card-inner);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        white-space: nowrap;
+      }
+
+      .sched-title {
+        font-weight: 700;
+        color: var(--text-color);
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .sched-location {
+        font-size: calc(9.5px * var(--font-scale));
+        color: var(--text-muted);
+        background: var(--card-inner);
+        border-radius: 4px;
+        padding: 1px 4px;
+        white-space: nowrap;
+      }
+
+      .sched-delete-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 11px;
+        padding: 2px 4px;
+        border-radius: 4px;
+        opacity: 0.6;
+        transition:
+          opacity 0.15s,
+          color 0.15s;
+      }
+
+      .sched-delete-btn:hover {
+        opacity: 1;
+        color: #e63946;
       }
 
       .kawaii-svg {
@@ -82,7 +220,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 13px;
+        font-size: calc(13px * var(--font-scale));
         font-weight: 800;
         color: var(--text-color);
         letter-spacing: 0.3px;
@@ -112,7 +250,9 @@
         justify-content: center;
         font-size: 12px;
         font-weight: bold;
-        transition: background 0.15s ease, transform 0.1s ease;
+        transition:
+          background 0.15s ease,
+          transform 0.1s ease;
       }
 
       .btn-icon:hover {
@@ -137,7 +277,7 @@
         padding: 6px 10px;
         border: 2px solid var(--border-color);
         border-radius: 8px;
-        font-size: 12px;
+        font-size: calc(12.5px * var(--font-scale));
         background: var(--card-bg);
         color: var(--text-color);
         outline: none;
@@ -158,7 +298,9 @@
         font-weight: bold;
         cursor: pointer;
         box-shadow: 0 2px 0 var(--border-color);
-        transition: background 0.15s ease, transform 0.08s ease;
+        transition:
+          background 0.15s ease,
+          transform 0.08s ease;
       }
 
       .btn-add:hover {
@@ -215,10 +357,12 @@
       .quest-text {
         position: relative;
         flex: 1;
-        font-size: 12px;
+        font-size: calc(12.5px * var(--font-scale));
         color: var(--text-color);
         word-break: break-word;
-        transition: color 0.15s ease, text-decoration 0.15s ease;
+        transition:
+          color 0.15s ease,
+          text-decoration 0.15s ease;
         line-height: 1.3;
       }
 
@@ -252,7 +396,9 @@
         opacity: 0.6;
         padding: 2px 4px;
         border-radius: 4px;
-        transition: opacity 0.15s ease, color 0.15s ease;
+        transition:
+          opacity 0.15s ease,
+          color 0.15s ease;
       }
 
       .quest-delete:hover {
@@ -263,7 +409,7 @@
       .empty-state {
         text-align: center;
         padding: 30px 10px;
-        font-size: 12px;
+        font-size: calc(12px * var(--font-scale));
         color: var(--text-muted);
         line-height: 1.6;
       }
@@ -280,7 +426,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        font-size: 11px;
+        font-size: calc(11px * var(--font-scale));
         color: var(--text-muted);
         font-weight: 600;
       }
@@ -290,11 +436,13 @@
         border: 1px solid var(--border-color);
         border-radius: 6px;
         padding: 3px 8px;
-        font-size: 10px;
+        font-size: calc(10px * var(--font-scale));
         font-weight: 700;
         color: var(--text-color);
         cursor: pointer;
-        transition: background 0.15s ease, transform 0.08s ease;
+        transition:
+          background 0.15s ease,
+          transform 0.08s ease;
       }
 
       .btn-clear:hover {
@@ -318,12 +466,14 @@
         border: 1.5px solid transparent;
         border-radius: 6px;
         padding: 4px;
-        font-size: 11px;
+        font-size: calc(11px * var(--font-scale));
         font-weight: 700;
         background: transparent;
         color: var(--text-muted);
         cursor: pointer;
-        transition: background 0.12s, color 0.12s;
+        transition:
+          background 0.12s,
+          color 0.12s;
       }
       .sticky-tab-btn.active {
         background: var(--bg-sticky);
@@ -345,7 +495,7 @@
         padding: 4px 10px;
         background: var(--bg-sticky);
         border-bottom: 1px dashed var(--border-color);
-        font-size: 10px;
+        font-size: calc(10px * var(--font-scale));
         flex-wrap: wrap;
       }
       .sticky-chip-btn {
@@ -353,7 +503,7 @@
         border: 1px solid var(--border-color);
         border-radius: 4px;
         padding: 2px 6px;
-        font-size: 10px;
+        font-size: calc(10px * var(--font-scale));
         font-weight: 700;
         color: var(--text-color);
         cursor: pointer;
@@ -369,7 +519,7 @@
         display: inline-flex;
         align-items: center;
         padding: 1px 4px;
-        font-size: 9px;
+        font-size: calc(9.5px * var(--font-scale));
         font-weight: 800;
         border-radius: 4px;
         background: var(--badge-bg);
@@ -421,7 +571,7 @@
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         text-align: center;
-        font-size: 9px;
+        font-size: calc(9px * var(--font-scale));
         font-weight: 800;
         color: var(--text-muted);
         margin-bottom: 2px;
@@ -438,7 +588,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
+        font-size: calc(10.5px * var(--font-scale));
         font-weight: 700;
         cursor: pointer;
         position: relative;
@@ -464,23 +614,24 @@
       }
       .cal-dots {
         display: flex;
-        gap: 2px;
+        flex-direction: row;
+        gap: 3px;
         align-items: center;
         justify-content: center;
-        height: 4px;
+        height: 5px;
         margin-top: 1px;
       }
       .dot-quest {
-        width: 3.5px;
-        height: 3.5px;
+        width: 4.5px;
+        height: 4.5px;
         border-radius: 50%;
-        background: #d97706;
+        background: #2a9d8f;
       }
       .dot-holiday {
-        width: 3.5px;
-        height: 3.5px;
+        width: 4.5px;
+        height: 4.5px;
         border-radius: 50%;
-        background: #ff758f;
+        background: #e63946;
       }
       .dot-bday {
         font-size: 7px;
@@ -493,12 +644,12 @@
         justify-content: space-between;
         padding: 4px 6px;
         border-radius: 5px;
-        font-size: 10px;
+        font-size: calc(10.5px * var(--font-scale));
         background: var(--card-bg);
         border: 1px solid var(--border-color);
       }
       .upcoming-badge {
-        font-size: 8.5px;
+        font-size: calc(8.5px * var(--font-scale));
         font-weight: 800;
         padding: 1px 5px;
         border-radius: 3px;
@@ -515,14 +666,37 @@
           <span>Usagi Quests</span>
         </div>
         <div class="header-actions">
+          <button
+            id="windowSizeBtn"
+            class="btn-icon"
+            title="Cycle Window Size"
+            style="font-size: 13px"
+          >
+            ⤢
+          </button>
+          <button
+            id="textZoomBtn"
+            class="btn-icon"
+            title="Change Text Size"
+            style="
+              width: auto;
+              padding: 0 6px;
+              font-size: 11px;
+              font-weight: 800;
+              border: 1.5px solid var(--border-color);
+            "
+          >
+            A+
+          </button>
           <button id="minimizeBtn" class="btn-icon" title="Hide Note">✕</button>
         </div>
       </div>
 
-      <!-- 2-Tab Switcher -->
+      <!-- 3-Tab Switcher -->
       <div class="sticky-tabs">
         <button class="sticky-tab-btn active" id="tabBtnQuests">📝 Quests</button>
         <button class="sticky-tab-btn" id="tabBtnCalendar">📅 Calendar</button>
+        <button class="sticky-tab-btn" id="tabBtnSchedule">📚 Schedule</button>
       </div>
 
       <!-- Tab 1: Quests View -->
@@ -532,17 +706,34 @@
             id="questInput"
             type="text"
             class="input-text"
-            placeholder="Add quest (e.g. Do chores tomorrow)..."
+            placeholder="Add quest (e.g. Submit exam 15/11)..."
             maxlength="120"
           />
           <button id="addQuestBtn" class="btn-add">+</button>
         </div>
 
-        <div class="sticky-chip-row">
-          <button class="sticky-chip-btn" data-sticky-chip="today">Today</button>
-          <button class="sticky-chip-btn" data-sticky-chip="tomorrow">Tmrw</button>
-          <button class="sticky-chip-btn" id="stickyChipClearDate" style="display: none;">✕ Clear Date</button>
-          <span style="margin-left: auto; color: var(--text-muted); font-size: 9px; opacity: 0.8;">@today / @tmrw</span>
+        <div
+          id="stickySelectedDateRow"
+          style="
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 10px;
+            background: var(--card-inner);
+            border-bottom: 1.5px dashed var(--border-color);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-color);
+          "
+        >
+          <span id="stickySelectedDateLabel">📅 Target Date: --</span>
+          <button
+            id="stickyChipClearDate"
+            class="sticky-chip-btn"
+            style="padding: 1px 6px; font-size: 10px"
+          >
+            ✕ Clear Date
+          </button>
         </div>
 
         <div id="questList" class="quest-list">
@@ -556,41 +747,215 @@
       </div>
 
       <!-- Tab 2: Calendar View -->
-      <div class="view-container" id="viewCalendar" style="display: none;">
+      <div class="view-container" id="viewCalendar" style="display: none">
         <div class="cal-sticky-scroll">
           <div class="cal-nav-bar">
             <button class="cal-nav-btn" id="stickyCalPrevBtn">‹</button>
-            <span id="stickyCalMonthTitle" style="font-weight: 800; font-size: 11px; color: var(--text-color);">November 2026</span>
-            <div style="display: flex; gap: 4px;">
-              <button class="cal-nav-btn" id="stickyCalTodayBtn" style="font-size: 9px; padding: 2px 6px; width: auto; font-weight: 700;">Today</button>
+            <span
+              id="stickyCalMonthTitle"
+              style="font-weight: 800; font-size: calc(11px * var(--font-scale)); color: var(--text-color)"
+              >November 2026</span
+            >
+            <div style="display: flex; gap: 4px">
+              <button
+                class="cal-nav-btn"
+                id="stickyCalTodayBtn"
+                style="font-size: calc(9px * var(--font-scale)); padding: 2px 6px; width: auto; font-weight: 700"
+              >
+                Today
+              </button>
               <button class="cal-nav-btn" id="stickyCalNextBtn">›</button>
             </div>
           </div>
-          <div class="cal-weekdays-grid">
-            <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+          <div class="cal-weekdays-grid" id="stickyCalWeekdaysGrid">
+            <div>Mo</div>
+            <div>Tu</div>
+            <div>We</div>
+            <div>Th</div>
+            <div>Fr</div>
+            <div>Sa</div>
+            <div>Su</div>
           </div>
           <div id="stickyCalDaysGrid" class="cal-days-grid">
             <!-- 42 day cells -->
           </div>
 
-          <!-- Selected Day Banner & Add Quest Button -->
-          <div id="stickyCalDetailBanner" style="display: none; padding: 6px 8px; border-radius: 6px; font-size: 10px; background: var(--card-inner); border: 1px dashed var(--border-color); flex-direction: column; gap: 4px;">
-            <div id="stickyCalDetailText" style="font-weight: 700; color: var(--text-color);"></div>
-            <div id="stickyCalEventText" style="font-size: 9.5px; color: var(--accent-color); font-weight: 800;"></div>
-            <button id="stickyCalJumpAddBtn" class="sticky-chip-btn" style="align-self: flex-start; margin-top: 2px;">+ Add Quest on Date</button>
+          <!-- Section A: Dedicated Selected Day Card -->
+          <div
+            id="stickyCalDetailBanner"
+            style="
+              display: none;
+              padding: 6px 8px;
+              border-radius: 8px;
+              font-size: calc(10px * var(--font-scale));
+              background: var(--card-inner);
+              border: 1.5px dashed var(--border-color);
+              flex-direction: column;
+              gap: 4px;
+              margin-top: 4px;
+            "
+          >
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <span id="stickyCalDetailText" style="font-weight: 800; color: var(--text-color)"
+                >📅 Selected Date</span
+              >
+              <button
+                id="stickyCalJumpAddBtn"
+                class="sticky-chip-btn"
+                style="padding: 1px 6px; font-size: calc(9.5px * var(--font-scale))"
+              >
+                + Add Quest
+              </button>
+            </div>
+            <div
+              id="stickyCalDayItemsList"
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+                max-height: 110px;
+                overflow-y: auto;
+              "
+            >
+              <!-- Items on this selected date -->
+            </div>
           </div>
 
-          <!-- Upcoming Countdown Feed -->
-          <div style="margin-top: 4px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 10px; font-weight: 800; color: var(--text-color);">
-              <span>Upcoming</span>
-              <span style="font-size: 9px; opacity: 0.7;">Countdown</span>
+          <!-- Section B: Upcoming Countdown Feed (Excludes Selected Day) -->
+          <div style="margin-top: 6px">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 4px;
+                font-size: 10px;
+                font-weight: 800;
+                color: var(--text-color);
+              "
+            >
+              <span>⏳ Upcoming (This & Next Month)</span>
+              <span style="font-size: 9px; opacity: 0.7">Countdown</span>
             </div>
-            <div id="stickyUpcomingList" style="display: flex; flex-direction: column; gap: 3px;">
+            <div id="stickyUpcomingList" style="display: flex; flex-direction: column; gap: 3px">
               <!-- Upcoming items -->
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Tab 3: Schedule View (Timetable) -->
+      <div class="view-container" id="viewSchedule" style="display: none">
+        <!-- Now / Next Banner -->
+        <div
+          id="stickyScheduleNowBanner"
+          style="
+            padding: 6px 8px;
+            background: var(--card-inner);
+            border-bottom: 1.5px dashed var(--border-color);
+            font-size: calc(10px * var(--font-scale));
+            font-weight: 700;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          "
+        >
+          <span id="stickyScheduleNowText">⏳ Loading schedule...</span>
+        </div>
+
+        <!-- 7-Day Weekday Pill Bar -->
+        <div
+          class="sticky-chip-row"
+          id="stickySchedDaysRow"
+          style="justify-content: space-between; padding: 4px 6px"
+        >
+          <button class="sticky-chip-btn" data-day="1">Mon</button>
+          <button class="sticky-chip-btn" data-day="2">Tue</button>
+          <button class="sticky-chip-btn" data-day="3">Wed</button>
+          <button class="sticky-chip-btn" data-day="4">Thu</button>
+          <button class="sticky-chip-btn" data-day="5">Fri</button>
+          <button class="sticky-chip-btn" data-day="6">Sat</button>
+          <button class="sticky-chip-btn" data-day="0">Sun</button>
+        </div>
+
+        <!-- Class List for selected day -->
+        <div id="stickyScheduleList" class="quest-list" style="padding: 6px 8px; gap: 5px">
+          <!-- Schedule items for that day -->
+        </div>
+
+        <!-- Quick Add Form -->
+        <div class="sticky-footer" style="flex-direction: column; gap: 5px; padding: 6px 8px">
+          <div style="display: flex; gap: 4px; width: 100%">
+            <input
+              id="schedStartInput"
+              type="time"
+              class="input-text"
+              value="09:00"
+              style="padding: 3px 5px; font-size: calc(10px * var(--font-scale)); flex: 0 0 62px"
+            />
+            <span style="font-weight: 800; align-self: center; font-size: calc(10px * var(--font-scale))">–</span>
+            <input
+              id="schedEndInput"
+              type="time"
+              class="input-text"
+              value="10:30"
+              style="padding: 3px 5px; font-size: calc(10px * var(--font-scale)); flex: 0 0 62px"
+            />
+            <input
+              id="schedLocationInput"
+              type="text"
+              class="input-text"
+              placeholder="Room/Note"
+              maxlength="30"
+              style="padding: 3px 5px; font-size: calc(10px * var(--font-scale)); flex: 1; min-width: 0"
+            />
+          </div>
+          <div style="display: flex; gap: 4px; width: 100%">
+            <input
+              id="schedTitleInput"
+              type="text"
+              class="input-text"
+              placeholder="Course / Study title..."
+              maxlength="60"
+              style="padding: 3px 5px; font-size: calc(11px * var(--font-scale)); flex: 1"
+            />
+            <button id="addSchedBtn" class="btn-add" style="padding: 0 10px; font-size: 12px">
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Resize Edges & Corner Grip -->
+      <div id="stickyResizeRight" class="sticky-resize-edge-right"></div>
+      <div id="stickyResizeBottom" class="sticky-resize-edge-bottom"></div>
+      <div id="stickyResizeCorner" class="sticky-resize-corner" title="Drag to resize">
+        <svg
+          class="sticky-resize-grip"
+          viewBox="0 0 10 10"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <line
+            x1="8"
+            y1="2"
+            x2="2"
+            y2="8"
+            stroke="var(--border-color)"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
+          <line
+            x1="8"
+            y1="5.5"
+            x2="5.5"
+            y2="8"
+            stroke="var(--border-color)"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
+        </svg>
       </div>
     </div>
 

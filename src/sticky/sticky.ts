@@ -1,12 +1,24 @@
-import { ReminderItem, ReminderState, formatReminderDueBadge } from '../core/reminderStore';
+import {
+  ReminderItem,
+  ReminderState,
+  formatReminderDueBadge,
+  formatDisplayDate,
+} from '../core/reminderStore';
 import { getKawaiiIcon } from '../core/kawaiiIcons';
 import {
   HolidayEvent,
   BuddyProfile,
   buildMonthCalendarGrid,
   getUpcomingCountdownItems,
+  getSelectedDaySummary,
   formatDateYMD,
 } from '../core/calendarStore';
+import {
+  ScheduleState,
+  createInitialScheduleState,
+  getEntriesForDay,
+  getCurrentAndNextSchedule,
+} from '../core/scheduleStore';
 
 let currentState: ReminderState = {
   items: [],
@@ -26,12 +38,17 @@ let currentCalendarYear = new Date().getFullYear();
 let currentCalendarMonth = new Date().getMonth() + 1;
 let selectedDateStr: string | null = null;
 let activeQuickDueDate: string | null = null;
-let activeTab: 'quests' | 'calendar' = 'quests';
+let activeTab: 'quests' | 'calendar' | 'schedule' = 'quests';
+
+let currentScheduleState: ScheduleState = createInitialScheduleState();
+let selectedScheduleDay: number = new Date().getDay(); // 0..6
 
 const tabBtnQuests = document.getElementById('tabBtnQuests') as HTMLButtonElement | null;
 const tabBtnCalendar = document.getElementById('tabBtnCalendar') as HTMLButtonElement | null;
+const tabBtnSchedule = document.getElementById('tabBtnSchedule') as HTMLButtonElement | null;
 const viewQuests = document.getElementById('viewQuests') as HTMLDivElement | null;
 const viewCalendar = document.getElementById('viewCalendar') as HTMLDivElement | null;
+const viewSchedule = document.getElementById('viewSchedule') as HTMLDivElement | null;
 
 const questInput = document.getElementById('questInput') as HTMLInputElement | null;
 const addQuestBtn = document.getElementById('addQuestBtn') as HTMLButtonElement | null;
@@ -39,11 +56,22 @@ const questList = document.getElementById('questList') as HTMLDivElement | null;
 const questCounter = document.getElementById('questCounter') as HTMLSpanElement | null;
 const clearDoneBtn = document.getElementById('clearDoneBtn') as HTMLButtonElement | null;
 const minimizeBtn = document.getElementById('minimizeBtn') as HTMLButtonElement | null;
+const textZoomBtn = document.getElementById('textZoomBtn') as HTMLButtonElement | null;
+const windowSizeBtn = document.getElementById('windowSizeBtn') as HTMLButtonElement | null;
 
+const stickyResizeRight = document.getElementById('stickyResizeRight') as HTMLDivElement | null;
+const stickyResizeBottom = document.getElementById('stickyResizeBottom') as HTMLDivElement | null;
+const stickyResizeCorner = document.getElementById('stickyResizeCorner') as HTMLDivElement | null;
+
+const stickySelectedDateRow = document.getElementById(
+  'stickySelectedDateRow'
+) as HTMLDivElement | null;
+const stickySelectedDateLabel = document.getElementById(
+  'stickySelectedDateLabel'
+) as HTMLSpanElement | null;
 const stickyChipClearDate = document.getElementById(
   'stickyChipClearDate'
 ) as HTMLButtonElement | null;
-const stickyChipButtons = document.querySelectorAll<HTMLButtonElement>('.sticky-chip-btn');
 
 const stickyCalPrevBtn = document.getElementById('stickyCalPrevBtn') as HTMLButtonElement | null;
 const stickyCalNextBtn = document.getElementById('stickyCalNextBtn') as HTMLButtonElement | null;
@@ -51,16 +79,36 @@ const stickyCalTodayBtn = document.getElementById('stickyCalTodayBtn') as HTMLBu
 const stickyCalMonthTitle = document.getElementById(
   'stickyCalMonthTitle'
 ) as HTMLSpanElement | null;
+const stickyCalWeekdaysGrid = document.getElementById(
+  'stickyCalWeekdaysGrid'
+) as HTMLDivElement | null;
 const stickyCalDaysGrid = document.getElementById('stickyCalDaysGrid') as HTMLDivElement | null;
 const stickyCalDetailBanner = document.getElementById(
   'stickyCalDetailBanner'
 ) as HTMLDivElement | null;
 const stickyCalDetailText = document.getElementById('stickyCalDetailText') as HTMLDivElement | null;
-const stickyCalEventText = document.getElementById('stickyCalEventText') as HTMLDivElement | null;
 const stickyCalJumpAddBtn = document.getElementById(
   'stickyCalJumpAddBtn'
 ) as HTMLButtonElement | null;
+const stickyCalDayItemsList = document.getElementById(
+  'stickyCalDayItemsList'
+) as HTMLDivElement | null;
 const stickyUpcomingList = document.getElementById('stickyUpcomingList') as HTMLDivElement | null;
+
+// Schedule view elements
+const stickyScheduleNowBanner = document.getElementById(
+  'stickyScheduleNowBanner'
+) as HTMLDivElement | null;
+const stickyScheduleNowText = document.getElementById(
+  'stickyScheduleNowText'
+) as HTMLSpanElement | null;
+const stickySchedDaysRow = document.getElementById('stickySchedDaysRow') as HTMLDivElement | null;
+const stickyScheduleList = document.getElementById('stickyScheduleList') as HTMLDivElement | null;
+const schedStartInput = document.getElementById('schedStartInput') as HTMLInputElement | null;
+const schedEndInput = document.getElementById('schedEndInput') as HTMLInputElement | null;
+const schedLocationInput = document.getElementById('schedLocationInput') as HTMLInputElement | null;
+const schedTitleInput = document.getElementById('schedTitleInput') as HTMLInputElement | null;
+const addSchedBtn = document.getElementById('addSchedBtn') as HTMLButtonElement | null;
 
 const stickyHeaderIcon = document.querySelector('.header-title .icon') as HTMLSpanElement | null;
 if (stickyHeaderIcon) {
@@ -72,19 +120,25 @@ function getTodayYMD(): string {
   return formatDateYMD(now.getFullYear(), now.getMonth() + 1, now.getDate());
 }
 
-function switchTab(tab: 'quests' | 'calendar'): void {
+function switchTab(tab: 'quests' | 'calendar' | 'schedule', persist = true): void {
   activeTab = tab;
-  if (tab === 'quests') {
-    tabBtnQuests?.classList.add('active');
-    tabBtnCalendar?.classList.remove('active');
-    if (viewQuests) viewQuests.style.display = 'flex';
-    if (viewCalendar) viewCalendar.style.display = 'none';
-  } else {
-    tabBtnCalendar?.classList.add('active');
-    tabBtnQuests?.classList.remove('active');
-    if (viewCalendar) viewCalendar.style.display = 'flex';
-    if (viewQuests) viewQuests.style.display = 'none';
+  tabBtnQuests?.classList.toggle('active', tab === 'quests');
+  tabBtnCalendar?.classList.toggle('active', tab === 'calendar');
+  tabBtnSchedule?.classList.toggle('active', tab === 'schedule');
+
+  if (viewQuests) viewQuests.style.display = tab === 'quests' ? 'flex' : 'none';
+  if (viewCalendar) viewCalendar.style.display = tab === 'calendar' ? 'flex' : 'none';
+  if (viewSchedule) viewSchedule.style.display = tab === 'schedule' ? 'flex' : 'none';
+
+  if (tab === 'calendar') {
     renderCalendar();
+  } else if (tab === 'schedule') {
+    renderSchedule();
+  }
+
+  if (persist && currentState.activeStickyTab !== tab) {
+    currentState.activeStickyTab = tab;
+    window.usagiAPI?.updateReminderPreferences({ activeStickyTab: tab });
   }
 }
 
@@ -108,13 +162,22 @@ function renderCalendar(): void {
   const todayYMD = getTodayYMD();
   stickyCalMonthTitle.textContent = `${MONTH_NAMES[currentCalendarMonth - 1]} ${currentCalendarYear}`;
 
+  if (stickyCalWeekdaysGrid) {
+    const startOnMonday = (currentState.weekStartsOn ?? 1) === 1;
+    const days = startOnMonday
+      ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+      : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    stickyCalWeekdaysGrid.innerHTML = days.map((d) => `<div>${d}</div>`).join('');
+  }
+
   const cells = buildMonthCalendarGrid(
     currentCalendarYear,
     currentCalendarMonth,
     todayYMD,
     selectedDateStr,
     currentEvents,
-    currentState.items
+    currentState.items,
+    currentState.weekStartsOn ?? 1
   );
 
   stickyCalDaysGrid.innerHTML = '';
@@ -162,32 +225,104 @@ function renderCalendar(): void {
     stickyCalDaysGrid.appendChild(btn);
   }
 
-  // Update Detail Banner
+  // Update Section A: Dedicated Selected Day Card
   if (selectedDateStr) {
     if (stickyCalDetailBanner) stickyCalDetailBanner.style.display = 'flex';
-    const dayQuests = currentState.items.filter((i) => i.dueDate === selectedDateStr);
-    const dayEvents = currentEvents.filter((e) => e.date === selectedDateStr);
+    const summary = getSelectedDaySummary(currentEvents, currentState.items, selectedDateStr);
+    const fmt = currentState.dateFormat || 'DD/MM';
 
     if (stickyCalDetailText) {
-      stickyCalDetailText.textContent = `📅 ${selectedDateStr} (${dayQuests.length} quests due)`;
-    }
-    if (stickyCalEventText) {
-      if (dayEvents.length > 0) {
-        stickyCalEventText.style.display = 'block';
-        stickyCalEventText.textContent = dayEvents
-          .map((e) => `${e.type === 'birthday' ? '🎂' : '🎉'} ${e.name}`)
-          .join(', ');
-      } else {
-        stickyCalEventText.style.display = 'none';
-      }
+      stickyCalDetailText.textContent = `📅 Selected: ${formatDisplayDate(selectedDateStr, fmt, true)}`;
     }
     if (stickyCalJumpAddBtn) {
-      stickyCalJumpAddBtn.textContent = `+ Add Quest on ${selectedDateStr.slice(5)}`;
+      stickyCalJumpAddBtn.textContent = `+ Add Quest on ${formatDisplayDate(selectedDateStr, fmt, false)}`;
+    }
+
+    if (stickyCalDayItemsList) {
+      stickyCalDayItemsList.innerHTML = '';
+      if (summary.holidays.length === 0 && summary.quests.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.fontSize = '9.5px';
+        empty.style.color = 'var(--text-muted)';
+        empty.style.fontStyle = 'italic';
+        empty.style.padding = '2px 0';
+        empty.textContent = 'No holidays or reminders on this date~';
+        stickyCalDayItemsList.appendChild(empty);
+      } else {
+        for (const h of summary.holidays) {
+          const row = document.createElement('div');
+          row.className = 'upcoming-item-row';
+          row.style.padding = '3px 6px';
+
+          const left = document.createElement('div');
+          left.style.display = 'flex';
+          left.style.alignItems = 'center';
+          left.style.gap = '4px';
+          left.style.overflow = 'hidden';
+
+          const icon = document.createElement('span');
+          icon.textContent = h.type === 'birthday' ? '🎂' : '🎉';
+
+          const title = document.createElement('span');
+          title.style.fontWeight = '700';
+          title.style.overflow = 'hidden';
+          title.style.textOverflow = 'ellipsis';
+          title.style.whiteSpace = 'nowrap';
+          title.textContent = h.name;
+
+          left.appendChild(icon);
+          left.appendChild(title);
+
+          const badge = document.createElement('span');
+          badge.className = 'upcoming-badge';
+          badge.textContent = h.type === 'birthday' ? 'Birthday' : 'Holiday';
+
+          row.appendChild(left);
+          row.appendChild(badge);
+          stickyCalDayItemsList.appendChild(row);
+        }
+
+        for (const q of summary.quests) {
+          const row = document.createElement('div');
+          row.className = 'upcoming-item-row';
+          row.style.padding = '3px 6px';
+          if (q.completed) row.style.opacity = '0.65';
+
+          const left = document.createElement('div');
+          left.style.display = 'flex';
+          left.style.alignItems = 'center';
+          left.style.gap = '4px';
+          left.style.overflow = 'hidden';
+
+          const icon = document.createElement('span');
+          icon.textContent = q.completed ? '🍮' : '✦';
+
+          const title = document.createElement('span');
+          title.style.fontWeight = '600';
+          title.style.overflow = 'hidden';
+          title.style.textOverflow = 'ellipsis';
+          title.style.whiteSpace = 'nowrap';
+          title.textContent = q.text;
+
+          left.appendChild(icon);
+          left.appendChild(title);
+
+          const badge = document.createElement('span');
+          badge.className = 'upcoming-badge';
+          badge.style.background = q.completed ? 'var(--text-muted)' : 'var(--accent-color)';
+          badge.textContent = q.completed ? 'Done' : 'Quest';
+
+          row.appendChild(left);
+          row.appendChild(badge);
+          stickyCalDayItemsList.appendChild(row);
+        }
+      }
     }
   } else {
     if (stickyCalDetailBanner) stickyCalDetailBanner.style.display = 'none';
   }
 
+  // Update Section B: Upcoming (Strictly Excluding Selected Date)
   renderUpcoming();
 }
 
@@ -195,7 +330,13 @@ function renderUpcoming(): void {
   if (!stickyUpcomingList) return;
   stickyUpcomingList.innerHTML = '';
   const todayYMD = getTodayYMD();
-  const upcoming = getUpcomingCountdownItems(currentEvents, currentState.items, todayYMD, 5);
+  const upcoming = getUpcomingCountdownItems(
+    currentEvents,
+    currentState.items,
+    todayYMD,
+    5,
+    selectedDateStr
+  );
 
   if (upcoming.length === 0) {
     const empty = document.createElement('div');
@@ -203,7 +344,9 @@ function renderUpcoming(): void {
     empty.style.color = 'var(--text-muted)';
     empty.style.textAlign = 'center';
     empty.style.padding = '4px 0';
-    empty.textContent = 'No upcoming holidays or due quests~';
+    empty.textContent = selectedDateStr
+      ? 'No other upcoming holidays or quests~'
+      : 'No upcoming holidays or due quests~';
     stickyUpcomingList.appendChild(empty);
     return;
   }
@@ -241,31 +384,218 @@ function renderUpcoming(): void {
   }
 }
 
+function renderSchedule(): void {
+  // 1. Update Now / Next Banner Today
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const curHHMM = `${hh}:${mm}`;
+  const todayDay = now.getDay();
+
+  const { current, next } = getCurrentAndNextSchedule(
+    currentScheduleState.entries,
+    todayDay,
+    curHHMM
+  );
+
+  if (stickyScheduleNowText) {
+    stickyScheduleNowText.textContent = '';
+    if (current) {
+      const locStr = current.location ? ` • ${current.location}` : '';
+      const prefix = document.createElement('strong');
+      prefix.textContent = '🟢 Now: ';
+      stickyScheduleNowText.appendChild(prefix);
+      stickyScheduleNowText.appendChild(
+        document.createTextNode(
+          `${current.title} (${current.startTime}–${current.endTime})${locStr}`
+        )
+      );
+    } else if (next) {
+      const locStr = next.location ? ` • ${next.location}` : '';
+      const prefix = document.createElement('strong');
+      prefix.textContent = '⏳ Next: ';
+      stickyScheduleNowText.appendChild(prefix);
+      stickyScheduleNowText.appendChild(
+        document.createTextNode(`${next.title} at ${next.startTime}${locStr}`)
+      );
+    } else {
+      stickyScheduleNowText.textContent = '☕ No more classes right now today';
+    }
+  }
+
+  // 2. Update Weekday Selector Buttons
+  if (stickySchedDaysRow) {
+    const buttons = stickySchedDaysRow.querySelectorAll<HTMLButtonElement>('.sticky-chip-btn');
+    buttons.forEach((btn) => {
+      const dayNum = Number(btn.getAttribute('data-day'));
+      btn.classList.toggle('active', dayNum === selectedScheduleDay);
+    });
+  }
+
+  // 3. Render Schedule Entry Cards
+  if (!stickyScheduleList) return;
+  stickyScheduleList.innerHTML = '';
+  const entries = getEntriesForDay(currentScheduleState, selectedScheduleDay);
+
+  if (entries.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.innerHTML = `<div class="emoji">📚</div><div>No classes scheduled for this day~</div>`;
+    stickyScheduleList.appendChild(empty);
+    return;
+  }
+
+  for (const entry of entries) {
+    const card = document.createElement('div');
+    card.className = 'sched-entry-card';
+
+    const left = document.createElement('div');
+    left.style.display = 'flex';
+    left.style.alignItems = 'center';
+    left.style.gap = '6px';
+    left.style.overflow = 'hidden';
+
+    const timePill = document.createElement('span');
+    timePill.className = 'sched-time-pill';
+    timePill.textContent = `${entry.startTime}–${entry.endTime}`;
+
+    const title = document.createElement('span');
+    title.className = 'sched-title';
+    title.textContent = entry.title;
+
+    left.appendChild(timePill);
+    left.appendChild(title);
+
+    if (entry.location) {
+      const loc = document.createElement('span');
+      loc.className = 'sched-location';
+      loc.textContent = entry.location;
+      left.appendChild(loc);
+    }
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'sched-delete-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = 'Delete class';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.usagiAPI?.deleteScheduleEntry(entry.id);
+    });
+
+    card.appendChild(left);
+    card.appendChild(delBtn);
+    stickyScheduleList.appendChild(card);
+  }
+}
+
+function handleAddSchedule(): void {
+  if (!schedTitleInput || !schedStartInput || !schedEndInput) return;
+  const title = schedTitleInput.value.trim();
+  const startTime = schedStartInput.value;
+  const endTime = schedEndInput.value;
+  const location = schedLocationInput?.value.trim() || undefined;
+
+  if (!title) {
+    schedTitleInput.focus();
+    return;
+  }
+  if (startTime >= endTime) {
+    alert('Start time must be earlier than end time!');
+    return;
+  }
+
+  window.usagiAPI?.addScheduleEntry({
+    title,
+    dayOfWeek: selectedScheduleDay,
+    startTime,
+    endTime,
+    location,
+  });
+
+  schedTitleInput.value = '';
+  if (schedLocationInput) schedLocationInput.value = '';
+}
+
+function setupResizeDrag(
+  element: HTMLElement | null,
+  direction: 'both' | 'horizontal' | 'vertical'
+): void {
+  if (!element) return;
+  element.addEventListener('mousedown', (e: MouseEvent) => {
+    e.preventDefault();
+    const startX = e.screenX;
+    const startY = e.screenY;
+    const startW = window.innerWidth;
+    const startH = window.innerHeight;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.screenX - startX;
+      const deltaY = moveEvent.screenY - startY;
+      const nextW = direction === 'vertical' ? startW : startW + deltaX;
+      const nextH = direction === 'horizontal' ? startH : startH + deltaY;
+      window.usagiAPI?.resizeStickyWindow(nextW, nextH);
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  });
+}
+
 function render(state: ReminderState): void {
   currentState = state;
   document.body.setAttribute('data-theme', 'custard');
+  document.body.setAttribute('data-font-scale', state.fontScale || 'md');
+
+  if (state.activeStickyTab && state.activeStickyTab !== activeTab) {
+    switchTab(state.activeStickyTab, false);
+  }
+
+  if (textZoomBtn) {
+    textZoomBtn.textContent =
+      state.fontScale === 'sm' ? 'A' : state.fontScale === 'lg' ? 'A++' : 'A+';
+  }
+
+  if (questInput) {
+    questInput.placeholder =
+      state.dateFormat === 'MM/DD'
+        ? 'Add quest (e.g. Submit exam 11/15)...'
+        : 'Add quest (e.g. Submit exam 15/11)...';
+  }
 
   renderCalendar();
+  if (activeTab === 'schedule') {
+    renderSchedule();
+  }
 
   if (!questList) return;
   questList.innerHTML = '';
 
-  if (state.items.length === 0) {
+  const fmt = state.dateFormat || 'DD/MM';
+
+  const itemsToRender = activeQuickDueDate
+    ? state.items.filter((item) => item.dueDate === activeQuickDueDate)
+    : state.items;
+
+  if (itemsToRender.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
     empty.innerHTML = `
-      <div class="emoji" style="display: flex; justify-content: center; gap: 6px; align-items: center; margin-bottom: 6px;">
-        ${getKawaiiIcon('sparkle', 16)} ${getKawaiiIcon('usagi', 24)} ${getKawaiiIcon('sparkle', 16)}
-      </div>
-      <div>All quests completed!</div>
-      <div>Usagi is super proud of you~</div>
+      <div class="emoji">🍮</div>
+      <div>${activeQuickDueDate ? `No quests due on ${formatDisplayDate(activeQuickDueDate, fmt, true)}~` : 'No quests yet! Relax or add one below~'}</div>
     `;
     questList.appendChild(empty);
   } else {
-    for (const item of state.items) {
-      const row = document.createElement('div');
-      row.className = `quest-item ${item.completed ? 'completed' : ''}`;
-      row.addEventListener('click', (e) => {
+    for (const item of itemsToRender) {
+      const itemEl = document.createElement('div');
+      itemEl.className = `quest-item ${item.completed ? 'completed' : ''}`;
+      itemEl.dataset.id = item.id;
+
+      itemEl.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).closest('.quest-delete')) return;
         window.usagiAPI?.toggleReminder(item.id);
       });
@@ -274,39 +604,41 @@ function render(state: ReminderState): void {
       bullet.className = 'quest-bullet';
       bullet.textContent = item.completed ? '🍮' : '✦';
 
-      const label = document.createElement('span');
-      label.className = 'quest-text';
-      label.textContent = item.text;
+      const text = document.createElement('span');
+      text.className = 'quest-text';
+      text.textContent = item.text;
 
       if (item.dueDate) {
         const badge = document.createElement('span');
         badge.className = 'quest-due-badge';
-        badge.textContent = formatReminderDueBadge(item.dueDate, getTodayYMD());
-        label.appendChild(badge);
+        badge.textContent = formatReminderDueBadge(item.dueDate, getTodayYMD(), fmt);
+        text.appendChild(badge);
       }
 
       const comfyLine = document.createElement('span');
       comfyLine.className = 'comfy-line';
-      label.appendChild(comfyLine);
+      text.appendChild(comfyLine);
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'quest-delete';
-      deleteBtn.textContent = '✕';
-      deleteBtn.title = 'Delete Quest';
-      deleteBtn.addEventListener('click', () => {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'quest-delete';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Delete quest';
+      delBtn.addEventListener('click', () => {
         window.usagiAPI?.deleteReminder(item.id);
       });
 
-      row.appendChild(bullet);
-      row.appendChild(label);
-      row.appendChild(deleteBtn);
-      questList.appendChild(row);
+      itemEl.appendChild(bullet);
+      itemEl.appendChild(text);
+      itemEl.appendChild(delBtn);
+      questList.appendChild(itemEl);
     }
   }
 
-  const completedCount = state.items.filter((it) => it.completed).length;
+  const completed = state.items.filter((it) => it.completed).length;
   if (questCounter) {
-    questCounter.textContent = `${completedCount}/${state.items.length} completed`;
+    questCounter.textContent = activeQuickDueDate
+      ? `${itemsToRender.filter((it) => it.completed).length}/${itemsToRender.length} due on ${formatDisplayDate(activeQuickDueDate, fmt, false)}`
+      : `${completed}/${state.items.length} completed`;
   }
 }
 
@@ -317,8 +649,7 @@ function handleAddQuest(): void {
     window.usagiAPI.addReminder(val, activeQuickDueDate || undefined);
     questInput.value = '';
     activeQuickDueDate = null;
-    stickyChipButtons.forEach((b) => b.classList.remove('active'));
-    if (stickyChipClearDate) stickyChipClearDate.style.display = 'none';
+    if (stickySelectedDateRow) stickySelectedDateRow.style.display = 'none';
   }
 }
 
@@ -329,6 +660,56 @@ function init(): void {
   if (tabBtnCalendar) {
     tabBtnCalendar.addEventListener('click', () => switchTab('calendar'));
   }
+  if (tabBtnSchedule) {
+    tabBtnSchedule.addEventListener('click', () => switchTab('schedule'));
+  }
+
+  if (stickySchedDaysRow) {
+    stickySchedDaysRow.addEventListener('click', (e) => {
+      const target = (e.target as HTMLElement).closest(
+        '.sticky-chip-btn'
+      ) as HTMLButtonElement | null;
+      if (target && target.hasAttribute('data-day')) {
+        selectedScheduleDay = Number(target.getAttribute('data-day'));
+        renderSchedule();
+      }
+    });
+  }
+
+  if (addSchedBtn) {
+    addSchedBtn.addEventListener('click', handleAddSchedule);
+  }
+  if (schedTitleInput) {
+    schedTitleInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleAddSchedule();
+    });
+  }
+
+  // Setup interactive window resizing
+  setupResizeDrag(stickyResizeCorner, 'both');
+  setupResizeDrag(stickyResizeRight, 'horizontal');
+  setupResizeDrag(stickyResizeBottom, 'vertical');
+
+  const PRESET_SIZES = [
+    { w: 350, h: 480 },
+    { w: 410, h: 560 },
+    { w: 480, h: 650 },
+  ];
+  if (windowSizeBtn) {
+    windowSizeBtn.addEventListener('click', () => {
+      const curW = currentState.stickyWidth || window.innerWidth;
+      let nextIdx = 0;
+      if (curW < 380) {
+        nextIdx = 1;
+      } else if (curW < 450) {
+        nextIdx = 2;
+      } else {
+        nextIdx = 0;
+      }
+      const target = PRESET_SIZES[nextIdx];
+      window.usagiAPI?.resizeStickyWindow(target.w, target.h);
+    });
+  }
 
   if (addQuestBtn) {
     addQuestBtn.addEventListener('click', handleAddQuest);
@@ -336,37 +717,21 @@ function init(): void {
 
   if (questInput) {
     questInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        handleAddQuest();
-      }
+      if (e.key === 'Enter') handleAddQuest();
     });
   }
-
-  stickyChipButtons.forEach((btn) => {
-    const chipType = btn.getAttribute('data-sticky-chip');
-    if (!chipType) return;
-    btn.addEventListener('click', () => {
-      const now = new Date();
-      if (chipType === 'today') {
-        activeQuickDueDate = getTodayYMD();
-      } else if (chipType === 'tomorrow') {
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-        activeQuickDueDate = formatDateYMD(d.getFullYear(), d.getMonth() + 1, d.getDate());
-      }
-      stickyChipButtons.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      if (stickyChipClearDate) {
-        stickyChipClearDate.style.display = 'inline-block';
-        stickyChipClearDate.textContent = `✕ Clear (${activeQuickDueDate?.slice(5)})`;
-      }
-    });
-  });
 
   if (stickyChipClearDate) {
     stickyChipClearDate.addEventListener('click', () => {
       activeQuickDueDate = null;
-      stickyChipButtons.forEach((b) => b.classList.remove('active'));
-      stickyChipClearDate.style.display = 'none';
+      if (stickySelectedDateRow) stickySelectedDateRow.style.display = 'none';
+      render(currentState);
+    });
+  }
+
+  if (textZoomBtn) {
+    textZoomBtn.addEventListener('click', () => {
+      window.usagiAPI?.cycleStickyFontScale();
     });
   }
 
@@ -406,9 +771,10 @@ function init(): void {
     stickyCalJumpAddBtn.addEventListener('click', () => {
       if (selectedDateStr) {
         activeQuickDueDate = selectedDateStr;
-        if (stickyChipClearDate) {
-          stickyChipClearDate.style.display = 'inline-block';
-          stickyChipClearDate.textContent = `✕ Clear (${activeQuickDueDate.slice(5)})`;
+        if (stickySelectedDateRow) stickySelectedDateRow.style.display = 'flex';
+        if (stickySelectedDateLabel) {
+          const fmt = currentState.dateFormat || 'DD/MM';
+          stickySelectedDateLabel.textContent = `📅 Target Date: ${formatDisplayDate(activeQuickDueDate, fmt, true)}`;
         }
       }
       switchTab('quests');
@@ -439,6 +805,13 @@ function init(): void {
       render(currentState);
     });
 
+    window.usagiAPI.onScheduleStateChanged((state) => {
+      currentScheduleState = state;
+      if (activeTab === 'schedule') {
+        renderSchedule();
+      }
+    });
+
     window.usagiAPI
       .getReminderState()
       .then((state) => {
@@ -459,6 +832,20 @@ function init(): void {
       })
       .catch((err) => {
         console.warn('Failed to load initial calendar state:', err);
+      });
+
+    window.usagiAPI
+      .getScheduleState()
+      .then((state) => {
+        if (state) {
+          currentScheduleState = state;
+          if (activeTab === 'schedule') {
+            renderSchedule();
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to load initial schedule state:', err);
       });
   }
 }

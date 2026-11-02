@@ -3,8 +3,15 @@ import { CostumeId, OutfitSelection } from '../core/costumeManager';
 import { SnackTarget, Vector2D } from '../core/physicsEngine';
 import { PomodoroState } from '../core/pomodoroTimer';
 import { VolumeConfig } from '../core/soundManager';
-import { ReminderState } from '../core/reminderStore';
+import {
+  ReminderState,
+  DateFormatPreference,
+  WeekStartDay,
+  StickyFontScale,
+  ReminderPreferencesUpdate,
+} from '../core/reminderStore';
 import { BuddyProfile, HolidayEvent } from '../core/calendarStore';
+import { ScheduleState, NewScheduleEntryInput } from '../core/scheduleStore';
 
 export interface CalendarStatePayload {
   profile: BuddyProfile;
@@ -58,6 +65,13 @@ export interface UsagiAPI {
   toggleReminder: (id: string) => void;
   deleteReminder: (id: string) => void;
   clearCompletedReminders: () => void;
+  cycleStickyFontScale: () => void;
+  updateReminderPreferences: (prefs: ReminderPreferencesUpdate) => void;
+  resizeStickyWindow: (width: number, height: number) => void;
+  getScheduleState: () => Promise<ScheduleState>;
+  onScheduleStateChanged: (callback: (state: ScheduleState) => void) => () => void;
+  addScheduleEntry: (entry: NewScheduleEntryInput) => void;
+  deleteScheduleEntry: (id: string) => void;
   toggleStickyWindow: () => void;
   onTaskCelebration: (callback: (taskText: string) => void) => () => void;
   toggleFixedAppearance: () => void;
@@ -65,6 +79,10 @@ export interface UsagiAPI {
   toggleUsagiHidden: () => void;
   onUsagiHiddenChanged: (callback: (hidden: boolean) => void) => () => void;
   openDashboardWindow: () => void;
+  updateUsagiPosition: (x: number, y: number) => void;
+  onUsagiPositionChanged: (callback: (pos: { x: number; y: number }) => void) => () => void;
+  updateDashboardTab: (tab: 'companion' | 'config') => void;
+  onDashboardTabChanged: (callback: (tab: 'companion' | 'config') => void) => () => void;
   quitApp: () => void;
   closeTrayPopover: () => void;
 }
@@ -223,6 +241,27 @@ const api: UsagiAPI = {
   clearCompletedReminders: () => {
     ipcRenderer.send('clear-completed-reminders');
   },
+  cycleStickyFontScale: () => {
+    ipcRenderer.send('cycle-sticky-font-scale');
+  },
+  updateReminderPreferences: (prefs: ReminderPreferencesUpdate) => {
+    ipcRenderer.send('update-reminder-preferences', prefs);
+  },
+  resizeStickyWindow: (width: number, height: number) => {
+    ipcRenderer.send('resize-sticky-window', width, height);
+  },
+  getScheduleState: () => ipcRenderer.invoke('get-schedule-state'),
+  onScheduleStateChanged: (callback: (state: ScheduleState) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, state: ScheduleState) => callback(state);
+    ipcRenderer.on('schedule-state-changed', handler);
+    return () => ipcRenderer.removeListener('schedule-state-changed', handler);
+  },
+  addScheduleEntry: (entry: NewScheduleEntryInput) => {
+    ipcRenderer.send('add-schedule-entry', entry);
+  },
+  deleteScheduleEntry: (id: string) => {
+    ipcRenderer.send('delete-schedule-entry', id);
+  },
   toggleStickyWindow: () => {
     ipcRenderer.send('toggle-sticky-window');
   },
@@ -249,6 +288,24 @@ const api: UsagiAPI = {
   },
   openDashboardWindow: () => {
     ipcRenderer.send('open-dashboard-window');
+  },
+  updateUsagiPosition: (x: number, y: number) => {
+    ipcRenderer.send('update-usagi-position', x, y);
+  },
+  onUsagiPositionChanged: (callback: (pos: { x: number; y: number }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, pos: { x: number; y: number }) =>
+      callback(pos);
+    ipcRenderer.on('usagi-position-changed', handler);
+    return () => ipcRenderer.removeListener('usagi-position-changed', handler);
+  },
+  updateDashboardTab: (tab: 'companion' | 'config') => {
+    ipcRenderer.send('update-dashboard-tab', tab);
+  },
+  onDashboardTabChanged: (callback: (tab: 'companion' | 'config') => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, tab: 'companion' | 'config') =>
+      callback(tab);
+    ipcRenderer.on('dashboard-tab-changed', handler);
+    return () => ipcRenderer.removeListener('dashboard-tab-changed', handler);
   },
   quitApp: () => {
     ipcRenderer.send('quit-app');

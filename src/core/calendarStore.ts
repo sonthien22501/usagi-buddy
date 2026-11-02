@@ -1,4 +1,4 @@
-import { ReminderItem } from './reminderStore';
+import { ReminderItem, WeekStartDay } from './reminderStore';
 
 export interface BuddyProfile {
   nickname: string;
@@ -37,6 +37,12 @@ export interface UpcomingCountdownItem {
   daysUntil: number; // 0, 1, 2, ...
   badgeText: string; // "Today!", "Tomorrow", "In 3d"
   completed?: boolean;
+}
+
+export interface SelectedDaySummary {
+  dateStr: string;
+  holidays: HolidayEvent[];
+  quests: ReminderItem[];
 }
 
 export interface CalendarState {
@@ -89,6 +95,18 @@ export function daysBetweenYMD(fromYMD: string, toYMD: string): number {
   const t1 = Date.UTC(y1, m1 - 1, d1);
   const t2 = Date.UTC(y2, m2 - 1, d2);
   return Math.round((t2 - t1) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Returns the YYYY-MM-DD corresponding to the last day of the calendar month immediately
+ * following today's month (e.g. Nov 2 -> Dec 31; Dec 15 -> Jan 31).
+ */
+export function getEndOfNextMonthYMD(todayYMD: string): string {
+  const { year, month } = parseDateYMD(todayYMD);
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const lastDay = new Date(nextYear, nextMonth, 0).getDate();
+  return formatDateYMD(nextYear, nextMonth, lastDay);
 }
 
 /**
@@ -418,7 +436,7 @@ export function buildCalendarEvents(
 
 /**
  * Builds standard 42-cell (6 rows x 7 cols) calendar grid for a given year & month.
- * Starts on Sunday (0) to Saturday (6).
+ * weekStartsOn: 1 = Monday, 0 = Sunday (default 0 for backward compatibility).
  */
 export function buildMonthCalendarGrid(
   year: number,
@@ -426,13 +444,15 @@ export function buildMonthCalendarGrid(
   todayYMD: string,
   selectedYMD?: string | null,
   events: HolidayEvent[] = [],
-  reminders: ReminderItem[] = []
+  reminders: ReminderItem[] = [],
+  weekStartsOn: WeekStartDay = 0
 ): CalendarDayCell[] {
   const firstDayOfWeek = new Date(year, month - 1, 1).getDay(); // 0 is Sunday
+  const leadingBlanks = (firstDayOfWeek - weekStartsOn + 7) % 7;
   const cells: CalendarDayCell[] = [];
 
   for (let i = 0; i < 42; i++) {
-    const dayDate = new Date(year, month - 1, 1 - firstDayOfWeek + i);
+    const dayDate = new Date(year, month - 1, 1 - leadingBlanks + i);
     const cellYear = dayDate.getFullYear();
     const cellMonth = dayDate.getMonth() + 1;
     const cellDay = dayDate.getDate();
@@ -465,18 +485,24 @@ export function buildMonthCalendarGrid(
 
 /**
  * Compute upcoming countdown items (holidays, birthdays, and incomplete quests) sorted by days until.
+ * Optional excludeDateYMD avoids duplicating items already displayed in a dedicated Selected Day card.
  */
 export function getUpcomingCountdownItems(
   events: HolidayEvent[],
   reminders: ReminderItem[],
   todayYMD: string,
-  limit = 5
+  limit = 5,
+  excludeDateYMD?: string | null
 ): UpcomingCountdownItem[] {
   const items: UpcomingCountdownItem[] = [];
+  const maxDateYMD = getEndOfNextMonthYMD(todayYMD);
 
   for (const ev of events) {
+    if (excludeDateYMD && ev.date === excludeDateYMD) {
+      continue;
+    }
     const diff = daysBetweenYMD(todayYMD, ev.date);
-    if (diff >= 0 && diff <= 365) {
+    if (diff >= 0 && ev.date <= maxDateYMD) {
       items.push({
         id: ev.id,
         date: ev.date,
@@ -490,8 +516,11 @@ export function getUpcomingCountdownItems(
 
   for (const r of reminders) {
     if (r.dueDate && !r.completed) {
+      if (excludeDateYMD && r.dueDate === excludeDateYMD) {
+        continue;
+      }
       const diff = daysBetweenYMD(todayYMD, r.dueDate);
-      if (diff >= 0 && diff <= 365) {
+      if (diff >= 0 && r.dueDate <= maxDateYMD) {
         items.push({
           id: r.id,
           date: r.dueDate,
@@ -515,6 +544,23 @@ export function getUpcomingCountdownItems(
   });
 
   return items.slice(0, limit);
+}
+
+/**
+ * Returns exact holidays and quests for a chosen day.
+ */
+export function getSelectedDaySummary(
+  events: HolidayEvent[],
+  reminders: ReminderItem[],
+  selectedYMD: string
+): SelectedDaySummary {
+  const holidays = events.filter((e) => e.date === selectedYMD);
+  const quests = reminders.filter((r) => r.dueDate === selectedYMD);
+  return {
+    dateStr: selectedYMD,
+    holidays,
+    quests,
+  };
 }
 
 export function createDefaultBuddyProfile(): BuddyProfile {

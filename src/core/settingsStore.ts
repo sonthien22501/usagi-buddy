@@ -7,6 +7,8 @@ import {
 import { DEFAULT_POMODORO_MS, type PomodoroPhase } from './pomodoroTimer';
 import { DEFAULT_VOLUME_CONFIG, type VolumeConfig } from './soundManager';
 
+export type DashboardTabId = 'companion' | 'config';
+
 export interface UserSettings {
   costumeSelection: OutfitSelection;
   activeCostume: CostumeId;
@@ -20,6 +22,9 @@ export interface UserSettings {
   playModeEnabled: boolean;
   stationaryMode: boolean;
   usagiHidden: boolean;
+  usagiX?: number | null;
+  usagiY?: number | null;
+  activeDashboardTab?: DashboardTabId;
 }
 
 export interface ModeFlags {
@@ -49,6 +54,9 @@ export function createDefaultUserSettings(): UserSettings {
     playModeEnabled: false,
     stationaryMode: false,
     usagiHidden: false,
+    usagiX: null,
+    usagiY: null,
+    activeDashboardTab: 'companion',
   };
 }
 
@@ -138,6 +146,17 @@ export function parseUserSettingsJson(raw: string | null | undefined): UserSetti
   }
   const usagiHidden = typeof data.usagiHidden === 'boolean' ? data.usagiHidden : false;
 
+  const usagiX =
+    typeof data.usagiX === 'number' && Number.isFinite(data.usagiX)
+      ? Math.round(data.usagiX)
+      : null;
+  const usagiY =
+    typeof data.usagiY === 'number' && Number.isFinite(data.usagiY)
+      ? Math.round(data.usagiY)
+      : null;
+  const activeDashboardTab: DashboardTabId =
+    data.activeDashboardTab === 'config' ? 'config' : 'companion';
+
   return {
     costumeSelection,
     activeCostume,
@@ -151,6 +170,9 @@ export function parseUserSettingsJson(raw: string | null | undefined): UserSetti
     playModeEnabled,
     stationaryMode,
     usagiHidden,
+    usagiX,
+    usagiY,
+    activeDashboardTab,
   };
 }
 
