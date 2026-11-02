@@ -735,8 +735,13 @@ function toggleTrayWindow(): void {
   }
 }
 
-function setCostume(selection: OutfitSelection): void {
-  const result = resolveOutfitSelectionChange(selection, activeCostume);
+function setCostume(selection: OutfitSelection, preserveFixedAppearance?: boolean): void {
+  const result = resolveOutfitSelectionChange(
+    selection,
+    activeCostume,
+    Math.random,
+    preserveFixedAppearance ? wardrobeRotation.fixedAppearance : undefined
+  );
   costumeSelection = result.costumeSelection;
   activeCostume = result.activeCostume;
   wardrobeRotation = {
@@ -1172,9 +1177,9 @@ app.whenReady().then(() => {
     dropSnackNow();
   });
 
-  ipcMain.on('set-costume', (_e, selection: OutfitSelection) => {
+  ipcMain.on('set-costume', (_e, selection: OutfitSelection, preserveFixedAppearance?: boolean) => {
     if (isKnownOutfitSelection(selection)) {
-      setCostume(selection);
+      setCostume(selection, Boolean(preserveFixedAppearance));
     }
   });
 
