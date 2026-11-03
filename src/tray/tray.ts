@@ -235,6 +235,16 @@ if (window.usagiAPI) {
   });
 
   window.usagiAPI
+    .getLocale?.()
+    .then((loc) => {
+      if (loc) {
+        currentLocale = loc;
+        renderTrayLocale();
+      }
+    })
+    .catch(() => {});
+
+  window.usagiAPI
     .getReminderState()
     .then((state) => {
       if (state) updateReminderUI(state);

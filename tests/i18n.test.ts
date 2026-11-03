@@ -62,15 +62,139 @@ describe('i18n Core Engine', () => {
   });
 
   describe('t (translation & interpolation)', () => {
-    it('translates static keys across languages', () => {
+    it('translates static keys across languages with natural persona localization', () => {
       expect(t('en', 'dash.title')).toBe('Usagi Buddy');
-      expect(t('vi', 'dash.title')).toBe('Bạn Đồng Hành Usagi');
-      expect(t('ja', 'dash.title')).toBe('ウサギ バディ');
+      expect(t('vi', 'dash.title')).toBe('Usagi Buddy');
+      expect(t('ja', 'dash.title')).toBe('うさぎバディ');
       expect(t('ko', 'dash.title')).toBe('우사기 버디');
-      expect(t('zh', 'dash.title')).toBe('乌萨奇伙伴');
-      expect(t('de', 'dash.title')).toBe('Usagi Gefährte');
-      expect(t('fr', 'dash.title')).toBe('Compagnon Usagi');
-      expect(t('es', 'dash.title')).toBe('Compañero Usagi');
+      expect(t('zh', 'dash.title')).toBe('乌萨奇小窝');
+      expect(t('de', 'dash.title')).toBe('Usagi Buddy');
+      expect(t('fr', 'dash.title')).toBe('Usagi Buddy');
+      expect(t('es', 'dash.title')).toBe('Usagi Buddy');
+
+      expect(t('en', 'dash.tab.companion')).toBe('Companion');
+      expect(t('vi', 'dash.tab.companion')).toBe('Góc Usagi');
+      expect(t('de', 'dash.tab.companion')).toBe('Dein Usagi');
+      expect(t('fr', 'dash.tab.companion')).toBe('Mon Usagi');
+      expect(t('es', 'dash.tab.companion')).toBe('Mi Usagi');
+      expect(t('ja', 'dash.tab.companion')).toBe('うさぎ');
+      expect(t('ko', 'dash.tab.companion')).toBe('나의 우사기');
+      expect(t('zh', 'dash.tab.companion')).toBe('乌萨奇');
+    });
+
+    it('provides sprite-accurate natural costume localization without literal headband or yellow references', () => {
+      const locales: SupportedLocale[] = ['en', 'vi', 'de', 'fr', 'es', 'ja', 'ko', 'zh'];
+      const costumeKeys = [
+        'dash.costume.classic',
+        'dash.costume.study',
+        'dash.costume.vest',
+        'dash.costume.sigma',
+        'dash.costume.star',
+        'dash.costume.random',
+      ] as const;
+
+      // Exact assertions for sprite accuracy
+      expect(t('en', 'dash.costume.classic')).toBe('Classic Usagi');
+      expect(t('en', 'dash.costume.study')).toBe('Study Mode');
+      expect(t('en', 'dash.costume.vest')).toBe('Dapper Vest');
+      expect(t('en', 'dash.costume.sigma')).toBe('Cool Shades');
+      expect(t('en', 'dash.costume.star')).toBe('Star Sparkle');
+      expect(t('en', 'dash.costume.random')).toBe('Random Outfit');
+
+      expect(t('vi', 'dash.costume.classic')).toBe('Usagi Nguyên Bản');
+      expect(t('vi', 'dash.costume.study')).toBe('Chăm Học');
+      expect(t('vi', 'dash.costume.vest')).toBe('Tổng Tài');
+      expect(t('vi', 'dash.costume.sigma')).toBe('Cool Ngầu');
+      expect(t('vi', 'dash.costume.star')).toBe('Sao Lấp Lánh');
+      expect(t('vi', 'dash.costume.random')).toBe('Phối Ngẫu Nhiên');
+
+      expect(t('de', 'dash.costume.classic')).toBe('Klassik-Usagi');
+      expect(t('de', 'dash.costume.study')).toBe('Lernmodus');
+      expect(t('de', 'dash.costume.sigma')).toBe('Coole Sonnenbrille');
+      expect(t('de', 'dash.costume.star')).toBe('Sternenzauber');
+
+      expect(t('fr', 'dash.costume.classic')).toBe('Usagi Classique');
+      expect(t('fr', 'dash.costume.study')).toBe('Mode Étude');
+      expect(t('fr', 'dash.costume.sigma')).toBe('Lunettes Cool');
+      expect(t('fr', 'dash.costume.star')).toBe('Étoile Magique');
+
+      expect(t('es', 'dash.costume.classic')).toBe('Usagi Clásico');
+      expect(t('es', 'dash.costume.study')).toBe('Modo Estudio');
+      expect(t('es', 'dash.costume.sigma')).toBe('Gafas Cool');
+      expect(t('es', 'dash.costume.star')).toBe('Estrella Mágica');
+
+      expect(t('ja', 'dash.costume.classic')).toBe('いつものうさぎ');
+      expect(t('ja', 'dash.costume.study')).toBe('お勉強モード');
+      expect(t('ja', 'dash.costume.vest')).toBe('おめかしベスト');
+      expect(t('ja', 'dash.costume.sigma')).toBe('クールなサングラス');
+      expect(t('ja', 'dash.costume.star')).toBe('キラキラ星');
+      expect(t('ja', 'dash.costume.random')).toBe('おまかせ');
+
+      expect(t('ko', 'dash.costume.classic')).toBe('기본 우사기');
+      expect(t('ko', 'dash.costume.study')).toBe('열공 모드');
+      expect(t('ko', 'dash.costume.vest')).toBe('멋쟁이 조끼');
+      expect(t('ko', 'dash.costume.sigma')).toBe('쿨 선글라스');
+      expect(t('ko', 'dash.costume.star')).toBe('반짝반짝 별');
+      expect(t('ko', 'dash.costume.random')).toBe('랜덤 코디');
+
+      expect(t('zh', 'dash.costume.classic')).toBe('原版乌萨奇');
+      expect(t('zh', 'dash.costume.study')).toBe('认真学习');
+      expect(t('zh', 'dash.costume.vest')).toBe('帅气小马甲');
+      expect(t('zh', 'dash.costume.sigma')).toBe('酷盖墨镜');
+      expect(t('zh', 'dash.costume.star')).toBe('闪耀星星');
+      expect(t('zh', 'dash.costume.random')).toBe('随机穿搭');
+
+      // Ban literal/awkward artifacts
+      const bannedSubstrings = [
+        'Headband',
+        'Băng Đô',
+        '头带',
+        '鉢巻き',
+        'Stirnband',
+        '머리띠',
+        'Vàng Cổ Điển',
+        'Klassisch Gelb',
+        'Jaune classique',
+        'Amarillo clásico',
+        '经典黄色',
+        'クラシックイエロー',
+        '클래식 옐로우',
+      ];
+
+      for (const loc of locales) {
+        for (const k of costumeKeys) {
+          const val = t(loc, k);
+          for (const banned of bannedSubstrings) {
+            expect(val).not.toContain(banned);
+          }
+        }
+      }
+    });
+
+    it('provides localized save button labels and saved toast feedback across all 8 locales', () => {
+      expect(t('en', 'dash.config.saveBtn')).toBe('💾 Save All Settings');
+      expect(t('en', 'dash.config.savedToast')).toBe('✓ Saved!');
+
+      expect(t('vi', 'dash.config.saveBtn')).toBe('💾 Lưu Cài Đặt');
+      expect(t('vi', 'dash.config.savedToast')).toBe('✓ Đã lưu!');
+
+      expect(t('de', 'dash.config.saveBtn')).toBe('💾 Einstellungen speichern');
+      expect(t('de', 'dash.config.savedToast')).toBe('✓ Gespeichert!');
+
+      expect(t('fr', 'dash.config.saveBtn')).toBe('💾 Enregistrer les paramètres');
+      expect(t('fr', 'dash.config.savedToast')).toBe('✓ Enregistré !');
+
+      expect(t('es', 'dash.config.saveBtn')).toBe('💾 Guardar ajustes');
+      expect(t('es', 'dash.config.savedToast')).toBe('✓ ¡Guardado!');
+
+      expect(t('ja', 'dash.config.saveBtn')).toBe('💾 設定を保存する');
+      expect(t('ja', 'dash.config.savedToast')).toBe('✓ 保存しました！');
+
+      expect(t('ko', 'dash.config.saveBtn')).toBe('💾 설정 저장하기');
+      expect(t('ko', 'dash.config.savedToast')).toBe('✓ 저장 완료!');
+
+      expect(t('zh', 'dash.config.saveBtn')).toBe('💾 保存所有设置');
+      expect(t('zh', 'dash.config.savedToast')).toBe('✓ 已保存！');
     });
 
     it('interpolates parameters into messages', () => {

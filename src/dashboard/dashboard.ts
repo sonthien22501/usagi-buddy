@@ -4,7 +4,7 @@ import { CostumeId, OutfitSelection, getCostumeDefinition } from '../core/costum
 import { ReminderState } from '../core/reminderStore';
 import { getKawaiiIcon } from '../core/kawaiiIcons';
 import { BuddyProfile, HolidayEvent } from '../core/calendarStore';
-import { SupportedLocale, t, getShortMonthNames } from '../core/i18n';
+import { SupportedLocale, t, getShortMonthNames, isSupportedLocale } from '../core/i18n';
 
 // Tab Switcher Elements
 const dashTabCompanion = document.getElementById('dashTabCompanion') as HTMLButtonElement | null;
@@ -30,6 +30,9 @@ const buddyCountrySelect = document.getElementById(
   'buddy-country-select'
 ) as HTMLSelectElement | null;
 const buddyProfileIcon = document.getElementById('buddy-profile-icon') as HTMLSpanElement | null;
+const saveAllSettingsBtn = document.getElementById(
+  'save-all-settings-btn'
+) as HTMLButtonElement | null;
 
 // Date & Sticky Config Elements
 const configDateFormatBtn = document.getElementById(
@@ -167,6 +170,9 @@ if (buddyNicknameInput) {
   buddyNicknameInput.addEventListener('change', () => {
     window.usagiAPI?.updateBuddyProfile({ nickname: buddyNicknameInput.value.trim() });
   });
+  buddyNicknameInput.addEventListener('input', () => {
+    window.usagiAPI?.updateBuddyProfile({ nickname: buddyNicknameInput.value.trim() });
+  });
 }
 if (buddyBdayDay) {
   buddyBdayDay.addEventListener('change', () => {
@@ -190,6 +196,35 @@ if (buddyLanguageSelect) {
   buddyLanguageSelect.addEventListener('change', () => {
     const val = buddyLanguageSelect.value as SupportedLocale;
     window.usagiAPI?.setLocale(val);
+  });
+}
+
+if (saveAllSettingsBtn) {
+  saveAllSettingsBtn.addEventListener('click', async () => {
+    if (buddyNicknameInput) {
+      window.usagiAPI?.updateBuddyProfile({ nickname: buddyNicknameInput.value.trim() });
+    }
+    if (buddyBdayDay) {
+      const val = buddyBdayDay.value ? parseInt(buddyBdayDay.value, 10) : null;
+      window.usagiAPI?.updateBuddyProfile({ birthdayDay: val });
+    }
+    if (buddyBdayMonth) {
+      const val = buddyBdayMonth.value ? parseInt(buddyBdayMonth.value, 10) : null;
+      window.usagiAPI?.updateBuddyProfile({ birthdayMonth: val });
+    }
+    if (buddyCountrySelect) {
+      window.usagiAPI?.updateBuddyProfile({ countryCode: buddyCountrySelect.value });
+    }
+    if (buddyLanguageSelect && isSupportedLocale(buddyLanguageSelect.value)) {
+      window.usagiAPI?.setLocale(buddyLanguageSelect.value as SupportedLocale);
+    }
+    await window.usagiAPI?.saveAllSettings();
+    saveAllSettingsBtn.dataset.saving = 'true';
+    saveAllSettingsBtn.textContent = t(currentLocale, 'dash.config.savedToast');
+    setTimeout(() => {
+      delete saveAllSettingsBtn.dataset.saving;
+      saveAllSettingsBtn.textContent = t(currentLocale, 'dash.config.saveBtn');
+    }, 1500);
   });
 }
 
@@ -657,6 +692,10 @@ function renderLocaleUI(locale: SupportedLocale): void {
   const rotLabel = document.getElementById('outfit-rot-label');
   if (rotLabel) rotLabel.textContent = t(locale, 'dash.audio.outfitRotation');
 
+  if (saveAllSettingsBtn && !saveAllSettingsBtn.dataset.saving) {
+    saveAllSettingsBtn.textContent = t(locale, 'dash.config.saveBtn');
+  }
+
   // Re-render stateful elements
   if (currentPomodoroState) updatePomodoroUI(currentPomodoroState);
   renderReminderConfigUI(currentReminderState);
@@ -771,6 +810,13 @@ if (window.usagiAPI) {
   window.usagiAPI.onLocaleChanged((locale) => {
     renderLocaleUI(locale);
   });
+
+  window.usagiAPI
+    .getLocale?.()
+    .then((loc) => {
+      if (loc) renderLocaleUI(loc);
+    })
+    .catch(() => {});
 
   window.usagiAPI
     .getReminderState()

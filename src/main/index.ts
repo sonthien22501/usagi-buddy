@@ -131,22 +131,24 @@ function migrateLegacyUserData(): void {
   try {
     const currentDir = app.getPath('userData');
     const appData = app.getPath('appData');
-    const legacyDir = path.join(appData, 'Electron');
-    if (legacyDir !== currentDir && fs.existsSync(legacyDir)) {
-      const filesToMigrate = [
-        'usagi-settings.json',
-        'usagi-reminders.json',
-        'usagi-calendar.json',
-        'usagi-schedule.json',
-      ];
-      if (!fs.existsSync(currentDir)) {
-        fs.mkdirSync(currentDir, { recursive: true });
-      }
-      for (const file of filesToMigrate) {
-        const src = path.join(legacyDir, file);
-        const dest = path.join(currentDir, file);
-        if (fs.existsSync(src) && !fs.existsSync(dest)) {
-          fs.copyFileSync(src, dest);
+    const legacyDirs = [path.join(appData, 'Electron'), path.join(appData, 'Usagi-Float')];
+    const filesToMigrate = [
+      'usagi-settings.json',
+      'usagi-reminders.json',
+      'usagi-calendar.json',
+      'usagi-schedule.json',
+    ];
+    for (const legacyDir of legacyDirs) {
+      if (legacyDir !== currentDir && fs.existsSync(legacyDir)) {
+        if (!fs.existsSync(currentDir)) {
+          fs.mkdirSync(currentDir, { recursive: true });
+        }
+        for (const file of filesToMigrate) {
+          const src = path.join(legacyDir, file);
+          const dest = path.join(currentDir, file);
+          if (fs.existsSync(src) && !fs.existsSync(dest)) {
+            fs.copyFileSync(src, dest);
+          }
         }
       }
     }
@@ -403,6 +405,13 @@ function saveScheduleToDisk(): void {
   }
 }
 
+function flushAllStateToDisk(): void {
+  saveSettingsToDisk();
+  saveRemindersToDisk();
+  saveCalendarToDisk();
+  saveScheduleToDisk();
+}
+
 function broadcastScheduleState(): void {
   broadcastToAllWindows('schedule-state-changed', scheduleState);
 }
@@ -511,6 +520,7 @@ function createDashboardWindow(): void {
   dashboardWindow.loadFile(htmlPath);
 
   dashboardWindow.on('close', (e) => {
+    flushAllStateToDisk();
     if (!isQuitting) {
       e.preventDefault();
       dashboardWindow?.hide();
@@ -629,6 +639,7 @@ function createStickyWindow(): void {
   });
 
   stickyWindow.on('close', (e) => {
+    flushAllStateToDisk();
     if (!isQuitting) {
       e.preventDefault();
       reminderState.stickyVisible = false;
@@ -1192,6 +1203,14 @@ app.whenReady().then(() => {
 
   ipcMain.handle('get-schedule-state', () => scheduleState);
 
+  ipcMain.handle('get-locale', () => currentLocale);
+
+  ipcMain.handle('save-all-settings', () => {
+    flushAllStateToDisk();
+    broadcastToAllWindows('locale-changed', currentLocale);
+    return true;
+  });
+
   ipcMain.on('add-schedule-entry', (_e, input: NewScheduleEntryInput) => {
     try {
       scheduleState = addScheduleEntry(scheduleState, input);
@@ -1391,7 +1410,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   isQuitting = true;
-  saveSettingsToDisk();
+  flushAllStateToDisk();
 });
 
 app.on('activate', () => {

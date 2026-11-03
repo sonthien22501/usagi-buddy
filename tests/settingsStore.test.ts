@@ -75,6 +75,16 @@ describe('settingsStore', () => {
 
       const invalid = parseUserSettingsJson(JSON.stringify({ locale: 'unknown' }));
       expect(['en', 'vi', 'de', 'fr', 'es', 'ja', 'ko', 'zh']).toContain(invalid.locale);
+
+      const allLocales = ['en', 'vi', 'de', 'fr', 'es', 'ja', 'ko', 'zh'] as const;
+      for (const loc of allLocales) {
+        const customSettings: UserSettings = {
+          ...createDefaultUserSettings(),
+          locale: loc,
+        };
+        const roundTrip = parseUserSettingsJson(serializeUserSettingsJson(customSettings));
+        expect(roundTrip.locale).toBe(loc);
+      }
     });
 
     it('falls back to defaults for null, empty, or corrupt json', () => {

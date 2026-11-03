@@ -85,7 +85,9 @@ export interface UsagiAPI {
   updateDashboardTab: (tab: 'companion' | 'config') => void;
   onDashboardTabChanged: (callback: (tab: 'companion' | 'config') => void) => () => void;
   setLocale: (locale: SupportedLocale) => void;
+  getLocale: () => Promise<SupportedLocale>;
   onLocaleChanged: (callback: (locale: SupportedLocale) => void) => () => void;
+  saveAllSettings: () => Promise<boolean>;
   quitApp: () => void;
   closeTrayPopover: () => void;
 }
@@ -313,12 +315,14 @@ const api: UsagiAPI = {
   setLocale: (locale: SupportedLocale) => {
     ipcRenderer.send('set-locale', locale);
   },
+  getLocale: () => ipcRenderer.invoke('get-locale'),
   onLocaleChanged: (callback: (locale: SupportedLocale) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, locale: SupportedLocale) =>
       callback(locale);
     ipcRenderer.on('locale-changed', handler);
     return () => ipcRenderer.removeListener('locale-changed', handler);
   },
+  saveAllSettings: () => ipcRenderer.invoke('save-all-settings'),
   quitApp: () => {
     ipcRenderer.send('quit-app');
   },
