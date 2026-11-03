@@ -123,6 +123,8 @@ let cursorInterval: NodeJS.Timeout | null = null;
 
 try {
   app.setName('usagi-buddy');
+  const canonicalUserData = path.join(app.getPath('appData'), 'usagi-buddy');
+  app.setPath('userData', canonicalUserData);
 } catch {
   // Ignore in test environments if app is not available
 }
@@ -402,6 +404,50 @@ function saveScheduleToDisk(): void {
     fs.writeFileSync(p, serializeScheduleJson(scheduleState), 'utf-8');
   } catch (err) {
     console.warn('Failed to save schedule to disk:', err);
+  }
+}
+
+function applyBuddyProfileUpdate(partialProfile: Partial<BuddyProfile>): void {
+  if (typeof partialProfile !== 'object' || partialProfile === null) return;
+  const oldCountry = calendarProfile.countryCode;
+  calendarProfile = {
+    ...calendarProfile,
+    ...(typeof partialProfile.nickname === 'string'
+      ? { nickname: partialProfile.nickname.trim().slice(0, 32) || 'Buddy' }
+      : {}),
+    ...(partialProfile.birthdayMonth !== undefined
+      ? {
+          birthdayMonth:
+            partialProfile.birthdayMonth === null
+              ? null
+              : typeof partialProfile.birthdayMonth === 'number' &&
+                  !Number.isNaN(partialProfile.birthdayMonth)
+                ? Math.max(1, Math.min(12, Math.round(partialProfile.birthdayMonth)))
+                : null,
+        }
+      : {}),
+    ...(partialProfile.birthdayDay !== undefined
+      ? {
+          birthdayDay:
+            partialProfile.birthdayDay === null
+              ? null
+              : typeof partialProfile.birthdayDay === 'number' &&
+                  !Number.isNaN(partialProfile.birthdayDay)
+                ? Math.max(1, Math.min(31, Math.round(partialProfile.birthdayDay)))
+                : null,
+        }
+      : {}),
+    ...(typeof partialProfile.countryCode === 'string' && partialProfile.countryCode.length === 2
+      ? { countryCode: partialProfile.countryCode.toUpperCase() }
+      : {}),
+  };
+
+  saveCalendarToDisk();
+  broadcastCalendarState();
+  checkBirthdayGreeting();
+
+  if (calendarProfile.countryCode !== oldCountry) {
+    refreshHolidaysFromNager(calendarProfile.countryCode, new Date().getFullYear()).catch(() => {});
   }
 }
 
@@ -1205,11 +1251,20 @@ app.whenReady().then(() => {
 
   ipcMain.handle('get-locale', () => currentLocale);
 
-  ipcMain.handle('save-all-settings', () => {
-    flushAllStateToDisk();
-    broadcastToAllWindows('locale-changed', currentLocale);
-    return true;
-  });
+  ipcMain.handle(
+    'save-all-settings',
+    (_e, payload?: { locale?: SupportedLocale; profile?: Partial<BuddyProfile> }) => {
+      if (payload?.locale && isSupportedLocale(payload.locale)) {
+        currentLocale = payload.locale;
+      }
+      if (payload?.profile) {
+        applyBuddyProfileUpdate(payload.profile);
+      }
+      flushAllStateToDisk();
+      broadcastToAllWindows('locale-changed', currentLocale);
+      return true;
+    }
+  );
 
   ipcMain.on('add-schedule-entry', (_e, input: NewScheduleEntryInput) => {
     try {
@@ -1271,49 +1326,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.on('update-buddy-profile', (_e, partialProfile: Partial<BuddyProfile>) => {
-    if (typeof partialProfile !== 'object' || partialProfile === null) return;
-    const oldCountry = calendarProfile.countryCode;
-    calendarProfile = {
-      ...calendarProfile,
-      ...(typeof partialProfile.nickname === 'string'
-        ? { nickname: partialProfile.nickname.trim().slice(0, 32) || 'Buddy' }
-        : {}),
-      ...(partialProfile.birthdayMonth !== undefined
-        ? {
-            birthdayMonth:
-              partialProfile.birthdayMonth === null
-                ? null
-                : typeof partialProfile.birthdayMonth === 'number' &&
-                    !Number.isNaN(partialProfile.birthdayMonth)
-                  ? Math.max(1, Math.min(12, Math.round(partialProfile.birthdayMonth)))
-                  : null,
-          }
-        : {}),
-      ...(partialProfile.birthdayDay !== undefined
-        ? {
-            birthdayDay:
-              partialProfile.birthdayDay === null
-                ? null
-                : typeof partialProfile.birthdayDay === 'number' &&
-                    !Number.isNaN(partialProfile.birthdayDay)
-                  ? Math.max(1, Math.min(31, Math.round(partialProfile.birthdayDay)))
-                  : null,
-          }
-        : {}),
-      ...(typeof partialProfile.countryCode === 'string' && partialProfile.countryCode.length === 2
-        ? { countryCode: partialProfile.countryCode.toUpperCase() }
-        : {}),
-    };
-
-    saveCalendarToDisk();
-    broadcastCalendarState();
-    checkBirthdayGreeting();
-
-    if (calendarProfile.countryCode !== oldCountry) {
-      refreshHolidaysFromNager(calendarProfile.countryCode, new Date().getFullYear()).catch(
-        () => {}
-      );
-    }
+    applyBuddyProfileUpdate(partialProfile);
   });
 
   ipcMain.on('add-reminder', (_e, payload: string | { text: string; dueDate?: string }) => {
