@@ -197,6 +197,26 @@ describe('i18n Core Engine', () => {
       expect(t('zh', 'dash.config.savedToast')).toBe('✓ 已保存！');
     });
 
+    it('provides a localized auto-save indicator label across all 8 locales', () => {
+      expect(t('en', 'dash.config.autosaved')).toBe('✓ Saved');
+      expect(t('vi', 'dash.config.autosaved')).toBe('✓ Đã lưu');
+      expect(t('de', 'dash.config.autosaved')).toBe('✓ Gespeichert');
+      expect(t('fr', 'dash.config.autosaved')).toBe('✓ Enregistré');
+      expect(t('es', 'dash.config.autosaved')).toBe('✓ Guardado');
+      expect(t('ja', 'dash.config.autosaved')).toBe('✓ 保存済み');
+      expect(t('ko', 'dash.config.autosaved')).toBe('✓ 저장됨');
+      expect(t('zh', 'dash.config.autosaved')).toBe('✓ 已保存');
+
+      const locales: SupportedLocale[] = ['en', 'vi', 'de', 'fr', 'es', 'ja', 'ko', 'zh'];
+      for (const loc of locales) {
+        const label = t(loc, 'dash.config.autosaved');
+        expect(typeof label).toBe('string');
+        expect(label.trim().length).toBeGreaterThan(0);
+        // A missing dictionary entry would echo the key back instead of a label.
+        expect(label).not.toBe('dash.config.autosaved');
+      }
+    });
+
     it('interpolates parameters into messages', () => {
       expect(t('en', 'usagi.birthdayGreeting', { nickname: 'Alice' })).toBe(
         '🎂 Happy Birthday, Alice! Una~!! ✨'

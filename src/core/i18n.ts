@@ -110,6 +110,7 @@ export type TranslationKey =
   | 'dash.config.desktopWidget'
   | 'dash.config.saveBtn'
   | 'dash.config.savedToast'
+  | 'dash.config.autosaved'
   | 'dash.audio.title'
   | 'dash.audio.testSound'
   | 'dash.audio.mute'
@@ -238,6 +239,7 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'dash.config.desktopWidget': 'Desktop Widget',
     'dash.config.saveBtn': '💾 Save All Settings',
     'dash.config.savedToast': '✓ Saved!',
+    'dash.config.autosaved': '✓ Saved',
     'dash.audio.title': 'Sound & Wardrobe Preferences',
     'dash.audio.testSound': 'Test Sound',
     'dash.audio.mute': 'Mute Sound',
@@ -365,6 +367,7 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'dash.config.desktopWidget': 'Widget màn hình',
     'dash.config.saveBtn': '💾 Lưu Cài Đặt',
     'dash.config.savedToast': '✓ Đã lưu!',
+    'dash.config.autosaved': '✓ Đã lưu',
     'dash.audio.title': 'Âm Thanh & Tùy Chọn Tủ Đồ',
     'dash.audio.testSound': 'Thử Âm Thanh',
     'dash.audio.mute': 'Tắt Tiếng',
@@ -492,6 +495,7 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'dash.config.desktopWidget': 'Desktop-Widget',
     'dash.config.saveBtn': '💾 Einstellungen speichern',
     'dash.config.savedToast': '✓ Gespeichert!',
+    'dash.config.autosaved': '✓ Gespeichert',
     'dash.audio.title': 'Ton & Kleiderschrank Einstellungen',
     'dash.audio.testSound': 'Ton testen',
     'dash.audio.mute': 'Ton stummschalten',
@@ -619,6 +623,7 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'dash.config.desktopWidget': 'Widget de bureau',
     'dash.config.saveBtn': '💾 Enregistrer les paramètres',
     'dash.config.savedToast': '✓ Enregistré !',
+    'dash.config.autosaved': '✓ Enregistré',
     'dash.audio.title': 'Préférences Son & Garde-robe',
     'dash.audio.testSound': 'Tester le son',
     'dash.audio.mute': 'Couper le son',
@@ -746,6 +751,7 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'dash.config.desktopWidget': 'Widget de escritorio',
     'dash.config.saveBtn': '💾 Guardar ajustes',
     'dash.config.savedToast': '✓ ¡Guardado!',
+    'dash.config.autosaved': '✓ Guardado',
     'dash.audio.title': 'Preferencias de Sonido y Armario',
     'dash.audio.testSound': 'Probar sonido',
     'dash.audio.mute': 'Silenciar',
@@ -873,6 +879,7 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'dash.config.desktopWidget': 'デスクトップウィジェット',
     'dash.config.saveBtn': '💾 設定を保存する',
     'dash.config.savedToast': '✓ 保存しました！',
+    'dash.config.autosaved': '✓ 保存済み',
     'dash.audio.title': 'サウンドとワードローブ設定',
     'dash.audio.testSound': '効果音テスト',
     'dash.audio.mute': '消音',
@@ -1000,6 +1007,7 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'dash.config.desktopWidget': '데스크톱 위젯',
     'dash.config.saveBtn': '💾 설정 저장하기',
     'dash.config.savedToast': '✓ 저장 완료!',
+    'dash.config.autosaved': '✓ 저장됨',
     'dash.audio.title': '사운드 및 옷장 설정',
     'dash.audio.testSound': '사운드 테스트',
     'dash.audio.mute': '음소거',
@@ -1127,6 +1135,7 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'dash.config.desktopWidget': '桌面小部件',
     'dash.config.saveBtn': '💾 保存所有设置',
     'dash.config.savedToast': '✓ 已保存！',
+    'dash.config.autosaved': '✓ 已保存',
     'dash.audio.title': '声音与衣橱偏好',
     'dash.audio.testSound': '测试音效',
     'dash.audio.mute': '静音',

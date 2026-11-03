@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createDefaultUserSettings,
   parseUserSettingsJson,
+  resolveCanonicalUserDataPath,
   resolveModeTransition,
   serializeUserSettingsJson,
   shouldFollowCursor,
@@ -182,6 +183,26 @@ describe('settingsStore', () => {
       expect(parsedInvalid.usagiX).toBeNull();
       expect(parsedInvalid.usagiY).toBeNull();
       expect(parsedInvalid.activeDashboardTab).toBe('companion');
+    });
+  });
+
+  describe('resolveCanonicalUserDataPath', () => {
+    it('joins the appData directory with the canonical app folder name', () => {
+      expect(resolveCanonicalUserDataPath('/tmp/appData')).toBe('/tmp/appData/usagi-buddy');
+    });
+
+    it('normalises trailing separators so equivalent inputs match', () => {
+      expect(resolveCanonicalUserDataPath('/tmp/appData/')).toBe('/tmp/appData/usagi-buddy');
+      expect(resolveCanonicalUserDataPath('/tmp/appData///')).toBe('/tmp/appData/usagi-buddy');
+    });
+
+    it('handles Windows-style appData paths with backslash separators', () => {
+      expect(resolveCanonicalUserDataPath('C:\\Users\\me\\AppData\\Roaming')).toBe(
+        'C:\\Users\\me\\AppData\\Roaming/usagi-buddy'
+      );
+      expect(resolveCanonicalUserDataPath('C:\\Users\\me\\AppData\\Roaming\\\\')).toBe(
+        'C:\\Users\\me\\AppData\\Roaming/usagi-buddy'
+      );
     });
   });
 

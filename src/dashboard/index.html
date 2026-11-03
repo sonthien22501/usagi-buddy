@@ -139,6 +139,24 @@
         margin-top: 1px;
       }
 
+      .autosave-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 3px 10px;
+        background: var(--badge-bg);
+        color: var(--badge-text);
+        opacity: 0;
+        transition: opacity 180ms ease;
+      }
+
+      .autosave-pill[data-visible='true'] {
+        opacity: 1;
+      }
+
       .card {
         background: var(--card-bg);
         border: 2.5px solid var(--border-color);
@@ -734,6 +752,7 @@
         <div class="app-header-text">
           <h1 id="dash-header-title">Usagi Buddy Dashboard</h1>
         </div>
+        <span id="autosave-status" class="autosave-pill" aria-live="polite"></span>
       </div>
     </div>
 
@@ -1188,18 +1207,6 @@
             Auto-Change
           </button>
         </div>
-      </div>
-
-      <!-- 4. Save All Settings Action Bar -->
-      <div style="display: flex; justify-content: flex-end; margin-top: 4px; margin-bottom: 8px">
-        <button
-          class="btn btn-primary"
-          id="save-all-settings-btn"
-          type="button"
-          style="width: 100%; height: 38px; font-size: 13px"
-        >
-          💾 Save All Settings
-        </button>
       </div>
     </div>
 
