@@ -856,6 +856,20 @@ function init(): void {
     });
 
     window.usagiAPI
+      .getLocale?.()
+      .then((loc) => {
+        if (loc) {
+          currentLocale = loc;
+          renderStaticLocaleText();
+          render(currentState);
+          if (activeTab === 'schedule') {
+            renderSchedule();
+          }
+        }
+      })
+      .catch(() => {});
+
+    window.usagiAPI
       .getReminderState()
       .then((state) => {
         if (state) render(state);
