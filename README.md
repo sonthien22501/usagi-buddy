@@ -1,4 +1,4 @@
-# 🐰 Usagi Float (v0.6.1)
+# 🐰 Usagi Float (v0.6.2)
 
 A delightful, transparent, always-on-top desktop companion for **macOS** and **Windows**. Usagi swims organically across your screen, cheers you up with authentic Chiikawa voice lines ("Una!", "Bryy!", "Huhhhh?"), reminds you to stay hydrated, and keeps you focused with scientific study methods, quick repeat alarms, wardrobe costumes, desktop sticky notes, a unified calendar with holidays, multi-language support (8 locales), and a dedicated anime-themed companion dashboard!
 
@@ -7,10 +7,34 @@ A delightful, transparent, always-on-top desktop companion for **macOS** and **W
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.6.1-ff7675.svg" alt="Version 0.6.1" />
+  <img src="https://img.shields.io/badge/version-0.6.2-ff7675.svg" alt="Version 0.6.2" />
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-ffeaa7.svg" alt="Platforms" />
   <img src="https://img.shields.io/badge/license-MIT-55efc4.svg" alt="License" />
 </p>
+
+---
+
+## 🩹 What's Fixed in v0.6.2
+
+### 🔏 macOS Build Is Now Code-Signed (Ad-Hoc), So It Opens
+
+- **The bug**: the release pipeline built with `identity: null`, which makes `electron-builder`
+  skip signing entirely. The `.app` kept only the Mach-O linker signature from Electron's prebuilt
+  binaries and had no `Contents/_CodeSignature`, so Gatekeeper rejected it as
+  _"Usagi-Float is damaged and can't be opened. You should move it to the Trash."_ — the app was
+  killed before it could even write a crash log.
+- **The fix**: a new `scripts/afterPack.js` hook (wired via `build.afterPack`) ad-hoc signs every
+  nested bundle, framework, dylib, and Mach-O helper (deepest first, including Electron's
+  `chrome_crashpad_handler`), then the outer `.app`, and finally runs
+  `codesign --verify --strict` so a broken seal **fails the build** instead of shipping.
+- **Result**: `codesign --verify --deep --strict` passes and the app satisfies its Designated
+  Requirement. It still is not notarized, so macOS shows the one-time _"unidentified developer"_
+  prompt — which is dismissible — instead of the unrecoverable _"damaged"_ dialog.
+
+### 🧪 Tests
+
+- 209 tests across 17 suites, unchanged. The packaging fix is verified at release time by the
+  `codesign --verify` gate in `scripts/afterPack.js`.
 
 ---
 
@@ -236,12 +260,17 @@ When your study session ends, Big Usagi appears on screen with interactive actio
 Download pre-built packages from the [**GitHub Releases**](https://github.com/sonthien22501/usagi-buddy/releases) page:
 
 - **macOS** (Apple Silicon & Intel):
-  - Download `Usagi-Float-0.6.1-arm64.dmg` (M1/M2/M3/M4) or `Usagi-Float-0.6.1.dmg` (Intel).
-  - Also available as portable `.zip`: `Usagi-Float-0.6.1-arm64-mac.zip` or `Usagi-Float-0.6.1-mac.zip`.
-  - Drag `Usagi Float.app` into your **Applications** folder.
-  - _First launch note_: Right-click (Control-click) `Usagi Float.app` ➔ **Open** to approve the Gatekeeper security prompt once.
+  - Download `Usagi-Float-0.6.2-arm64.dmg` (M1/M2/M3/M4) or `Usagi-Float-0.6.2.dmg` (Intel).
+  - Also available as portable `.zip`: `Usagi-Float-0.6.2-arm64-mac.zip` or `Usagi-Float-0.6.2-mac.zip`.
+  - Drag `Usagi-Float.app` into your **Applications** folder.
+  - _First launch note_: the build is ad-hoc signed but **not notarized**, so macOS asks for a
+    one-time approval. On macOS 15+ (Sequoia/Tahoe), right-click ➔ **Open** no longer bypasses
+    Gatekeeper: open **System Settings ➔ Privacy & Security**, scroll to the blocked-app notice and
+    click **Open Anyway**.
+  - If macOS ever reports the app is _"damaged"_, strip the download quarantine flag instead:
+    `xattr -dr com.apple.quarantine /Applications/Usagi-Float.app`
 - **Windows**:
-  - Download `Usagi-Float.Setup.0.6.1.exe` (installer) or `Usagi-Float.0.6.1.exe` (portable).
+  - Download `Usagi-Float.Setup.0.6.2.exe` (installer) or `Usagi-Float.0.6.2.exe` (portable).
 
 ---
 
