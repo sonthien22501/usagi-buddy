@@ -264,6 +264,39 @@
         height: 34px;
       }
 
+      .btn-save-header {
+        background: var(--card-inner);
+        border: 2px solid var(--border-color);
+        color: var(--text-color);
+        padding: 5px 12px;
+        border-radius: 12px;
+        font-size: 11.5px;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        box-shadow: 0 2.5px 0 var(--border-color);
+        transition: all 0.15s ease;
+      }
+
+      .btn-save-header:hover {
+        background: #fff8e7;
+        filter: brightness(1.04);
+      }
+
+      .btn-save-header:active {
+        transform: translateY(1.5px);
+        box-shadow: 0 1px 0 var(--border-color);
+      }
+
+      .btn-save-header.saved {
+        background: #d4edda !important;
+        color: #155724 !important;
+        border-color: #28a745 !important;
+        box-shadow: 0 2.5px 0 #28a745 !important;
+      }
+
       .feature-btn {
         width: 135px;
         height: 34px;
@@ -735,6 +768,15 @@
           <h1 id="dash-header-title">Usagi Buddy Dashboard</h1>
         </div>
       </div>
+      <button
+        class="btn-save-header"
+        id="save-all-settings-btn"
+        type="button"
+        title="Save all changes to disk"
+      >
+        <span id="save-btn-icon">💾</span>
+        <span id="save-btn-text">Save</span>
+      </button>
     </div>
 
     <!-- 2-Tab Switcher Navigation -->
@@ -1188,18 +1230,6 @@
             Auto-Change
           </button>
         </div>
-      </div>
-
-      <!-- 4. Save All Settings Action Bar -->
-      <div style="display: flex; justify-content: flex-end; margin-top: 4px; margin-bottom: 8px">
-        <button
-          class="btn btn-primary"
-          id="save-all-settings-btn"
-          type="button"
-          style="width: 100%; height: 38px; font-size: 13px"
-        >
-          💾 Save All Settings
-        </button>
       </div>
     </div>
 

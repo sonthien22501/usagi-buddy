@@ -33,6 +33,8 @@ const buddyProfileIcon = document.getElementById('buddy-profile-icon') as HTMLSp
 const saveAllSettingsBtn = document.getElementById(
   'save-all-settings-btn'
 ) as HTMLButtonElement | null;
+const saveBtnIcon = document.getElementById('save-btn-icon') as HTMLSpanElement | null;
+const saveBtnText = document.getElementById('save-btn-text') as HTMLSpanElement | null;
 
 // Date & Sticky Config Elements
 const configDateFormatBtn = document.getElementById(
@@ -192,39 +194,56 @@ if (buddyCountrySelect) {
   });
 }
 
+async function triggerSaveAllSettings(): Promise<void> {
+  const profileUpdate: Partial<BuddyProfile> = {};
+  if (buddyNicknameInput) {
+    profileUpdate.nickname = buddyNicknameInput.value.trim();
+  }
+  if (buddyBdayDay) {
+    profileUpdate.birthdayDay = buddyBdayDay.value ? parseInt(buddyBdayDay.value, 10) : null;
+  }
+  if (buddyBdayMonth) {
+    profileUpdate.birthdayMonth = buddyBdayMonth.value ? parseInt(buddyBdayMonth.value, 10) : null;
+  }
+  if (buddyCountrySelect) {
+    profileUpdate.countryCode = buddyCountrySelect.value;
+  }
+
+  const selectedLoc =
+    buddyLanguageSelect && isSupportedLocale(buddyLanguageSelect.value)
+      ? (buddyLanguageSelect.value as SupportedLocale)
+      : currentLocale;
+
+  await window.usagiAPI?.saveAllSettings({
+    locale: selectedLoc,
+    profile: profileUpdate,
+  });
+
+  if (saveAllSettingsBtn) {
+    saveAllSettingsBtn.dataset.saving = 'true';
+    saveAllSettingsBtn.classList.add('saved');
+    if (saveBtnIcon) saveBtnIcon.textContent = '✓';
+    if (saveBtnText) saveBtnText.textContent = t(selectedLoc, 'dash.config.savedToast');
+    setTimeout(() => {
+      delete saveAllSettingsBtn.dataset.saving;
+      saveAllSettingsBtn.classList.remove('saved');
+      if (saveBtnIcon) saveBtnIcon.textContent = '💾';
+      if (saveBtnText) saveBtnText.textContent = t(selectedLoc, 'dash.config.saveBtn');
+    }, 1500);
+  }
+}
+
 if (buddyLanguageSelect) {
-  buddyLanguageSelect.addEventListener('change', () => {
+  buddyLanguageSelect.addEventListener('change', async () => {
     const val = buddyLanguageSelect.value as SupportedLocale;
-    window.usagiAPI?.setLocale(val);
+    renderLocaleUI(val);
+    await triggerSaveAllSettings();
   });
 }
 
 if (saveAllSettingsBtn) {
   saveAllSettingsBtn.addEventListener('click', async () => {
-    if (buddyNicknameInput) {
-      window.usagiAPI?.updateBuddyProfile({ nickname: buddyNicknameInput.value.trim() });
-    }
-    if (buddyBdayDay) {
-      const val = buddyBdayDay.value ? parseInt(buddyBdayDay.value, 10) : null;
-      window.usagiAPI?.updateBuddyProfile({ birthdayDay: val });
-    }
-    if (buddyBdayMonth) {
-      const val = buddyBdayMonth.value ? parseInt(buddyBdayMonth.value, 10) : null;
-      window.usagiAPI?.updateBuddyProfile({ birthdayMonth: val });
-    }
-    if (buddyCountrySelect) {
-      window.usagiAPI?.updateBuddyProfile({ countryCode: buddyCountrySelect.value });
-    }
-    if (buddyLanguageSelect && isSupportedLocale(buddyLanguageSelect.value)) {
-      window.usagiAPI?.setLocale(buddyLanguageSelect.value as SupportedLocale);
-    }
-    await window.usagiAPI?.saveAllSettings();
-    saveAllSettingsBtn.dataset.saving = 'true';
-    saveAllSettingsBtn.textContent = t(currentLocale, 'dash.config.savedToast');
-    setTimeout(() => {
-      delete saveAllSettingsBtn.dataset.saving;
-      saveAllSettingsBtn.textContent = t(currentLocale, 'dash.config.saveBtn');
-    }, 1500);
+    await triggerSaveAllSettings();
   });
 }
 
@@ -692,8 +711,8 @@ function renderLocaleUI(locale: SupportedLocale): void {
   const rotLabel = document.getElementById('outfit-rot-label');
   if (rotLabel) rotLabel.textContent = t(locale, 'dash.audio.outfitRotation');
 
-  if (saveAllSettingsBtn && !saveAllSettingsBtn.dataset.saving) {
-    saveAllSettingsBtn.textContent = t(locale, 'dash.config.saveBtn');
+  if (saveBtnText && (!saveAllSettingsBtn || !saveAllSettingsBtn.dataset.saving)) {
+    saveBtnText.textContent = t(locale, 'dash.config.saveBtn');
   }
 
   // Re-render stateful elements

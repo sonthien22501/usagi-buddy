@@ -87,7 +87,10 @@ export interface UsagiAPI {
   setLocale: (locale: SupportedLocale) => void;
   getLocale: () => Promise<SupportedLocale>;
   onLocaleChanged: (callback: (locale: SupportedLocale) => void) => () => void;
-  saveAllSettings: () => Promise<boolean>;
+  saveAllSettings: (payload?: {
+    locale?: SupportedLocale;
+    profile?: Partial<BuddyProfile>;
+  }) => Promise<boolean>;
   quitApp: () => void;
   closeTrayPopover: () => void;
 }
@@ -322,7 +325,8 @@ const api: UsagiAPI = {
     ipcRenderer.on('locale-changed', handler);
     return () => ipcRenderer.removeListener('locale-changed', handler);
   },
-  saveAllSettings: () => ipcRenderer.invoke('save-all-settings'),
+  saveAllSettings: (payload?: { locale?: SupportedLocale; profile?: Partial<BuddyProfile> }) =>
+    ipcRenderer.invoke('save-all-settings', payload),
   quitApp: () => {
     ipcRenderer.send('quit-app');
   },
