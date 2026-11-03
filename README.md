@@ -1,4 +1,4 @@
-# 🐰 Usagi Float (v0.6.0)
+# 🐰 Usagi Float (v0.6.1)
 
 A delightful, transparent, always-on-top desktop companion for **macOS** and **Windows**. Usagi swims organically across your screen, cheers you up with authentic Chiikawa voice lines ("Una!", "Bryy!", "Huhhhh?"), reminds you to stay hydrated, and keeps you focused with scientific study methods, quick repeat alarms, wardrobe costumes, desktop sticky notes, a unified calendar with holidays, multi-language support (8 locales), and a dedicated anime-themed companion dashboard!
 
@@ -7,10 +7,38 @@ A delightful, transparent, always-on-top desktop companion for **macOS** and **W
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.6.0-ff7675.svg" alt="Version 0.6.0" />
+  <img src="https://img.shields.io/badge/version-0.6.1-ff7675.svg" alt="Version 0.6.1" />
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-ffeaa7.svg" alt="Platforms" />
   <img src="https://img.shields.io/badge/license-MIT-55efc4.svg" alt="License" />
 </p>
+
+---
+
+## 🩹 What's Fixed in v0.6.1
+
+### 🗂️ Language Now Survives Restarts
+
+- **Canonical userData Root**: The app now pins `app.getPath('userData')` to
+  `~/Library/Application Support/usagi-buddy` before app-ready via `app.setPath()`. Previously,
+  launching with `electron dist/main/index.js` left the app named `Electron`, so settings could be
+  written to a **second, independent** `Application Support/Electron` file. Which file you got
+  depended on how the app was launched, which is what made chosen languages and wardrobe settings
+  appear to revert at random.
+- **Deterministic across launch methods**: `npm start`, `electron .`, and packaged builds now all
+  read and write the same settings file.
+
+### ✅ Save Button Replaced with an Auto-Save Indicator
+
+- The full-width `💾 Save All Settings` button at the bottom of the Dashboard is **removed**. Every
+  setting already persisted on change, so the button persisted nothing new.
+- A small `✓ Saved` pill now fades in beside the Dashboard title for ~1.2 s after each change
+  (font-weight 700, 8.18:1 contrast, `aria-live="polite"`), then fades out. No layout shift.
+- Localized in all 8 languages via the new `dash.config.autosaved` key.
+
+### 🧪 Tests
+
+- 209 tests across 17 suites (was 205). New: canonical-path resolution incl. Windows separators,
+  and an all-8-locale assertion for the auto-save label.
 
 ---
 
@@ -208,12 +236,12 @@ When your study session ends, Big Usagi appears on screen with interactive actio
 Download pre-built packages from the [**GitHub Releases**](https://github.com/sonthien22501/usagi-buddy/releases) page:
 
 - **macOS** (Apple Silicon & Intel):
-  - Download `Usagi-Float-0.6.0-arm64.dmg` (M1/M2/M3/M4) or `Usagi-Float-0.6.0.dmg` (Intel).
-  - Also available as portable `.zip`: `Usagi-Float-0.6.0-arm64-mac.zip` or `Usagi-Float-0.6.0-mac.zip`.
+  - Download `Usagi-Float-0.6.1-arm64.dmg` (M1/M2/M3/M4) or `Usagi-Float-0.6.1.dmg` (Intel).
+  - Also available as portable `.zip`: `Usagi-Float-0.6.1-arm64-mac.zip` or `Usagi-Float-0.6.1-mac.zip`.
   - Drag `Usagi Float.app` into your **Applications** folder.
   - _First launch note_: Right-click (Control-click) `Usagi Float.app` ➔ **Open** to approve the Gatekeeper security prompt once.
 - **Windows**:
-  - Download `Usagi-Float.Setup.0.6.0.exe` (installer) or `Usagi-Float.0.6.0.exe` (portable).
+  - Download `Usagi-Float.Setup.0.6.1.exe` (installer) or `Usagi-Float.0.6.1.exe` (portable).
 
 ---
 

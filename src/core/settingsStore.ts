@@ -66,6 +66,17 @@ export function createDefaultUserSettings(): UserSettings {
 const MIN_POMODORO_DURATION_MS = 60_000; // 1 minute
 const MAX_POMODORO_DURATION_MS = 43_200_000; // 12 hours
 
+/**
+ * Resolves the canonical userData directory from an Electron `appData` path.
+ * Pure, dependency-free string handling: works for POSIX and Windows separators
+ * without pulling a `node:` import into the browser renderer bundles.
+ * No filesystem or `app` access.
+ */
+export function resolveCanonicalUserDataPath(appDataDir: string): string {
+  const trimmed = appDataDir.replace(/[\\/]+$/, '');
+  return `${trimmed}/usagi-buddy`;
+}
+
 export function parseUserSettingsJson(raw: string | null | undefined): UserSettings {
   if (!raw || typeof raw !== 'string' || !raw.trim()) {
     return createDefaultUserSettings();

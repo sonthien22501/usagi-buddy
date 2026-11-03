@@ -46,6 +46,7 @@ import {
 import {
   ModeFlags,
   parseUserSettingsJson,
+  resolveCanonicalUserDataPath,
   resolveModeTransition,
   serializeUserSettingsJson,
   shouldFollowCursor,
@@ -123,6 +124,7 @@ let cursorInterval: NodeJS.Timeout | null = null;
 
 try {
   app.setName('usagi-buddy');
+  app.setPath('userData', resolveCanonicalUserDataPath(app.getPath('appData')));
 } catch {
   // Ignore in test environments if app is not available
 }
