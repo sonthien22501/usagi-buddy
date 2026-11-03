@@ -172,29 +172,29 @@ describe('i18n Core Engine', () => {
     });
 
     it('provides localized save button labels and saved toast feedback across all 8 locales', () => {
-      expect(t('en', 'dash.config.saveBtn')).toBe('Save');
-      expect(t('en', 'dash.config.savedToast')).toBe('Saved!');
+      expect(t('en', 'dash.config.saveBtn')).toBe('💾 Save All Settings');
+      expect(t('en', 'dash.config.savedToast')).toBe('✓ Saved!');
 
-      expect(t('vi', 'dash.config.saveBtn')).toBe('Lưu');
-      expect(t('vi', 'dash.config.savedToast')).toBe('Đã lưu!');
+      expect(t('vi', 'dash.config.saveBtn')).toBe('💾 Lưu Cài Đặt');
+      expect(t('vi', 'dash.config.savedToast')).toBe('✓ Đã lưu!');
 
-      expect(t('de', 'dash.config.saveBtn')).toBe('Speichern');
-      expect(t('de', 'dash.config.savedToast')).toBe('Gespeichert!');
+      expect(t('de', 'dash.config.saveBtn')).toBe('💾 Einstellungen speichern');
+      expect(t('de', 'dash.config.savedToast')).toBe('✓ Gespeichert!');
 
-      expect(t('fr', 'dash.config.saveBtn')).toBe('Enregistrer');
-      expect(t('fr', 'dash.config.savedToast')).toBe('Enregistré !');
+      expect(t('fr', 'dash.config.saveBtn')).toBe('💾 Enregistrer les paramètres');
+      expect(t('fr', 'dash.config.savedToast')).toBe('✓ Enregistré !');
 
-      expect(t('es', 'dash.config.saveBtn')).toBe('Guardar');
-      expect(t('es', 'dash.config.savedToast')).toBe('¡Guardado!');
+      expect(t('es', 'dash.config.saveBtn')).toBe('💾 Guardar ajustes');
+      expect(t('es', 'dash.config.savedToast')).toBe('✓ ¡Guardado!');
 
-      expect(t('ja', 'dash.config.saveBtn')).toBe('保存');
-      expect(t('ja', 'dash.config.savedToast')).toBe('保存済!');
+      expect(t('ja', 'dash.config.saveBtn')).toBe('💾 設定を保存する');
+      expect(t('ja', 'dash.config.savedToast')).toBe('✓ 保存しました！');
 
-      expect(t('ko', 'dash.config.saveBtn')).toBe('저장');
-      expect(t('ko', 'dash.config.savedToast')).toBe('저장됨!');
+      expect(t('ko', 'dash.config.saveBtn')).toBe('💾 설정 저장하기');
+      expect(t('ko', 'dash.config.savedToast')).toBe('✓ 저장 완료!');
 
-      expect(t('zh', 'dash.config.saveBtn')).toBe('保存');
-      expect(t('zh', 'dash.config.savedToast')).toBe('已保存!');
+      expect(t('zh', 'dash.config.saveBtn')).toBe('💾 保存所有设置');
+      expect(t('zh', 'dash.config.savedToast')).toBe('✓ 已保存！');
     });
 
     it('interpolates parameters into messages', () => {
