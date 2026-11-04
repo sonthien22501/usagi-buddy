@@ -78,11 +78,9 @@ A delightful, transparent, always-on-top desktop companion for **macOS** and **W
 
 Download pre-built packages from the [**GitHub Releases**](https://github.com/sonthien22501/usagi-buddy/releases) page:
 
-> ℹ️ The newest published installers are the **v0.6.2** builds listed below. v0.6.3 is a source release (bug fixes + demo video) and ships no new packages.
-
 - **macOS** (Apple Silicon & Intel):
-  - Download `Usagi Buddy-0.6.2-arm64.dmg` (M1/M2/M3/M4) or `Usagi Buddy-0.6.2.dmg` (Intel).
-  - Also available as portable `.zip`: `Usagi Buddy-0.6.2-arm64-mac.zip` or `Usagi Buddy-0.6.2-mac.zip`.
+  - Download `Usagi.Buddy-0.6.3-arm64.dmg` (M1/M2/M3/M4) or `Usagi.Buddy-0.6.3.dmg` (Intel).
+  - Also available as portable `.zip`: `Usagi.Buddy-0.6.3-arm64-mac.zip` or `Usagi.Buddy-0.6.3-mac.zip`.
   - Drag `Usagi Buddy.app` into your **Applications** folder.
   - _First launch note_: The build is ad-hoc signed. On macOS 15+ (Sequoia), open **System Settings ➔ Privacy & Security**, scroll to the blocked-app notice, and click **Open Anyway**.
   - If macOS ever reports the app is _"damaged"_, clear the quarantine flag in Terminal:
@@ -90,7 +88,7 @@ Download pre-built packages from the [**GitHub Releases**](https://github.com/so
     xattr -dr com.apple.quarantine "/Applications/Usagi Buddy.app"
     ```
 - **Windows**:
-  - Download `Usagi Buddy.Setup.0.6.2.exe` (installer) or `Usagi Buddy.0.6.2.exe` (portable).
+  - Download `Usagi.Buddy.Setup.0.6.3.exe` (installer) or `Usagi.Buddy.0.6.3.exe` (portable).
 
 ---
 
@@ -134,7 +132,7 @@ npm run dist      # For host OS
 
 ## 📜 Version History & Changelog
 
-### Latest Release: [v0.6.3](https://github.com/sonthien22501/usagi-buddy/releases)
+### Latest Release: [v0.6.3](https://github.com/sonthien22501/usagi-buddy/releases/tag/v0.6.3)
 - **Feature Demo Video**: An 84-second recording of the real app is now included — see [🎬 Demo](#-demo).
 - **Data Integrity**: Atomic state writes with a recoverable backup, single-instance enforcement, and corrupt recurrence sanitizing.
 - **Quests Survive Bad Dates**: Impossible or null due dates are dropped without losing the quest.
