@@ -4,6 +4,38 @@ All notable changes, release highlights, and fixes for **Usagi Buddy** (formerly
 
 ---
 
+## [0.6.3] - 2026-11-04
+
+### 🎬 Feature Demo Video
+- **`docs/media/usagi-demo.mp4`**: An 84-second screen recording of the real shipping app — not a mock-up — covering the water reminder, dashboard, wardrobe, focus presets, live language switching, date-linked quests, calendar and the giant alarm.
+- Recorded through `scripts/demo/record.sh`, which boots the real build against an isolated profile, replays the scripted walkthrough with a genuine OS pointer, captures the screen, then mixes in Usagi's voice lines and an original synthesized music bed.
+- Usagi's voice clips and the music are laid in post, because macOS `screencapture` records the microphone rather than system output.
+
+### 🛡️ Data Integrity & Durability
+- **Corrupt recurrence no longer breaks loading**: Weekly recurrence data is sanitized and the weekday search is bounded, so a malformed quest cannot hang or crash the store.
+- **Quests survive bad dates**: Quests with null or impossible due dates are kept on load and their date is dropped instead of the whole quest.
+- **Atomic state writes**: Every state file is now written via a temp-file-and-rename with one recoverable backup, so an interrupted write cannot leave a truncated profile.
+- **Single-instance enforcement**: A second launch exits instead of racing the first for the same shared state files.
+
+### 📅 Calendar & Date Correctness
+- Real calendar dates are validated, including month/day birthday pairs, so impossible values such as 31 February are rejected rather than rendered.
+
+### 🐰 Behaviour & Lifecycle
+- **Quest completion now actually spins Usagi**, matching the celebration the UI implies.
+- **Add-quest failures are reported** and the typed text is retained, instead of failing silently and clearing the input.
+- **Welcome-back snack plays once**, with the eating sound no longer stacking on every focus.
+- **Sticky clock and schedule refresh at the minute boundary and at local midnight**, rather than drifting until the next interaction.
+- **Sticky window opens on the nearest connected display** instead of a possibly disconnected one.
+- **Wellness ticks are skipped while Usagi is hidden**, and daily wellness stats now persist and roll over at local midnight.
+- **Long speech bubbles wrap with canvas-aware clamping** so text cannot overflow its bubble.
+
+### 🔒 Hardening
+- Untrusted pomodoro duration and volume IPC payloads are sanitized before use.
+- Giant alarm sprites are preloaded, and sprite loading degrades safely instead of throwing.
+- Removed the dead overdue-deadline stage and unused helpers, and aligned AFK documentation with the real 10-minute threshold.
+
+---
+
 ## [0.6.2] - 2026-11-03
 
 ### 🐰 Rebrand & Native Icons

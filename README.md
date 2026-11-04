@@ -1,4 +1,4 @@
-# 🐰 Usagi Buddy (v0.6.2)
+# 🐰 Usagi Buddy (v0.6.3)
 
 A delightful, transparent, always-on-top desktop companion for **macOS** and **Windows**. Usagi swims organically across your screen, cheers you up with authentic Chiikawa voice lines ("Una!", "Bryy!", "Huhhhh?"), reminds you to stay hydrated, and keeps you focused with scientific study methods, quick repeat alarms, wardrobe costumes, desktop sticky notes, a unified calendar with holidays, multi-language support (8 locales), and a dedicated anime-themed companion dashboard!
 
@@ -7,10 +7,28 @@ A delightful, transparent, always-on-top desktop companion for **macOS** and **W
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.6.2-ff7675.svg" alt="Version 0.6.2" />
+  <img src="https://img.shields.io/badge/version-0.6.3-ff7675.svg" alt="Version 0.6.3" />
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-ffeaa7.svg" alt="Platforms" />
   <img src="https://img.shields.io/badge/license-MIT-55efc4.svg" alt="License" />
 </p>
+
+---
+
+## 🎬 Demo
+
+84 seconds of the real app, recorded end to end — water reminder, wardrobe, focus presets, live language switching, dated quests, calendar, schedule and the giant alarm.
+
+<p align="center">
+  <a href="docs/media/usagi-demo.mp4">
+    <img src="docs/media/usagi-demo-poster.png" alt="Watch the Usagi Buddy demo" width="820" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="docs/media/usagi-demo.mp4"><b>▶ Watch the demo (84s, 21 MB)</b></a>
+</p>
+
+> The recording is scripted by [`scripts/demo/record.sh`](scripts/demo/): it boots the real build against an isolated profile, replays the walkthrough with a genuine OS pointer, captures the screen, then mixes in Usagi's voice lines and an original music bed. Your own settings, quests and timers are never touched.
 
 ---
 
@@ -59,6 +77,8 @@ A delightful, transparent, always-on-top desktop companion for **macOS** and **W
 ## 📥 Download & Install
 
 Download pre-built packages from the [**GitHub Releases**](https://github.com/sonthien22501/usagi-buddy/releases) page:
+
+> ℹ️ The newest published installers are the **v0.6.2** builds listed below. v0.6.3 is a source release (bug fixes + demo video) and ships no new packages.
 
 - **macOS** (Apple Silicon & Intel):
   - Download `Usagi Buddy-0.6.2-arm64.dmg` (M1/M2/M3/M4) or `Usagi Buddy-0.6.2.dmg` (Intel).
@@ -114,10 +134,11 @@ npm run dist      # For host OS
 
 ## 📜 Version History & Changelog
 
-### Latest Release: [v0.6.2](https://github.com/sonthien22501/usagi-buddy/releases/tag/v0.6.2)
-- **Rebranded to Usagi Buddy** across applications, packages, and installer volumes.
-- **Native App Icons**: Embedded high-resolution `.icns` (macOS) and `.ico` (Windows) using the official Usagi logo.
-- **Ad-Hoc Code-Signing**: Automatic recursive signing of all nested frameworks and Mach-O helpers, fixing Gatekeeper rejection on macOS.
+### Latest Release: [v0.6.3](https://github.com/sonthien22501/usagi-buddy/releases)
+- **Feature Demo Video**: An 84-second recording of the real app is now included — see [🎬 Demo](#-demo).
+- **Data Integrity**: Atomic state writes with a recoverable backup, single-instance enforcement, and corrupt recurrence sanitizing.
+- **Quests Survive Bad Dates**: Impossible or null due dates are dropped without losing the quest.
+- **Lifecycle Fixes**: Quest completion spins Usagi, welcome-back snack plays once, sticky clock and schedule roll over at minute and midnight boundaries, and the sticky opens on the nearest display.
 
 > 📖 **Full Changelog**: For detailed notes and historical milestones from v0.1.0 to present, see [**CHANGELOG.md**](CHANGELOG.md).
 
