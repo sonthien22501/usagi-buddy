@@ -64,10 +64,13 @@ describe('wellnessCoach', () => {
     expect(r3.state.nextReminderAtMs).toBe(1_800_000);
   });
 
-  it('enters sleep mode after 2 minutes of OS idle and halts activeScreenMs accumulation (Review Focus #4)', () => {
+  it('enters sleep mode after 10 minutes of OS idle and halts activeScreenMs accumulation (Review Focus #4)', () => {
+    // The shipping AFK threshold is 10 minutes; keep the default and the ticker in sync.
+    expect(DEFAULT_WELLNESS_CONFIG.afkThresholdSeconds).toBe(600);
+
     let state = createWellnessState();
-    // 125 seconds of system idle (>= 120s AFK threshold)
-    const res = tickWellnessCoach(state, 5000, 125);
+    // 605 seconds of system idle (>= 600s AFK threshold)
+    const res = tickWellnessCoach(state, 5000, 605);
     state = res.state;
 
     expect(res.enteredSleep).toBe(true);
@@ -76,7 +79,7 @@ describe('wellnessCoach', () => {
     expect(state.activeScreenMs).toBe(0);
 
     // Further ticks while idle stay asleep and do not accumulate activeScreenMs
-    const resSleeping = tickWellnessCoach(state, 5000, 130);
+    const resSleeping = tickWellnessCoach(state, 5000, 610);
     expect(resSleeping.state.mood).toBe('sleeping');
     expect(resSleeping.enteredSleep).toBe(false);
     expect(resSleeping.state.activeScreenMs).toBe(0);
@@ -90,7 +93,7 @@ describe('wellnessCoach', () => {
       nextReminderAtMs: 1_800_000,
     };
 
-    // User moves mouse: system idle drops to 2s (< 120s)
+    // User moves mouse: system idle drops to 2s (< 600s)
     const res = tickWellnessCoach(state, 5000, 2, undefined, () => 0.5);
     expect(res.welcomeBack).toBe(true);
     expect(res.state.mood).toBe('active');
@@ -108,7 +111,7 @@ describe('wellnessCoach', () => {
       nextReminderAtMs: 1_200_000,
     };
 
-    // User moves mouse: idle is 2s (< 120s), elapsed 5000ms pushes total >= 1_200_000
+    // User moves mouse: idle is 2s (< 600s), elapsed 5000ms pushes total >= 1_200_000
     const res = tickWellnessCoach(state, 5000, 2, undefined, () => 0.5);
     expect(res.welcomeBack).toBe(true);
     expect(res.state.mood).toBe('active');

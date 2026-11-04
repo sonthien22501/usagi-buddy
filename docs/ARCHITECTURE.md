@@ -46,7 +46,7 @@ usagi-buddy/
 │   │   ├── pomodoroTimer.ts       # 25-min study countdown & snack drop generator
 │   │   ├── giantAlarmController.ts # Chaos giant Usagi break alarm, speed lines, & click/key dismiss
 │   │   ├── soundManager.ts        # Event-to-MP3 mapper, URL-safe encoder (huhhhh%3F.mp3), mute & cooldown
-│   │   └── wellnessCoach.ts       # Random 30–40m water reminder, 2m AFK sleep mode, & daily tray stats
+│   │   └── wellnessCoach.ts       # Random 20–40m water reminder, 10m AFK sleep mode, & daily tray stats
 │   ├── main/
 │   │   └── index.ts               # Electron Main: overlay window, dashboard window, sticky window, tray menu, reminders & calendar IPC
 │   ├── preload/

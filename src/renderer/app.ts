@@ -34,6 +34,7 @@ import {
   COSTUME_DEFINITIONS,
   pickRandomCostume,
 } from '../core/costumeManager';
+import { wrapCanvasLines } from '../core/textWrap';
 import {
   calculateSnoozeDurationMs,
   createGiantAlarmState,
@@ -689,7 +690,7 @@ if (window.usagiAPI) {
   });
 
   window.usagiAPI.onGiantAlarmTriggered(() => {
-    ensureGiantSpritesLoaded();
+    void ensureGiantSpritesLoaded();
     if (giantSpriteFrames.length > 0) {
       const pickedIdx = Math.floor(Math.random() * giantSpriteFrames.length);
       activeGiantFrame = giantSpriteFrames[pickedIdx];
@@ -792,18 +793,27 @@ function processImageToFrame(
   };
 }
 
-function loadSingleSprite(index: number): Promise<ProcessedFrame> {
+function loadSingleSprite(index: number): Promise<ProcessedFrame | null> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.src = `../../assets/Usagi${index}.png`;
-
-    img.onerror = () => {
-      img.src = `../assets/Usagi${index}.png`;
-    };
+    let triedAltPath = false;
 
     img.onload = () => {
       resolve(processImageToFrame(`Usagi${index}`, img, 320));
     };
+
+    img.onerror = () => {
+      if (!triedAltPath) {
+        triedAltPath = true;
+        img.src = `../assets/Usagi${index}.png`;
+        return;
+      }
+      // Both paths failed: resolve instead of leaving the startup promise pending forever.
+      console.warn(`Failed to load Usagi${index}.png from any known asset path`);
+      resolve(null);
+    };
+
+    img.src = `../../assets/Usagi${index}.png`;
   });
 }
 
@@ -844,37 +854,52 @@ function ensureCostumeLoaded(id: CostumeId): void {
     });
 }
 
-let giantLoading = false;
+let giantLoadingPromise: Promise<void> | null = null;
+let giantSpritesUnavailable = false;
 
-function ensureGiantSpritesLoaded(): void {
-  if (giantSpriteFrames.length > 0 || giantLoading) return;
-  giantLoading = true;
-  const giantCandidates = ['Usagi_Big.png', 'Usagi_Big2.png', 'GiantUsagi.png'];
-  for (const filename of giantCandidates) {
-    loadNamedSprite(filename, 768)
-      .then((frame) => {
-        if (frame) {
-          giantSpriteFrames.push(frame);
-          if (!giantSpriteFrame) {
-            giantSpriteFrame = frame;
-          }
-          if (!activeGiantFrame) {
-            activeGiantFrame = frame;
-          }
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        giantLoading = false;
-      });
+function ensureGiantSpritesLoaded(): Promise<void> {
+  if (giantSpriteFrames.length > 0 || giantSpritesUnavailable) {
+    return Promise.resolve();
   }
+  if (giantLoadingPromise) {
+    return giantLoadingPromise;
+  }
+
+  const giantCandidates = ['Usagi_Big.png', 'Usagi_Big2.png', 'GiantUsagi.png'];
+  giantLoadingPromise = Promise.all(
+    giantCandidates.map(async (filename) => {
+      try {
+        const frame = await loadNamedSprite(filename, 768);
+        if (!frame) return;
+        giantSpriteFrames.push(frame);
+        if (!giantSpriteFrame) {
+          giantSpriteFrame = frame;
+        }
+        if (!activeGiantFrame) {
+          activeGiantFrame = frame;
+        }
+      } catch {
+        // One broken asset must not prevent the others from loading.
+      }
+    })
+  ).then(() => {
+    // Remember a missing asset set so the animation loop does not retry every frame.
+    if (giantSpriteFrames.length === 0) {
+      giantSpritesUnavailable = true;
+    }
+    giantLoadingPromise = null;
+  });
+
+  return giantLoadingPromise;
 }
 
 async function loadAllSprites(): Promise<void> {
-  // Only load Usagi3.png (the upright sprite) eagerly on startup
-  const upright = await loadSingleSprite(3);
-  processedFrames[UPRIGHT_SPRITE_INDEX] = upright;
-  processedFrames[0] = upright;
+  // Eagerly load Usagi3.png (the upright sprite) and the alarm sprites at startup.
+  const [upright] = await Promise.all([loadSingleSprite(3), ensureGiantSpritesLoaded()]);
+  if (upright) {
+    processedFrames[UPRIGHT_SPRITE_INDEX] = upright;
+    processedFrames[0] = upright;
+  }
 
   // On-demand: if active costume is not classic, load it
   if (currentCostumeId !== 'classic') {
@@ -945,13 +970,39 @@ function drawSpeechBubble(
   context.save();
 
   context.font = 'bold 18px "Segoe UI", "Comic Sans MS", "Nunito", sans-serif';
-  const metrics = context.measureText(text);
   const paddingX = 16;
   const paddingY = 8;
-  const bubbleWidth = metrics.width + paddingX * 2;
-  const bubbleHeight = 36;
-  const bx = x - bubbleWidth / 2;
-  const by = y - bubbleHeight;
+  const margin = 8;
+  const lineHeight = 22;
+  const canvasWidth = context.canvas?.width || screenBounds.width || 800;
+  const canvasHeight = context.canvas?.height || screenBounds.height || 600;
+
+  // Keep the bubble readable and inside the window even for long messages.
+  const availableWidth = Math.max(1, canvasWidth - margin * 2);
+  const maxBubbleWidth = Math.min(280, availableWidth);
+  const maxTextWidth = Math.max(1, maxBubbleWidth - paddingX * 2);
+  const lines = wrapCanvasLines(
+    text,
+    maxTextWidth,
+    (candidate) => context.measureText(candidate).width,
+    5
+  );
+  if (lines.length === 0) {
+    context.restore();
+    return;
+  }
+
+  const textWidth = lines.reduce(
+    (widest, line) => Math.max(widest, context.measureText(line).width),
+    0
+  );
+  const bubbleWidth = Math.min(maxBubbleWidth, Math.ceil(textWidth) + paddingX * 2);
+  const bubbleHeight = Math.max(36, lines.length * lineHeight + paddingY * 2);
+
+  // Clamp horizontally and vertically so the bubble never renders off-canvas.
+  const bx = Math.max(margin, Math.min(canvasWidth - bubbleWidth - margin, x - bubbleWidth / 2));
+  const by = Math.max(margin, Math.min(canvasHeight - bubbleHeight - margin, y - bubbleHeight));
+  const beakX = Math.max(bx + 12, Math.min(bx + bubbleWidth - 12, x));
   const r = 12;
 
   // Draw rounded rect bubble
@@ -967,9 +1018,9 @@ function drawSpeechBubble(
     by + bubbleHeight
   );
   // Pointer beak
-  context.lineTo(x + 8, by + bubbleHeight);
-  context.lineTo(x, by + bubbleHeight + 10);
-  context.lineTo(x - 8, by + bubbleHeight);
+  context.lineTo(beakX + 8, by + bubbleHeight);
+  context.lineTo(beakX, by + bubbleHeight + 10);
+  context.lineTo(beakX - 8, by + bubbleHeight);
   context.lineTo(bx + r, by + bubbleHeight);
   context.quadraticCurveTo(bx, by + bubbleHeight, bx, by + bubbleHeight - r);
   context.lineTo(bx, by + r);
@@ -993,7 +1044,10 @@ function drawSpeechBubble(
   context.fillStyle = '#D63031';
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  context.fillText(text, x, by + bubbleHeight / 2);
+  const firstLineY = by + bubbleHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
+  lines.forEach((line, index) => {
+    context.fillText(line, bx + bubbleWidth / 2, firstLineY + index * lineHeight);
+  });
 
   context.restore();
 }
@@ -1255,7 +1309,7 @@ function animationLoop(now: number): void {
 
   // Draw giant alarm overlay on top of canvas when active (randomized between giant sprites)
   if (giantAlarmState.active) {
-    ensureGiantSpritesLoaded();
+    void ensureGiantSpritesLoaded();
     const giantFrame =
       activeGiantFrame ||
       giantSpriteFrames[0] ||
