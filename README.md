@@ -24,8 +24,10 @@ A delightful, transparent, always-on-top desktop companion for **macOS** and **W
   </a>
 </p>
 
+https://github.com/user-attachments/assets/9ad7d2f0-f318-45f4-9b4b-c285825bf348
+
 <p align="center">
-  <a href="docs/media/usagi-demo.mp4"><b>▶ Watch the demo (84s, 21 MB)</b></a>
+  <sub>84s · 8.5 MB · <a href="docs/media/usagi-demo.mp4">open the MP4</a></sub>
 </p>
 
 > The recording is scripted by [`scripts/demo/record.sh`](scripts/demo/): it boots the real build against an isolated profile, replays the walkthrough with a genuine OS pointer, captures the screen, then mixes in Usagi's voice lines and an original music bed. Your own settings, quests and timers are never touched.
