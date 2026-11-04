@@ -6,6 +6,7 @@ import {
   parseCustomDuration,
   pausePomodoro,
   resetPomodoro,
+  sanitizePomodoroDurationMs,
   startPomodoro,
   tickPomodoro,
 } from '../src/core/pomodoroTimer';
@@ -80,6 +81,20 @@ describe('pomodoroTimer', () => {
     expect(parseCustomDuration(-10, 'minutes')).toBe(DEFAULT_POMODORO_MS);
     expect(parseCustomDuration(0.5, 'minutes')).toBe(60_000);
     expect(parseCustomDuration(24, 'hours')).toBe(43_200_000);
+  });
+
+  it('sanitizes untrusted IPC durations so the timer never sticks at NaN', () => {
+    expect(sanitizePomodoroDurationMs(Number.NaN)).toBeNull();
+    expect(sanitizePomodoroDurationMs(Number.POSITIVE_INFINITY)).toBeNull();
+    expect(sanitizePomodoroDurationMs(Number.NEGATIVE_INFINITY)).toBeNull();
+    expect(sanitizePomodoroDurationMs(-1)).toBeNull();
+    expect(sanitizePomodoroDurationMs(0)).toBeNull();
+    expect(sanitizePomodoroDurationMs('1500000')).toBeNull();
+    expect(sanitizePomodoroDurationMs(null)).toBeNull();
+
+    expect(sanitizePomodoroDurationMs(60_000)).toBe(60_000);
+    expect(sanitizePomodoroDurationMs(500)).toBe(60_000);
+    expect(sanitizePomodoroDurationMs(99 * 60 * 60 * 1000)).toBe(43_200_000);
   });
 
   it('formats durations >= 1 hour with HH:MM:SS cleanly', () => {

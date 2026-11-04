@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   calculatePlaybackVolume,
   createSoundState,
+  DEFAULT_VOLUME_CONFIG,
   resolveSoundAssetUrl,
+  sanitizeVolumeConfig,
   selectSoundForEvent,
   SOUND_ASSET_FILES,
   voiceTextForFile,
@@ -249,5 +251,23 @@ describe('soundManager', () => {
     expect(alarm75).toBeCloseTo(0.75 * 0.8, 2);
     expect(buddy25).toBeCloseTo(0.25, 2);
     expect(alarm25).toBeCloseTo(0.25 * 0.8, 2);
+  });
+
+  it('sanitizes untrusted volume IPC payloads instead of persisting NaN', () => {
+    const fallback = { master: 0.5, buddy: 0.6, alarm: 0.7, equalizeLoudness: true };
+
+    expect(
+      sanitizeVolumeConfig(
+        { master: Number.NaN, buddy: 2, alarm: -1, equalizeLoudness: false },
+        fallback
+      )
+    ).toEqual({ master: 0.5, buddy: 1, alarm: 0, equalizeLoudness: false });
+
+    expect(sanitizeVolumeConfig(null, fallback)).toEqual(fallback);
+    expect(sanitizeVolumeConfig({ master: 0.3 }, fallback)).toEqual({
+      ...fallback,
+      master: 0.3,
+    });
+    expect(sanitizeVolumeConfig(undefined, DEFAULT_VOLUME_CONFIG)).toEqual(DEFAULT_VOLUME_CONFIG);
   });
 });

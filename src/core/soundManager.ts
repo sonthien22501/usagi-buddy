@@ -48,6 +48,33 @@ export const DEFAULT_VOLUME_CONFIG: VolumeConfig = {
   equalizeLoudness: true,
 };
 
+/**
+ * Normalizes an untrusted volume payload (IPC / disk) to finite 0..1 values,
+ * preserving the supplied fallback for missing or invalid channels.
+ */
+export function sanitizeVolumeConfig(
+  value: unknown,
+  fallback: VolumeConfig = DEFAULT_VOLUME_CONFIG
+): VolumeConfig {
+  const raw =
+    value && typeof value === 'object'
+      ? (value as Partial<Record<keyof VolumeConfig, unknown>>)
+      : {};
+
+  const volume = (candidate: unknown, fallbackValue: number): number =>
+    typeof candidate === 'number' && Number.isFinite(candidate)
+      ? Math.min(Math.max(candidate, 0), 1)
+      : fallbackValue;
+
+  return {
+    master: volume(raw.master, fallback.master),
+    buddy: volume(raw.buddy, fallback.buddy),
+    alarm: volume(raw.alarm, fallback.alarm),
+    equalizeLoudness:
+      typeof raw.equalizeLoudness === 'boolean' ? raw.equalizeLoudness : fallback.equalizeLoudness,
+  };
+}
+
 export function calculatePlaybackVolume(
   config: VolumeConfig,
   event: SoundEvent,

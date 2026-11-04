@@ -12,6 +12,8 @@ import {
   getSelectedDaySummary,
   parseCalendarProfileJson,
   serializeCalendarProfileJson,
+  isValidDateYMD,
+  isValidMonthDay,
   BuddyProfile,
   HolidayEvent,
 } from '../src/core/calendarStore';
@@ -501,6 +503,47 @@ describe('calendarStore', () => {
       const emptySummary = getSelectedDaySummary(events, reminders, '2026-11-15');
       expect(emptySummary.holidays).toEqual([]);
       expect(emptySummary.quests).toEqual([]);
+    });
+  });
+
+  describe('Calendar date validation', () => {
+    it('accepts only real calendar dates', () => {
+      expect(isValidDateYMD('2026-11-04')).toBe(true);
+      expect(isValidDateYMD('2024-02-29')).toBe(true); // leap day
+      expect(isValidDateYMD('2026-02-29')).toBe(false); // non-leap year
+      expect(isValidDateYMD('2026-04-31')).toBe(false);
+      expect(isValidDateYMD('2026-13-01')).toBe(false);
+      expect(isValidDateYMD('2026-99-99')).toBe(false);
+      expect(isValidDateYMD('not-a-date')).toBe(false);
+      expect(isValidDateYMD('2026-1-4')).toBe(false);
+    });
+
+    it('validates month/day pairs, allowing Feb 29', () => {
+      expect(isValidMonthDay(1, 31)).toBe(true);
+      expect(isValidMonthDay(2, 29)).toBe(true);
+      expect(isValidMonthDay(2, 31)).toBe(false);
+      expect(isValidMonthDay(4, 31)).toBe(false);
+      expect(isValidMonthDay(12, 31)).toBe(true);
+      expect(isValidMonthDay(13, 1)).toBe(false);
+      expect(isValidMonthDay(0, 1)).toBe(false);
+    });
+
+    it('rejects an impossible persisted birthday pair', () => {
+      const raw = JSON.stringify({
+        profile: { nickname: 'Buddy', birthdayMonth: 2, birthdayDay: 31, countryCode: 'US' },
+      });
+      const restored = parseCalendarProfileJson(raw);
+      expect(restored.profile.birthdayMonth).toBe(2);
+      expect(restored.profile.birthdayDay).toBeNull();
+    });
+
+    it('does not inject a birthday event for an impossible date', () => {
+      const events = buildCalendarEvents(
+        [],
+        { nickname: 'Buddy', birthdayMonth: 2, birthdayDay: 31, countryCode: 'US' },
+        2026
+      );
+      expect(events.some((event) => event.type === 'birthday')).toBe(false);
     });
   });
 

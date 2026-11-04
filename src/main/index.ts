@@ -18,6 +18,7 @@ import {
   pausePomodoro,
   PomodoroState,
   resetPomodoro,
+  sanitizePomodoroDurationMs,
   spawnSnackOnScreen,
   startPomodoro,
   tickPomodoro,
@@ -33,7 +34,7 @@ import {
   WellnessState,
   WATER_REMINDER_MESSAGE,
 } from '../core/wellnessCoach';
-import { DEFAULT_VOLUME_CONFIG, VolumeConfig } from '../core/soundManager';
+import { DEFAULT_VOLUME_CONFIG, sanitizeVolumeConfig, VolumeConfig } from '../core/soundManager';
 import {
   CostumeId,
   OutfitSelection,
@@ -75,6 +76,7 @@ import {
   buildCalendarEvents,
   createDefaultBuddyProfile,
   getStaticFallbackHolidays,
+  isValidMonthDay,
   normalizeNagerHolidays,
   parseCalendarProfileJson,
   serializeCalendarProfileJson,
@@ -89,6 +91,7 @@ import {
   NewScheduleEntryInput,
 } from '../core/scheduleStore';
 import { computeTrayPopoverPosition } from '../core/trayPositioner';
+import { computeStickyWindowPosition } from '../core/displayPlacement';
 import { SupportedLocale, detectSystemLocale, isSupportedLocale, t } from '../core/i18n';
 
 let mainWindow: BrowserWindow | null = null;
@@ -571,8 +574,29 @@ function createDashboardWindow(): void {
   });
 }
 
+function getOrderedWorkAreas() {
+  const primary = screen.getPrimaryDisplay();
+  return [primary, ...screen.getAllDisplays().filter((d) => d.id !== primary.id)].map(
+    (display) => display.workArea
+  );
+}
+
+function repositionStickyWindowToVisibleArea(): void {
+  if (!stickyWindow || stickyWindow.isDestroyed()) return;
+  const bounds = stickyWindow.getBounds();
+  const position = computeStickyWindowPosition(
+    { x: bounds.x, y: bounds.y },
+    { width: bounds.width, height: bounds.height },
+    getOrderedWorkAreas()
+  );
+  if (position.x !== bounds.x || position.y !== bounds.y) {
+    stickyWindow.setBounds({ ...bounds, x: position.x, y: position.y });
+  }
+}
+
 function createStickyWindow(): void {
   if (stickyWindow && !stickyWindow.isDestroyed()) {
+    repositionStickyWindowToVisibleArea();
     if (reminderState.stickyVisible) {
       stickyWindow.setAlwaysOnTop(Boolean(reminderState.stickyAlwaysOnTop), 'floating');
       stickyWindow.show();
@@ -582,29 +606,18 @@ function createStickyWindow(): void {
     return;
   }
 
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { workArea } = primaryDisplay;
   const dims = clampStickyDimensions(reminderState.stickyWidth, reminderState.stickyHeight);
   const width = dims.width;
   const height = dims.height;
-
-  let x: number;
-  let y: number;
-  if (
+  const workAreas = getOrderedWorkAreas();
+  const savedPosition =
     typeof reminderState.stickyX === 'number' &&
     Number.isFinite(reminderState.stickyX) &&
     typeof reminderState.stickyY === 'number' &&
     Number.isFinite(reminderState.stickyY)
-  ) {
-    x = Math.max(workArea.x, Math.min(workArea.x + workArea.width - width, reminderState.stickyX));
-    y = Math.max(
-      workArea.y,
-      Math.min(workArea.y + workArea.height - height, reminderState.stickyY)
-    );
-  } else {
-    x = Math.max(0, workArea.x + workArea.width - width - 24);
-    y = Math.max(0, workArea.y + 48);
-  }
+      ? { x: reminderState.stickyX, y: reminderState.stickyY }
+      : null;
+  const { x, y } = computeStickyWindowPosition(savedPosition, { width, height }, workAreas);
 
   stickyWindow = new BrowserWindow({
     x,
@@ -1046,6 +1059,9 @@ function setupWellnessCoachTicker(): void {
           message: 'Zzz...',
         });
       } else if (result.welcomeBack) {
+        // Drop a snack on return; the normal snack-eating path plays the sound.
+        // No welcome-back sound here, otherwise it doubles up with the eating sound.
+        dropSnackNow();
         mainWindow.webContents.send('wellness-update', {
           mood: 'active',
           message: t(currentLocale, 'usagi.welcomeBack'),
@@ -1123,6 +1139,8 @@ app.whenReady().then(() => {
     createStickyWindow();
   }
   createSystemTray();
+  screen.on('display-removed', repositionStickyWindowToVisibleArea);
+  screen.on('display-metrics-changed', repositionStickyWindowToVisibleArea);
   setupPomodoroTicker();
   setupWellnessCoachTicker();
   setupCursorTrackingTicker();
@@ -1151,7 +1169,10 @@ app.whenReady().then(() => {
   });
 
   ipcMain.on('set-pomodoro-duration', (_e, durationMs: number, startImmediately = true) => {
-    pomodoroState = createPomodoroTimer(durationMs);
+    const safeDurationMs = sanitizePomodoroDurationMs(durationMs);
+    if (safeDurationMs === null) return;
+
+    pomodoroState = createPomodoroTimer(safeDurationMs);
     if (startImmediately) {
       pomodoroState = startPomodoro(pomodoroState);
     }
@@ -1179,7 +1200,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.on('update-volume-config', (_e, nextConfig: VolumeConfig) => {
-    volumeConfig = { ...nextConfig };
+    volumeConfig = sanitizeVolumeConfig(nextConfig, volumeConfig);
     broadcastVolumeConfig();
     updateTrayMenu();
     saveSettingsToDisk();
@@ -1341,6 +1362,15 @@ app.whenReady().then(() => {
         ? { countryCode: partialProfile.countryCode.toUpperCase() }
         : {}),
     };
+
+    // Cross-validate the birthday pair so Feb 31 is never stored or broadcast.
+    if (
+      calendarProfile.birthdayMonth !== null &&
+      calendarProfile.birthdayDay !== null &&
+      !isValidMonthDay(calendarProfile.birthdayMonth, calendarProfile.birthdayDay)
+    ) {
+      calendarProfile = { ...calendarProfile, birthdayDay: null };
+    }
 
     saveCalendarToDisk();
     broadcastCalendarState();

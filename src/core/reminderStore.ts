@@ -2,7 +2,7 @@
  * Pure state manager for Usagi Desktop Sticky Reminders & Checklist
  */
 
-import { daysBetweenYMD } from './calendarStore';
+import { daysBetweenYMD, isValidDateYMD, isValidMonthDay } from './calendarStore';
 import { t, SupportedLocale } from './i18n';
 
 export type DeadlineAlertStage = 'evening-before' | 'due-day';
@@ -621,7 +621,7 @@ export function extractDueDateToken(
     }
   } else if (dateRegex.test(text)) {
     const match = text.match(dateRegex);
-    if (match) {
+    if (match && isValidDateYMD(match[1])) {
       dueDate = match[1];
       text = text.replace(dateRegex, '');
       shouldCapitalize = true;
@@ -759,13 +759,13 @@ export function extractDueDateToken(
         /(?:\s+|^)(?:(?:by|on|for|due|at|vào|ngày|am|le|el|para)\s+)?(\d{4}-\d{2}-\d{2})\s*[.!?]*$/i;
 
       const mLeadingISO = text.match(leadingISO);
-      if (mLeadingISO) {
+      if (mLeadingISO && isValidDateYMD(mLeadingISO[1])) {
         dueDate = mLeadingISO[1];
         text = text.slice(mLeadingISO[0].length);
         shouldCapitalize = true;
       } else {
         const mTrailingISO = text.match(trailingISO);
-        if (mTrailingISO && mTrailingISO.index !== undefined) {
+        if (mTrailingISO && mTrailingISO.index !== undefined && isValidDateYMD(mTrailingISO[1])) {
           dueDate = mTrailingISO[1];
           text = text.slice(0, mTrailingISO.index);
           shouldCapitalize = true;
@@ -786,7 +786,7 @@ export function extractDueDateToken(
         const year = mLeadingSlash[3] ? parseInt(mLeadingSlash[3], 10) : now.getFullYear();
         const day = format === 'MM/DD' ? p2 : p1;
         const month = format === 'MM/DD' ? p1 : p2;
-        if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+        if (isValidMonthDay(month, day)) {
           dueDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           text = text.slice(mLeadingSlash[0].length);
           shouldCapitalize = true;
@@ -799,7 +799,7 @@ export function extractDueDateToken(
           const year = mTrailingSlash[3] ? parseInt(mTrailingSlash[3], 10) : now.getFullYear();
           const day = format === 'MM/DD' ? p2 : p1;
           const month = format === 'MM/DD' ? p1 : p2;
-          if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+          if (isValidMonthDay(month, day)) {
             dueDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             text = text.slice(0, mTrailingSlash.index);
             shouldCapitalize = true;
@@ -816,7 +816,7 @@ export function extractDueDateToken(
     shouldCapitalize = true;
   }
 
-  if (!dueDate && defaultDateStr && /^\d{4}-\d{2}-\d{2}$/.test(defaultDateStr)) {
+  if (!dueDate && defaultDateStr && isValidDateYMD(defaultDateStr)) {
     dueDate = defaultDateStr;
   }
 
@@ -1186,7 +1186,7 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
           createdAtMs: Number(item.createdAtMs) || 0,
           notifiedStages: [],
         };
-        if (typeof item.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.dueDate)) {
+        if (typeof item.dueDate === 'string' && isValidDateYMD(item.dueDate)) {
           validItem.dueDate = item.dueDate;
         }
         if (

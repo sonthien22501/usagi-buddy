@@ -10,6 +10,19 @@ export interface PomodoroState {
 }
 
 export const DEFAULT_POMODORO_MS = 1_500_000; // 25 minutes
+export const MIN_POMODORO_DURATION_MS = 60_000; // 1 minute
+export const MAX_POMODORO_DURATION_MS = 43_200_000; // 12 hours
+
+/**
+ * Validates an untrusted duration (IPC, renderer input) before it reaches the timer.
+ * Returns null for values that should not change the current timer at all.
+ */
+export function sanitizePomodoroDurationMs(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return Math.min(MAX_POMODORO_DURATION_MS, Math.max(MIN_POMODORO_DURATION_MS, Math.round(value)));
+}
 
 export function createPomodoroTimer(durationMs: number = DEFAULT_POMODORO_MS): PomodoroState {
   const duration = Math.max(0, durationMs);
