@@ -3,6 +3,7 @@ import {
   createInitialUsagiState,
   DEFAULT_PHYSICS_CONFIG,
   stepUsagiPhysics,
+  triggerTaskCelebration,
   triggerUsagiInteraction,
   UPRIGHT_SPRITE_INDEX,
 } from '../src/core/physicsEngine';
@@ -158,6 +159,16 @@ describe('physicsEngine', () => {
     const { state: clamped } = stepUsagiPhysics({ ...initial, x: 1200, y: 800 }, 16, smallScreen);
     expect(clamped.x).toBeLessThanOrEqual(smallScreen.width - DEFAULT_PHYSICS_CONFIG.spriteRadius);
     expect(clamped.y).toBeLessThanOrEqual(smallScreen.height - DEFAULT_PHYSICS_CONFIG.spriteRadius);
+  });
+
+  it('starts a genuine spin when a quest is completed', () => {
+    const initial = createInitialUsagiState(screen);
+    const celebrating = triggerTaskCelebration(initial);
+    expect(celebrating.spinBoostTimerMs).toBe(DEFAULT_PHYSICS_CONFIG.spinBoostDurationMs);
+    expect(Math.abs(celebrating.angularVelocity)).toBeGreaterThan(0);
+
+    const { state: nextFrame } = stepUsagiPhysics(celebrating, 16, screen);
+    expect(nextFrame.rotation).not.toBe(celebrating.rotation);
   });
 
   it('keeps Usagi standing completely still when stationary mode is active', () => {

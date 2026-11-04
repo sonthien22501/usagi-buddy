@@ -10,6 +10,7 @@ import {
   ScreenBounds,
   SnackTarget,
   stepUsagiPhysics,
+  triggerTaskCelebration,
   triggerUsagiInteraction,
   UPRIGHT_SPRITE_INDEX,
   UsagiState,
@@ -718,7 +719,7 @@ if (window.usagiAPI) {
   });
 
   window.usagiAPI.onTaskCelebration((taskText) => {
-    state.spinBoostTimerMs = 1500;
+    state = triggerTaskCelebration(state);
     state.speechBubble = `Yaha!! ✓ ${taskText}`;
     state.speechTimerMs = 3000;
     playSound('timer-complete');

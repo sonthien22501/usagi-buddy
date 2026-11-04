@@ -96,6 +96,22 @@ export function createInitialUsagiState(
   };
 }
 
+export function triggerTaskCelebration(
+  state: UsagiState,
+  config?: Partial<PhysicsConfig>
+): UsagiState {
+  const cfg = { ...DEFAULT_PHYSICS_CONFIG, ...config };
+  const spinDirection = state.angularVelocity < 0 ? -1 : 1;
+
+  return {
+    ...state,
+    spinBoostTimerMs: cfg.spinBoostDurationMs,
+    angularVelocity: spinDirection * cfg.spinBoostAngularVelocity,
+    comboClicks: 0,
+    sleeping: false,
+  };
+}
+
 export function triggerUsagiInteraction(
   state: UsagiState,
   phraseIndex?: number,

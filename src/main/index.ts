@@ -58,7 +58,7 @@ import {
 import {
   ReminderState,
   createInitialReminderState,
-  addReminderItem,
+  tryAddReminderItem,
   toggleReminderItem,
   deleteReminderItem,
   clearCompletedReminders,
@@ -92,6 +92,7 @@ import {
 } from '../core/scheduleStore';
 import { computeTrayPopoverPosition } from '../core/trayPositioner';
 import { computeStickyWindowPosition } from '../core/displayPlacement';
+import { readJsonTextSync, writeJsonFileAtomicSync } from '../core/atomicFile';
 import { SupportedLocale, detectSystemLocale, isSupportedLocale, t } from '../core/i18n';
 
 let mainWindow: BrowserWindow | null = null;
@@ -131,6 +132,25 @@ try {
   app.setPath('userData', resolveCanonicalUserDataPath(app.getPath('appData')));
 } catch {
   // Ignore in test environments if app is not available
+}
+
+// Only one running instance may own the shared state files. A second launch
+// hands control to the first instance and exits without touching disk.
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+      dashboardWindow.show();
+      dashboardWindow.focus();
+      return;
+    }
+    if (app.isReady()) {
+      createDashboardWindow();
+    }
+  });
 }
 
 function migrateLegacyUserData(): void {
@@ -175,8 +195,8 @@ function getSettingsFilePath(): string {
 function loadSettingsFromDisk(): void {
   try {
     const p = getSettingsFilePath();
-    if (fs.existsSync(p)) {
-      const raw = fs.readFileSync(p, 'utf-8');
+    const raw = readJsonTextSync(p);
+    if (raw !== null) {
       const settings = parseUserSettingsJson(raw);
       costumeSelection = settings.costumeSelection;
       activeCostume = settings.activeCostume;
@@ -225,7 +245,7 @@ function saveSettingsToDisk(): void {
       activeDashboardTab,
       locale: currentLocale,
     };
-    fs.writeFileSync(p, serializeUserSettingsJson(settings), 'utf-8');
+    writeJsonFileAtomicSync(p, serializeUserSettingsJson(settings));
   } catch (err) {
     console.warn('Failed to save settings to disk:', err);
   }
@@ -250,8 +270,8 @@ function getCalendarFilePath(): string {
 function loadCalendarFromDisk(): void {
   try {
     const p = getCalendarFilePath();
-    if (fs.existsSync(p)) {
-      const raw = fs.readFileSync(p, 'utf-8');
+    const raw = readJsonTextSync(p);
+    if (raw !== null) {
       const state = parseCalendarProfileJson(raw);
       calendarProfile = state.profile;
       calendarHolidays = state.cachedHolidays;
@@ -275,7 +295,7 @@ function loadCalendarFromDisk(): void {
 function saveCalendarToDisk(): void {
   try {
     const p = getCalendarFilePath();
-    fs.writeFileSync(p, serializeCalendarProfileJson(calendarProfile, calendarHolidays), 'utf-8');
+    writeJsonFileAtomicSync(p, serializeCalendarProfileJson(calendarProfile, calendarHolidays));
   } catch (err) {
     console.warn('Failed to save calendar to disk:', err);
   }
@@ -363,8 +383,8 @@ function checkBirthdayGreeting(): void {
 function loadRemindersFromDisk(): void {
   try {
     const p = getRemindersFilePath();
-    if (fs.existsSync(p)) {
-      const raw = fs.readFileSync(p, 'utf-8');
+    const raw = readJsonTextSync(p);
+    if (raw !== null) {
       reminderState = parseRemindersJson(raw);
     }
   } catch (err) {
@@ -376,7 +396,7 @@ function loadRemindersFromDisk(): void {
 function saveRemindersToDisk(): void {
   try {
     const p = getRemindersFilePath();
-    fs.writeFileSync(p, serializeRemindersJson(reminderState), 'utf-8');
+    writeJsonFileAtomicSync(p, serializeRemindersJson(reminderState));
   } catch (err) {
     console.warn('Failed to save reminders to disk:', err);
   }
@@ -393,8 +413,8 @@ function getScheduleFilePath(): string {
 function loadScheduleFromDisk(): void {
   try {
     const p = getScheduleFilePath();
-    if (fs.existsSync(p)) {
-      const raw = fs.readFileSync(p, 'utf-8');
+    const raw = readJsonTextSync(p);
+    if (raw !== null) {
       scheduleState = parseScheduleJson(raw);
     }
   } catch (err) {
@@ -406,7 +426,7 @@ function loadScheduleFromDisk(): void {
 function saveScheduleToDisk(): void {
   try {
     const p = getScheduleFilePath();
-    fs.writeFileSync(p, serializeScheduleJson(scheduleState), 'utf-8');
+    writeJsonFileAtomicSync(p, serializeScheduleJson(scheduleState));
   } catch (err) {
     console.warn('Failed to save schedule to disk:', err);
   }
@@ -423,8 +443,8 @@ function getWellnessFilePath(): string {
 function loadWellnessFromDisk(): void {
   try {
     const p = getWellnessFilePath();
-    if (fs.existsSync(p)) {
-      const raw = fs.readFileSync(p, 'utf-8');
+    const raw = readJsonTextSync(p);
+    if (raw !== null) {
       const restored = parseWellnessStatsJson(raw);
       wellnessState = {
         ...wellnessState,
@@ -440,7 +460,7 @@ function loadWellnessFromDisk(): void {
 function saveWellnessToDisk(): void {
   try {
     const p = getWellnessFilePath();
-    fs.writeFileSync(p, serializeWellnessStatsJson(wellnessState), 'utf-8');
+    writeJsonFileAtomicSync(p, serializeWellnessStatsJson(wellnessState));
   } catch (err) {
     console.warn('Failed to save wellness stats to disk:', err);
   }
@@ -1128,6 +1148,7 @@ function setupCursorTrackingTicker(): void {
 }
 
 app.whenReady().then(() => {
+  if (!hasSingleInstanceLock) return;
   migrateLegacyUserData();
   loadSettingsFromDisk();
   loadRemindersFromDisk();
@@ -1383,20 +1404,28 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.on('add-reminder', (_e, payload: string | { text: string; dueDate?: string }) => {
+  ipcMain.handle('add-reminder', (_e, payload: string | { text: string; dueDate?: string }) => {
+    let text = '';
+    let dueDate: string | undefined;
+
     if (typeof payload === 'string') {
-      reminderState = addReminderItem(reminderState, payload);
+      text = payload;
     } else if (payload && typeof payload === 'object' && typeof payload.text === 'string') {
-      reminderState = addReminderItem(
-        reminderState,
-        payload.text,
-        Date.now(),
-        undefined,
-        payload.dueDate
-      );
+      text = payload.text;
+      dueDate = typeof payload.dueDate === 'string' ? payload.dueDate : undefined;
+    } else {
+      return { added: false, reason: 'empty' };
     }
+
+    const result = tryAddReminderItem(reminderState, text, Date.now(), undefined, dueDate);
+    if (!result.added) {
+      return { added: false, reason: result.reason };
+    }
+
+    reminderState = result.state;
     saveRemindersToDisk();
     broadcastReminderState();
+    return { added: true };
   });
 
   ipcMain.on('toggle-reminder', (_e, id: string) => {
@@ -1476,11 +1505,13 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', () => {
+  if (!hasSingleInstanceLock) return;
   isQuitting = true;
   flushAllStateToDisk();
 });
 
 app.on('activate', () => {
+  if (!hasSingleInstanceLock) return;
   createDashboardWindow();
 });
 
