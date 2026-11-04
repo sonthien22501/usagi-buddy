@@ -150,6 +150,14 @@ If you enjoy having Usagi float on your screen while studying or coding, conside
 
 ---
 
+## 🔒 Privacy & Security
+
+- **No data collection.** No accounts, analytics, telemetry, crash reporting, or cloud sync. Your quests, schedule, nickname, and settings stay in a local JSON folder on your own machine.
+- **One outbound request.** The app asks [Nager.Date](https://date.nager.at) for public holidays, sending only a country code and year. Everything else works offline. Full details: [**PRIVACY.md**](PRIVACY.md).
+- **Builds are not notarized.** macOS is ad-hoc signed and Windows is unsigned, so your OS may warn about an unidentified developer. Only download from the official [Releases](https://github.com/sonthien22501/usagi-buddy/releases) page, or build from source. Reporting and design notes: [**SECURITY.md**](SECURITY.md).
+
+---
+
 ## 📄 License
 
 The source code of **Usagi Buddy** is licensed under the [**MIT License**](LICENSE).
@@ -167,3 +175,11 @@ Permission is hereby granted to anyone to inspect, run, modify, and build upon t
 This is an **unofficial, non-commercial fan-made project** created solely for study, focus, and personal enjoyment.
 
 All character designs, visual assets, and voice sounds associated with **Usagi / Chiikawa (ちいかわ)** belong to their original author **© Nagano (ナガノ)** and respective copyright holders. No copyright or trademark infringement is intended. If you are a rights holder and would like this fan project removed or modified, please open an issue or contact the maintainer.
+
+**Not medical or health advice.** Water reminders, focus timers, break suggestions, and wellness counters are gentle nudges for your own convenience. They are not medical devices and do not diagnose, treat, or monitor any condition. Listen to your body and consult a qualified professional for health concerns.
+
+**Use at your own risk.** The software is provided "as is", without warranty of any kind, express or implied, as set out in the [MIT License](LICENSE). The author is not liable for any loss, data loss, missed deadline, or damage arising from use of the app. You are responsible for keeping your own backups.
+
+**No affiliation.** This project is not affiliated with, endorsed by, or sponsored by Nagano, Chiikawa's rights holders, Apple, Microsoft, or Electron.
+
+See [**PRIVACY.md**](PRIVACY.md) for what stays on your device and [**SECURITY.md**](SECURITY.md) for vulnerability reporting and build-trust notes.
