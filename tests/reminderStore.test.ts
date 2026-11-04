@@ -206,6 +206,40 @@ describe('reminderStore', () => {
     expect(parsedPartial.items[0].text).toBe('Valid task');
   });
 
+  it('drops impossible persisted due dates while keeping the quest', () => {
+    const json = JSON.stringify({
+      items: [
+        {
+          id: 'impossible-day',
+          text: 'Broken ISO date',
+          completed: false,
+          createdAtMs: 1,
+          dueDate: '2026-99-99',
+        },
+        {
+          id: 'rolled-over-day',
+          text: 'Rolled over date',
+          completed: false,
+          createdAtMs: 2,
+          dueDate: '2026-02-30',
+        },
+        {
+          id: 'valid-date',
+          text: 'Valid date',
+          completed: false,
+          createdAtMs: 3,
+          dueDate: '2024-02-29',
+        },
+      ],
+    });
+
+    const parsed = parseRemindersJson(json);
+    expect(parsed.items).toHaveLength(3);
+    expect(parsed.items[0].dueDate).toBeUndefined();
+    expect(parsed.items[1].dueDate).toBeUndefined();
+    expect(parsed.items[2].dueDate).toBe('2024-02-29');
+  });
+
   describe('extractDueDateToken', () => {
     const fixedNow = new Date(2026, 10, 2); // 2026-11-02 (month index 10 is November)
 
@@ -244,6 +278,26 @@ describe('reminderStore', () => {
         cleanText: 'Exam',
         dueDate: '2026-12-15',
       });
+    });
+
+    it('ignores impossible explicit dates instead of storing them', () => {
+      const iso = extractDueDateToken('Exam @2026-99-99', undefined, fixedNow);
+      expect(iso.dueDate).toBeUndefined();
+      expect(iso.cleanText).toContain('2026-99-99');
+
+      const rolledOver = extractDueDateToken('Exam 2026-04-31', undefined, fixedNow);
+      expect(rolledOver.dueDate).toBeUndefined();
+      expect(rolledOver.cleanText).toContain('2026-04-31');
+    });
+
+    it('rejects impossible slash dates while accepting real leap days', () => {
+      const invalid = extractDueDateToken('Dentist 31/02/2026', undefined, fixedNow);
+      expect(invalid.dueDate).toBeUndefined();
+      expect(invalid.cleanText).toContain('31/02/2026');
+
+      expect(extractDueDateToken('Leap day 29/02/2024', undefined, fixedNow).dueDate).toBe(
+        '2024-02-29'
+      );
     });
 
     it('falls back to defaultDateStr when no inline token is provided', () => {

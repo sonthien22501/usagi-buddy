@@ -27,6 +27,7 @@ import {
   getScheduleWeekdayPills,
   getLocalizedHolidayTitle,
 } from '../core/i18n';
+import { resolveStickyClockRollover, type StickyClockSnapshot } from '../core/stickyClock';
 
 let currentState: ReminderState = {
   items: [],
@@ -51,6 +52,19 @@ let activeTab: 'quests' | 'calendar' | 'schedule' = 'quests';
 let currentScheduleState: ScheduleState = createInitialScheduleState();
 let selectedScheduleDay: number = new Date().getDay(); // 0..6
 let currentLocale: SupportedLocale = 'en';
+
+const initialClockDate = new Date();
+let stickyClockSnapshot: StickyClockSnapshot = {
+  dateYMD: formatDateYMD(
+    initialClockDate.getFullYear(),
+    initialClockDate.getMonth() + 1,
+    initialClockDate.getDate()
+  ),
+  dayOfWeek: initialClockDate.getDay(),
+  selectedScheduleDay,
+  calendarYear: currentCalendarYear,
+  calendarMonth: currentCalendarMonth,
+};
 
 const tabBtnQuests = document.getElementById('tabBtnQuests') as HTMLButtonElement | null;
 const tabBtnCalendar = document.getElementById('tabBtnCalendar') as HTMLButtonElement | null;
@@ -688,8 +702,37 @@ function handleAddQuest(): void {
   }
 }
 
+function startClockRefresh(): void {
+  const refresh = (): void => {
+    const now = new Date();
+    stickyClockSnapshot = {
+      ...stickyClockSnapshot,
+      selectedScheduleDay,
+      calendarYear: currentCalendarYear,
+      calendarMonth: currentCalendarMonth,
+    };
+    const result = resolveStickyClockRollover(stickyClockSnapshot, now);
+    stickyClockSnapshot = result.snapshot;
+
+    if (result.dateChanged) {
+      selectedScheduleDay = result.snapshot.selectedScheduleDay;
+      currentCalendarYear = result.snapshot.calendarYear;
+      currentCalendarMonth = result.snapshot.calendarMonth;
+      render(currentState);
+      return;
+    }
+
+    if (activeTab === 'schedule') {
+      renderSchedule();
+    }
+  };
+
+  window.setInterval(refresh, 15_000);
+}
+
 function init(): void {
   renderStaticLocaleText();
+  startClockRefresh();
 
   if (tabBtnQuests) {
     tabBtnQuests.addEventListener('click', () => switchTab('quests'));

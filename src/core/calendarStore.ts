@@ -87,6 +87,36 @@ export function parseDateYMD(ymd: string): { year: number; month: number; day: n
 }
 
 /**
+ * Validate a real YYYY-MM-DD calendar date (rejects rollovers like 2026-02-30).
+ */
+export function isValidDateYMD(ymd: string): boolean {
+  if (typeof ymd !== 'string') return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
+/**
+ * Validate a recurring month/day pair. Uses leap year 2024 so Feb 29 is allowed
+ * (non-leap years are handled by the birthday renderer).
+ */
+export function isValidMonthDay(month: number, day: number): boolean {
+  if (!Number.isInteger(month) || !Number.isInteger(day)) return false;
+  if (month < 1 || month > 12 || day < 1) return false;
+  const maxDay = new Date(Date.UTC(2024, month, 0)).getUTCDate();
+  return day <= maxDay;
+}
+
+/**
  * Calculate difference in calendar days between two YYYY-MM-DD strings.
  * Zero timezone drift by calculating UTC epoch day difference.
  */
@@ -396,11 +426,8 @@ export function buildCalendarEvents(
 
   if (
     profile.birthdayMonth &&
-    profile.birthdayMonth >= 1 &&
-    profile.birthdayMonth <= 12 &&
     profile.birthdayDay &&
-    profile.birthdayDay >= 1 &&
-    profile.birthdayDay <= 31
+    isValidMonthDay(profile.birthdayMonth, profile.birthdayDay)
   ) {
     const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
     let bdayDay = profile.birthdayDay;
@@ -615,6 +642,12 @@ export function parseCalendarProfileJson(raw: string | null | undefined): Calend
         ? parsed.profile.birthdayDay
         : null;
 
+    // Cross-validate the pair (e.g. Feb 31 must never become a birthday event).
+    const validBirthdayDay =
+      birthdayMonth !== null && birthdayDay !== null && !isValidMonthDay(birthdayMonth, birthdayDay)
+        ? null
+        : birthdayDay;
+
     const countryCode =
       typeof parsed.profile?.countryCode === 'string' && parsed.profile.countryCode.length === 2
         ? parsed.profile.countryCode.toUpperCase()
@@ -645,7 +678,7 @@ export function parseCalendarProfileJson(raw: string | null | undefined): Calend
       profile: {
         nickname,
         birthdayMonth,
-        birthdayDay,
+        birthdayDay: validBirthdayDay,
         countryCode,
       },
       cachedHolidays,
