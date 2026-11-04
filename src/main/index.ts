@@ -25,9 +25,10 @@ import {
 import { ScreenBounds } from '../core/physicsEngine';
 import {
   createWellnessState,
-  formatStatsTrayLabel,
+  parseWellnessStatsJson,
   recordPomodoroCompleted,
   recordSnackFed,
+  serializeWellnessStatsJson,
   tickWellnessCoach,
   WellnessState,
   WATER_REMINDER_MESSAGE,
@@ -139,6 +140,7 @@ function migrateLegacyUserData(): void {
       'usagi-reminders.json',
       'usagi-calendar.json',
       'usagi-schedule.json',
+      'usagi-wellness.json',
     ];
     for (const legacyDir of legacyDirs) {
       if (legacyDir !== currentDir && fs.existsSync(legacyDir)) {
@@ -407,11 +409,46 @@ function saveScheduleToDisk(): void {
   }
 }
 
+function getWellnessFilePath(): string {
+  try {
+    return path.join(app.getPath('userData'), 'usagi-wellness.json');
+  } catch {
+    return path.resolve(__dirname, '../../usagi-wellness.json');
+  }
+}
+
+function loadWellnessFromDisk(): void {
+  try {
+    const p = getWellnessFilePath();
+    if (fs.existsSync(p)) {
+      const raw = fs.readFileSync(p, 'utf-8');
+      const restored = parseWellnessStatsJson(raw);
+      wellnessState = {
+        ...wellnessState,
+        statsDateYMD: restored.statsDateYMD,
+        stats: restored.stats,
+      };
+    }
+  } catch (err) {
+    console.warn('Failed to load wellness stats from disk:', err);
+  }
+}
+
+function saveWellnessToDisk(): void {
+  try {
+    const p = getWellnessFilePath();
+    fs.writeFileSync(p, serializeWellnessStatsJson(wellnessState), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to save wellness stats to disk:', err);
+  }
+}
+
 function flushAllStateToDisk(): void {
   saveSettingsToDisk();
   saveRemindersToDisk();
   saveCalendarToDisk();
   saveScheduleToDisk();
+  saveWellnessToDisk();
 }
 
 function broadcastScheduleState(): void {
@@ -859,14 +896,6 @@ function triggerGiantAlarmNow(): void {
   mainWindow.webContents.send('trigger-giant-alarm');
 }
 
-function setPomodoroDuration(durationMs: number): void {
-  pomodoroState = createPomodoroTimer(durationMs);
-  pomodoroState = startPomodoro(pomodoroState);
-  updateTrayMenu();
-  broadcastPomodoroState();
-  saveSettingsToDisk();
-}
-
 function triggerPreviewWellnessReminder(): void {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   mainWindow.webContents.send('wellness-update', {
@@ -954,6 +983,7 @@ function setupPomodoroTicker(): void {
         mainWindow.webContents.send('trigger-giant-alarm');
         wellnessState = recordPomodoroCompleted(wellnessState);
         saveSettingsToDisk();
+        saveWellnessToDisk();
       }
     }
     updateTrayMenu();
@@ -977,10 +1007,13 @@ function setupWellnessCoachTicker(): void {
       idleSeconds = 0;
     }
 
-    const result = tickWellnessCoach(wellnessState, elapsedMs, idleSeconds, {
-      afkThresholdSeconds: 600,
-    });
-    wellnessState = result.state;
+    const result = usagiHidden ? null : tickWellnessCoach(wellnessState, elapsedMs, idleSeconds);
+    if (result) {
+      wellnessState = result.state;
+      if (result.statsReset || result.welcomeBack) {
+        saveWellnessToDisk();
+      }
+    }
 
     // 30-Minute Wardrobe Auto-Rotate
     const wardrobeResult = tickWardrobeRotation(wardrobeRotation, activeCostume, elapsedMs);
@@ -995,7 +1028,7 @@ function setupWellnessCoachTicker(): void {
       saveSettingsToDisk();
     }
 
-    if (mainWindow && !mainWindow.isDestroyed()) {
+    if (!usagiHidden && result && mainWindow && !mainWindow.isDestroyed()) {
       if (result.reminderMessage) {
         const msg =
           result.reminderMessage === WATER_REMINDER_MESSAGE
@@ -1084,6 +1117,7 @@ app.whenReady().then(() => {
   loadRemindersFromDisk();
   loadCalendarFromDisk();
   loadScheduleFromDisk();
+  loadWellnessFromDisk();
   createMainWindow();
   if (reminderState.stickyVisible) {
     createStickyWindow();
@@ -1179,6 +1213,7 @@ app.whenReady().then(() => {
 
   ipcMain.on('snack-consumed', () => {
     wellnessState = recordSnackFed(wellnessState);
+    saveWellnessToDisk();
     updateTrayMenu();
   });
 

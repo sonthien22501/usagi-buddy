@@ -5,7 +5,7 @@
 import { daysBetweenYMD } from './calendarStore';
 import { t, SupportedLocale } from './i18n';
 
-export type DeadlineAlertStage = 'evening-before' | 'due-day' | 'overdue';
+export type DeadlineAlertStage = 'evening-before' | 'due-day';
 
 export interface QuestRecurrence {
   type: 'daily' | 'weekdays' | 'weekly';
@@ -1197,7 +1197,7 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
           validItem.repeat = item.repeat as QuestRecurrence;
         }
         if (Array.isArray(item.notifiedStages)) {
-          const allowed: DeadlineAlertStage[] = ['evening-before', 'due-day', 'overdue'];
+          const allowed: DeadlineAlertStage[] = ['evening-before', 'due-day'];
           validItem.notifiedStages = item.notifiedStages.filter((st): st is DeadlineAlertStage =>
             allowed.includes(st as DeadlineAlertStage)
           );
