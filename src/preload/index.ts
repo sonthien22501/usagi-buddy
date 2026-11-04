@@ -9,6 +9,7 @@ import {
   WeekStartDay,
   StickyFontScale,
   ReminderPreferencesUpdate,
+  AddReminderResult,
 } from '../core/reminderStore';
 import { BuddyProfile, HolidayEvent } from '../core/calendarStore';
 import { ScheduleState, NewScheduleEntryInput } from '../core/scheduleStore';
@@ -59,7 +60,7 @@ export interface UsagiAPI {
   ) => () => void;
   getReminderState: () => Promise<ReminderState>;
   onReminderStateChanged: (callback: (state: ReminderState) => void) => () => void;
-  addReminder: (text: string, dueDate?: string) => void;
+  addReminder: (text: string, dueDate?: string) => Promise<AddReminderResult>;
   getCalendarState: () => Promise<CalendarStatePayload>;
   updateBuddyProfile: (profile: Partial<BuddyProfile>) => void;
   onCalendarStateChanged: (callback: (payload: CalendarStatePayload) => void) => () => void;
@@ -221,11 +222,10 @@ const api: UsagiAPI = {
     return () => ipcRenderer.removeListener('reminder-state-changed', handler);
   },
   addReminder: (text: string, dueDate?: string) => {
-    if (dueDate) {
-      ipcRenderer.send('add-reminder', { text, dueDate });
-    } else {
-      ipcRenderer.send('add-reminder', text);
-    }
+    return ipcRenderer.invoke(
+      'add-reminder',
+      dueDate ? { text, dueDate } : text
+    ) as Promise<AddReminderResult>;
   },
   getCalendarState: () => ipcRenderer.invoke('get-calendar-state'),
   updateBuddyProfile: (profile: Partial<BuddyProfile>) => {

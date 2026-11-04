@@ -67,6 +67,13 @@ export interface ReminderState {
 export const MAX_REMINDER_ITEMS = 30;
 export const MAX_REMINDER_TEXT_LENGTH = 120;
 
+function normalizeWeekday(day: unknown): number | null {
+  if (typeof day !== 'number' || !Number.isInteger(day) || day < 0 || day > 6) {
+    return null;
+  }
+  return day;
+}
+
 export function computeNextRecurringDueDate(
   repeat: QuestRecurrence,
   currentDueDate: string,
@@ -96,10 +103,14 @@ export function computeNextRecurringDueDate(
   }
 
   if (repeat.type === 'weekly') {
-    const targetDay = repeat.dayOfWeek !== undefined ? repeat.dayOfWeek : base.getDay();
+    // Corrupt/hand-edited files can contain an impossible weekday. Fall back to
+    // the current weekday and bound the search so this can never spin forever.
+    const targetDay = normalizeWeekday(repeat.dayOfWeek) ?? base.getDay();
     d.setDate(d.getDate() + 1);
-    while (d.getDay() !== targetDay) {
+    let guard = 0;
+    while (d.getDay() !== targetDay && guard < 7) {
       d.setDate(d.getDate() + 1);
+      guard += 1;
     }
     return formatLocalDateYMD(d);
   }
@@ -900,13 +911,21 @@ export function createInitialReminderState(): ReminderState {
   };
 }
 
-export function addReminderItem(
+export type AddReminderFailureReason = 'empty' | 'limit';
+
+export interface AddReminderResult {
+  state: ReminderState;
+  added: boolean;
+  reason?: AddReminderFailureReason;
+}
+
+export function tryAddReminderItem(
   state: ReminderState,
   text: string,
   nowMs = Date.now(),
   idOrDueDate?: string,
   explicitDueDate?: string
-): ReminderState {
+): AddReminderResult {
   const nowDate = new Date(nowMs);
   let customId: string | undefined;
   let fallbackDueDate: string | undefined;
@@ -928,8 +947,11 @@ export function addReminderItem(
     nowDate,
     state.dateFormat || 'DD/MM'
   );
-  if (!cleanText || state.items.length >= MAX_REMINDER_ITEMS) {
-    return state;
+  if (!cleanText) {
+    return { state, added: false, reason: 'empty' };
+  }
+  if (state.items.length >= MAX_REMINDER_ITEMS) {
+    return { state, added: false, reason: 'limit' };
   }
 
   const truncated = cleanText.slice(0, MAX_REMINDER_TEXT_LENGTH);
@@ -944,9 +966,22 @@ export function addReminderItem(
   };
 
   return {
-    ...state,
-    items: [...state.items, newItem],
+    state: {
+      ...state,
+      items: [...state.items, newItem],
+    },
+    added: true,
   };
+}
+
+export function addReminderItem(
+  state: ReminderState,
+  text: string,
+  nowMs = Date.now(),
+  idOrDueDate?: string,
+  explicitDueDate?: string
+): ReminderState {
+  return tryAddReminderItem(state, text, nowMs, idOrDueDate, explicitDueDate).state;
 }
 
 export function toggleReminderItem(
@@ -1110,16 +1145,12 @@ export function updateReminderPreferences(
 function isValidReminderItem(item: unknown): item is ReminderItem {
   if (typeof item !== 'object' || item === null) return false;
   const candidate = item as Record<string, unknown>;
-  const basicValid =
+  return (
     typeof candidate.id === 'string' &&
     typeof candidate.text === 'string' &&
     typeof candidate.completed === 'boolean' &&
-    typeof candidate.createdAtMs === 'number';
-  if (!basicValid) return false;
-  if ('dueDate' in candidate && candidate.dueDate !== undefined) {
-    return typeof candidate.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(candidate.dueDate);
-  }
-  return true;
+    typeof candidate.createdAtMs === 'number'
+  );
 }
 
 export function parseRemindersJson(raw: string | null | undefined): ReminderState {
@@ -1192,9 +1223,17 @@ export function parseRemindersJson(raw: string | null | undefined): ReminderStat
         if (
           item.repeat &&
           typeof item.repeat === 'object' &&
-          ['daily', 'weekdays', 'weekly'].includes((item.repeat as any).type)
+          ['daily', 'weekdays', 'weekly'].includes(item.repeat.type)
         ) {
-          validItem.repeat = item.repeat as QuestRecurrence;
+          const repeat = item.repeat;
+          const sanitizedRepeat: QuestRecurrence = { type: repeat.type };
+          if (sanitizedRepeat.type === 'weekly') {
+            const dayOfWeek = normalizeWeekday(repeat.dayOfWeek);
+            if (dayOfWeek !== null) {
+              sanitizedRepeat.dayOfWeek = dayOfWeek;
+            }
+          }
+          validItem.repeat = sanitizedRepeat;
         }
         if (Array.isArray(item.notifiedStages)) {
           const allowed: DeadlineAlertStage[] = ['evening-before', 'due-day'];

@@ -131,6 +131,8 @@ export type TranslationKey =
   | 'sticky.footer.completed'
   | 'sticky.footer.dueOn'
   | 'sticky.footer.clearDone'
+  | 'sticky.error.emptyQuest'
+  | 'sticky.error.questLimit'
   | 'sticky.badge.today'
   | 'sticky.badge.tmrw'
   | 'sticky.badge.yesterday'
@@ -260,6 +262,8 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'sticky.footer.completed': '{done}/{total} completed',
     'sticky.footer.dueOn': '({count} due on {date})',
     'sticky.footer.clearDone': 'Clear Done',
+    'sticky.error.emptyQuest': 'Add a quest title, not just a date.',
+    'sticky.error.questLimit': 'Quest list is full (30 max).',
     'sticky.badge.today': 'Today',
     'sticky.badge.tmrw': 'Tmrw',
     'sticky.badge.yesterday': 'Yesterday',
@@ -388,6 +392,8 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'sticky.footer.completed': 'Hoàn thành {done}/{total}',
     'sticky.footer.dueOn': '({count} đến hạn ngày {date})',
     'sticky.footer.clearDone': 'Xóa việc xong',
+    'sticky.error.emptyQuest': 'Hãy nhập tên nhiệm vụ, đừng chỉ nhập ngày.',
+    'sticky.error.questLimit': 'Danh sách nhiệm vụ đã đầy (tối đa 30).',
     'sticky.badge.today': 'Hôm nay',
     'sticky.badge.tmrw': 'Ngày mai',
     'sticky.badge.yesterday': 'Hôm qua',
@@ -516,6 +522,8 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'sticky.footer.completed': '{done}/{total} erledigt',
     'sticky.footer.dueOn': '({count} fällig am {date})',
     'sticky.footer.clearDone': 'Erledigte löschen',
+    'sticky.error.emptyQuest': 'Gib einen Quest-Titel ein, nicht nur ein Datum.',
+    'sticky.error.questLimit': 'Quest-Liste ist voll (max. 30).',
     'sticky.badge.today': 'Heute',
     'sticky.badge.tmrw': 'Morgen',
     'sticky.badge.yesterday': 'Gestern',
@@ -644,6 +652,8 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'sticky.footer.completed': '{done}/{total} complété(s)',
     'sticky.footer.dueOn': '({count} prévu le {date})',
     'sticky.footer.clearDone': 'Effacer terminés',
+    'sticky.error.emptyQuest': 'Ajoutez un titre de quête, pas seulement une date.',
+    'sticky.error.questLimit': 'La liste des quêtes est pleine (30 max).',
     'sticky.badge.today': "Aujourd'hui",
     'sticky.badge.tmrw': 'Demain',
     'sticky.badge.yesterday': 'Hier',
@@ -772,6 +782,8 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'sticky.footer.completed': '{done}/{total} completadas',
     'sticky.footer.dueOn': '({count} vence el {date})',
     'sticky.footer.clearDone': 'Borrar hechas',
+    'sticky.error.emptyQuest': 'Añade un título de misión, no solo una fecha.',
+    'sticky.error.questLimit': 'La lista de misiones está llena (máx. 30).',
     'sticky.badge.today': 'Hoy',
     'sticky.badge.tmrw': 'Mañana',
     'sticky.badge.yesterday': 'Ayer',
@@ -900,6 +912,8 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'sticky.footer.completed': '{done}/{total} 完了',
     'sticky.footer.dueOn': '({date}に{count}件締切)',
     'sticky.footer.clearDone': '完了をクリア',
+    'sticky.error.emptyQuest': '日付だけでなくクエスト名を入力してね。',
+    'sticky.error.questLimit': 'クエストは最大30件までだよ。',
     'sticky.badge.today': '今日',
     'sticky.badge.tmrw': '明日',
     'sticky.badge.yesterday': '昨日',
@@ -1028,6 +1042,8 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'sticky.footer.completed': '{done}/{total} 완료',
     'sticky.footer.dueOn': '({date} 마감 {count}개)',
     'sticky.footer.clearDone': '완료 항목 삭제',
+    'sticky.error.emptyQuest': '날짜만 말고 퀘스트 이름도 적어 주세요.',
+    'sticky.error.questLimit': '퀘스트 목록이 가득 찼어요 (최대 30개).',
     'sticky.badge.today': '오늘',
     'sticky.badge.tmrw': '내일',
     'sticky.badge.yesterday': '어제',
@@ -1156,6 +1172,8 @@ const TRANSLATIONS: Record<SupportedLocale, Record<TranslationKey, string>> = {
     'sticky.footer.completed': '已完成 {done}/{total}',
     'sticky.footer.dueOn': '({date} 截止 {count} 个)',
     'sticky.footer.clearDone': '清除已完成',
+    'sticky.error.emptyQuest': '请填写任务名称，不要只写日期。',
+    'sticky.error.questLimit': '任务列表已满（最多 30 个）。',
     'sticky.badge.today': '今天',
     'sticky.badge.tmrw': '明天',
     'sticky.badge.yesterday': '昨天',

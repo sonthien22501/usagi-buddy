@@ -691,15 +691,28 @@ function render(state: ReminderState): void {
   }
 }
 
-function handleAddQuest(): void {
+async function handleAddQuest(): Promise<void> {
   if (!questInput) return;
   const val = questInput.value.trim();
-  if (val && window.usagiAPI) {
-    window.usagiAPI.addReminder(val, activeQuickDueDate || undefined);
-    questInput.value = '';
-    activeQuickDueDate = null;
-    if (stickySelectedDateRow) stickySelectedDateRow.style.display = 'none';
+  if (!val || !window.usagiAPI) return;
+
+  const result = await window.usagiAPI.addReminder(val, activeQuickDueDate || undefined);
+  if (!result || !result.added) {
+    // Keep the user's text and explain why nothing was added.
+    questInput.setCustomValidity(
+      t(
+        currentLocale,
+        result?.reason === 'limit' ? 'sticky.error.questLimit' : 'sticky.error.emptyQuest'
+      )
+    );
+    questInput.reportValidity();
+    return;
   }
+
+  questInput.setCustomValidity('');
+  questInput.value = '';
+  activeQuickDueDate = null;
+  if (stickySelectedDateRow) stickySelectedDateRow.style.display = 'none';
 }
 
 function startClockRefresh(): void {
@@ -798,6 +811,9 @@ function init(): void {
   if (questInput) {
     questInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') handleAddQuest();
+    });
+    questInput.addEventListener('input', () => {
+      questInput.setCustomValidity('');
     });
   }
 

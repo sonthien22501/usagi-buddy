@@ -27,6 +27,8 @@ import {
   StickyTabId,
   computeNextRecurringDueDate,
   updateReminderDueDate,
+  tryAddReminderItem,
+  MAX_REMINDER_ITEMS,
 } from '../src/core/reminderStore';
 
 describe('reminderStore', () => {
@@ -966,6 +968,126 @@ describe('reminderStore', () => {
         expect(state.items[0].dueDate).toBe('2026-11-05');
         expect(state.items[0].notifiedStages).toEqual([]);
       });
+    });
+  });
+
+  describe('corrupt persisted data', () => {
+    it('keeps a quest whose dueDate is null instead of dropping the whole quest', () => {
+      const raw = JSON.stringify({
+        items: [
+          { id: 'a', text: 'Keep me', completed: false, createdAtMs: 1, dueDate: null },
+          { id: 'b', text: 'Me too', completed: false, createdAtMs: 2 },
+        ],
+      });
+
+      const parsed = parseRemindersJson(raw);
+      expect(parsed.items.map((item) => item.text)).toEqual(['Keep me', 'Me too']);
+      expect(parsed.items[0].dueDate).toBeUndefined();
+    });
+
+    it('keeps a quest with an impossible stored dueDate but drops only the date', () => {
+      const raw = JSON.stringify({
+        items: [
+          { id: 'a', text: 'Survives', completed: false, createdAtMs: 1, dueDate: '2026-99-99' },
+        ],
+      });
+
+      const parsed = parseRemindersJson(raw);
+      expect(parsed.items).toHaveLength(1);
+      expect(parsed.items[0].text).toBe('Survives');
+      expect(parsed.items[0].dueDate).toBeUndefined();
+    });
+
+    it('sanitizes an out-of-range weekly dayOfWeek instead of trusting it', () => {
+      const raw = JSON.stringify({
+        items: [
+          {
+            id: 'a',
+            text: 'Weekly quest',
+            completed: false,
+            createdAtMs: 1,
+            repeat: { type: 'weekly', dayOfWeek: 9 },
+          },
+        ],
+      });
+
+      const parsed = parseRemindersJson(raw);
+      expect(parsed.items[0].repeat).toEqual({ type: 'weekly' });
+
+      const next = computeNextRecurringDueDate(
+        parsed.items[0].repeat!,
+        '2026-11-03',
+        new Date(2026, 10, 3)
+      );
+      expect(next).toBe('2026-11-10');
+    });
+
+    it('bounds the weekly search even if an impossible dayOfWeek reaches the engine', () => {
+      const next = computeNextRecurringDueDate(
+        { type: 'weekly', dayOfWeek: 9 },
+        '2026-11-03',
+        new Date(2026, 10, 3)
+      );
+
+      expect(next).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(next).toBe('2026-11-10');
+    });
+
+    it('keeps a valid weekly dayOfWeek intact', () => {
+      const raw = JSON.stringify({
+        items: [
+          {
+            id: 'a',
+            text: 'Yoga',
+            completed: false,
+            createdAtMs: 1,
+            repeat: { type: 'weekly', dayOfWeek: 2 },
+          },
+        ],
+      });
+
+      expect(parseRemindersJson(raw).items[0].repeat).toEqual({ type: 'weekly', dayOfWeek: 2 });
+    });
+  });
+
+  describe('tryAddReminderItem feedback', () => {
+    it('reports an empty title when the text is only a date token', () => {
+      const state = createInitialReminderState();
+      const before = state.items.length;
+
+      const result = tryAddReminderItem(state, 'tomorrow', 1_700_000_000_000);
+
+      expect(result.added).toBe(false);
+      expect(result.reason).toBe('empty');
+      expect(result.state.items).toHaveLength(before);
+    });
+
+    it('reports the 30-quest cap so the UI can keep the input text', () => {
+      const state = {
+        ...createInitialReminderState(),
+        items: Array.from({ length: MAX_REMINDER_ITEMS }, (_, i) => ({
+          id: `item-${i}`,
+          text: `Quest ${i}`,
+          completed: false,
+          createdAtMs: i,
+        })),
+      };
+
+      const result = tryAddReminderItem(state, 'One too many', 1_700_000_000_000);
+
+      expect(result.added).toBe(false);
+      expect(result.reason).toBe('limit');
+      expect(result.state.items).toHaveLength(MAX_REMINDER_ITEMS);
+    });
+
+    it('returns the updated state when the quest is accepted', () => {
+      const state = createInitialReminderState();
+      const result = tryAddReminderItem(state, 'Water the plants', 1_700_000_000_000);
+
+      expect(result.added).toBe(true);
+      expect(result.reason).toBeUndefined();
+      expect(result.state.items).toHaveLength(state.items.length + 1);
+      expect(result.state.items.at(-1)?.text).toBe('Water the plants');
     });
   });
 });
